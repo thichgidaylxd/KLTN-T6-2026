@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle2, XCircle, Loader2, Mail } from 'lucide-react';
-import { AuthLayout } from '../../components/AuthLayout';
+import { AuthLayout } from '../../layouts/AuthLayout';
 import { authService } from '../../services/auth/authService';
 
 export const VerifyEmailPage: React.FC = () => {

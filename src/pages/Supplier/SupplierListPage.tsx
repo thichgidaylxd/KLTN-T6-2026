@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Truck, Plus, Trash2, Loader2, Search,
-  Building2, ChevronRight, X, Package
+  Building2, ChevronRight, X, Package, ArrowLeft
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '../../hooks/auth/useAuth'
@@ -104,6 +104,13 @@ export function SupplierListPage() {
       {/* ── Top bar ── */}
       <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 text-[12px] text-slate-500">
+          <button
+            onClick={() => navigate(`/farms/${farmId}/actions`)}
+            className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all mr-1"
+            title="Quay lại"
+          >
+            <ArrowLeft size={14} />
+          </button>
           <button
             onClick={() => navigate(`/farms/${farmId}/actions`)}
             className="hover:text-slate-800 transition-colors font-medium"

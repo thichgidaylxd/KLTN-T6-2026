@@ -11,7 +11,7 @@ import { cn } from '@/utils/cn';
 import {
   addDays,
 } from '@/utils/seasonPlanUtils';
-import { SelectionState } from '../SeasonPlanPage';
+import { SelectionState } from '@/pages/SeasonPlan/SeasonPlanPage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -564,7 +564,7 @@ export function PlanTimeline({
     if (l === 'ĐANG TIÊN HÀNH') return 'bg-blue-100 text-blue-700';
     if (l === 'QUÁ HẠN') return 'bg-rose-100 text-rose-700';
     if (l === 'PHÂN CÔNG') return 'bg-violet-100 text-violet-700';
-    return 'bg-slate-100 text-slate-500';
+    return 'bg-slate-100 text-slate-600';
   };
   const taskBarCls = (s: any) => {
     const l = statusLabel(s);
@@ -757,11 +757,11 @@ export function PlanTimeline({
                     onClick={() => onSelect({ type: 'PLAN', id: r.id, planId: r.id })}
                   >
                     <button
-                      className="p-0.5 mr-1.5 text-slate-400 hover:text-indigo-600 flex-shrink-0 transition-transform duration-200"
+                      className="p-0.5 mr-1.5 text-slate-500 hover:text-indigo-600 flex-shrink-0 transition-transform duration-200"
                       style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
                       onClick={e => togglePlan(r.id, e)}
                     >
-                      <ChevronDown size={14} strokeWidth={2.5} />
+                      <ChevronDown size={14} strokeWidth={3} />
                     </button>
                     <div className="w-4 h-4 rounded flex items-center justify-center mr-2 flex-shrink-0 bg-indigo-500">
                       <svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 1l1.5 3h3l-2.5 2 1 3L5 7.5 2 9l1-3L.5 4h3z" fill="white" /></svg>
@@ -794,13 +794,13 @@ export function PlanTimeline({
                     onClick={() => onSelect({ type: 'PHASE', id: r.id, planId: r.planId })}
                   >
                     <button
-                      className="p-0.5 mr-1.5 text-slate-300 hover:text-indigo-500 flex-shrink-0 transition-transform duration-200"
+                      className="p-0.5 mr-1.5 text-slate-500 hover:text-indigo-500 flex-shrink-0 transition-transform duration-200"
                       // FIX BUG 3: rotate dựa trên `expanded` (= expandedPhases.has(r.id))
                       // expanded=true → mũi tên xuống (0deg), expanded=false → mũi tên phải (-90deg)
                       style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
                       onClick={e => togglePhase(r.id, r.planId, e)}
                     >
-                      <ChevronDown size={13} />
+                      <ChevronDown size={14} strokeWidth={3} />
                     </button>
                     <div className="w-3.5 h-3.5 rounded-sm bg-indigo-500 flex items-center justify-center mr-2 flex-shrink-0">
                       <svg width="8" height="8" viewBox="0 0 8 8">
@@ -825,7 +825,7 @@ export function PlanTimeline({
                   )}
                   onClick={() => onSelect({ type: 'TASK', id: r.id, planId: r.planId, phaseId: r.phaseId })}
                 >
-                  <div className={cn('w-3 h-3 rounded-sm border mr-2 flex items-center justify-center flex-shrink-0', sc === 'HOÀN THÀNH' ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300')}>
+                  <div className={cn('w-3 h-3 rounded-sm border mr-2 flex items-center justify-center flex-shrink-0', sc === 'HOÀN THÀNH' ? 'bg-indigo-500 border-indigo-500' : 'border-slate-400')}>
                     {sc === 'HOÀN THÀNH' && (
                       <svg width="7" height="7" viewBox="0 0 8 8">
                         <path d="M1 4l2 2 4-3" stroke="white" strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -833,7 +833,7 @@ export function PlanTimeline({
                     )}
                   </div>
                   <span className="text-[10px] text-slate-400 mr-1.5 flex-shrink-0 font-mono">{(r.item as any).code ?? ''}</span>
-                  <span className="truncate text-[12px] text-slate-600 flex-1 min-w-0">{r.item.name}</span>
+                  <span className="truncate text-[12px] text-slate-700 font-medium flex-1 min-w-0">{r.item.name}</span>
                   <span className={cn('ml-1 flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide', statusBadgeCls(r.item.status))}>
                     {statusLabel(r.item.status)}
                   </span>

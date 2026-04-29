@@ -3,7 +3,8 @@ import {
   History, 
   Calendar, 
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  ArrowLeft
 } from 'lucide-react';
 import { useCurrentSubscription, useSubscriptionHistory } from '@/hooks/subscription/useSubscription';
 import { motion } from 'framer-motion';
@@ -54,7 +55,14 @@ export default function SubscriptionHistoryPage() {
   return (
     <div className="w-full px-6 py-4 h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-3 mb-4">
+        <button
+          onClick={() => navigate(`/farms/${currentFarmId}/actions`)}
+          className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all"
+          title="Quay lại"
+        >
+          <ArrowLeft size={20} strokeWidth={2.5} />
+        </button>
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight">Quản lý Gói dịch vụ</h1>
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Thông tin đăng ký & Giao dịch</p>

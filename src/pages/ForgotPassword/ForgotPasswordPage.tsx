@@ -1,5 +1,5 @@
 import React from 'react';
-import { AuthLayout } from '../../components/AuthLayout';
+import { AuthLayout } from '../../layouts/AuthLayout';
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
 export const ForgotPasswordPage: React.FC = () => {
   return (

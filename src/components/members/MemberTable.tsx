@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { MoreVertical, Users, UserPlus, Loader2, Mail } from 'lucide-react'
+import { toast } from 'sonner'
 import { StatusBadge } from './StatusBadge'
 import { ChangeRoleModal } from './ChangeRoleModal'
 import { RemoveMemberModal } from './RemoveMemberModal'
@@ -46,7 +47,13 @@ export function MemberTable() {
 
   const handleCancelInvitation = async (invitationId: string) => {
     if (!farmId) return
-    await cancelInvitation(farmId, invitationId)
+    try {
+      await cancelInvitation(farmId, invitationId).unwrap()
+      toast.success('Đã hủy lời mời thành công')
+      fetchInvitations(farmId)
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Không thể hủy lời mời')
+    }
   }
 
   const filteredMembers = members.filter(m =>

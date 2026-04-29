@@ -63,5 +63,12 @@ export const useTaskMaterials = (planId?: string, stageId?: string, taskId?: str
     addMaterial: useCallback((data: AddTaskMaterialRequest) => {
       return withUnwrap(addMaterialMutation.mutateAsync(data));
     }, [addMaterialMutation]),
+
+    deleteMaterial: useCallback((materialId: string) => {
+      if (!planId || !stageId || !taskId) return Promise.reject(new Error('Missing IDs'));
+      return withUnwrap(taskMaterialService.deleteTaskMaterial(planId, stageId, taskId, materialId).then(() => {
+        queryClient.invalidateQueries({ queryKey: MATERIAL_KEYS.task(planId, stageId, taskId) });
+      }));
+    }, [planId, stageId, taskId, queryClient]),
   };
 };

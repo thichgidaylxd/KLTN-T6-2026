@@ -243,12 +243,20 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
   const center = useMemo(() => {
     if (selectedPlot?.geometry) {
       const p = toLatLng(selectedPlot.geometry)
-      if (p.length) return calculateCentroid(p.map(x => ({ lat: x.lat, lng: x.lng })))
+      if (p.length) {
+        const c = calculateCentroid(p.map(x => ({ lat: Number(x.lat), lng: Number(x.lng) })))
+        if (isFinite(c.lat) && isFinite(c.lng)) return c
+      }
     }
-    if (selectedPlot?.boundaries?.length) return calculateCentroid(selectedPlot.boundaries)
+    if (selectedPlot?.boundaries?.length) {
+      const c = calculateCentroid(selectedPlot.boundaries.map(p => ({ lat: Number(p.lat), lng: Number(p.lng) })))
+      if (isFinite(c.lat) && isFinite(c.lng)) return c
+    }
     if (selectedWarehouseId) {
       const wh = warehouses.find(w => w.id === selectedWarehouseId)
-      if (wh) return { lat: wh.latitude, lng: wh.longitude }
+      if (wh && isFinite(Number(wh.latitude)) && isFinite(Number(wh.longitude))) {
+        return { lat: Number(wh.latitude), lng: Number(wh.longitude) }
+      }
     }
     return { lat: 10.3606, lng: 106.3653 }
   }, [selectedPlot, selectedWarehouseId, warehouses])
@@ -264,22 +272,40 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
     if (selectedPlot) {
       // Zoom vào lô được chọn
       const pts = selectedPlot.geometry ? toLatLng(selectedPlot.geometry) : (selectedPlot.boundaries ?? [])
-      pts.forEach(p => { bounds.extend(p); has = true })
+      pts.forEach(p => {
+        const lat = Number(p.lat), lng = Number(p.lng)
+        if (isFinite(lat) && isFinite(lng)) {
+          bounds.extend({ lat, lng })
+          has = true
+        }
+      })
     } else if (selectedWarehouseId) {
       const wh = warehouses.find(w => w.id === selectedWarehouseId)
       if (wh) {
-        bounds.extend({ lat: wh.latitude, lng: wh.longitude })
-        has = true
+        const lat = Number(wh.latitude), lng = Number(wh.longitude)
+        if (isFinite(lat) && isFinite(lng)) {
+          bounds.extend({ lat, lng })
+          has = true
+        }
       }
     } else {
       // Không có lô nào được chọn — fit tất cả các lô hiện có
       plots.forEach(plot => {
         const pts = plot.geometry ? toLatLng(plot.geometry) : (plot.boundaries ?? [])
-        pts.forEach(p => { bounds.extend(p); has = true })
+        pts.forEach(p => {
+          const lat = Number(p.lat), lng = Number(p.lng)
+          if (isFinite(lat) && isFinite(lng)) {
+            bounds.extend({ lat, lng })
+            has = true
+          }
+        })
       })
       warehouses.forEach(wh => {
-        bounds.extend({ lat: wh.latitude, lng: wh.longitude })
-        has = true
+        const lat = Number(wh.latitude), lng = Number(wh.longitude)
+        if (isFinite(lat) && isFinite(lng)) {
+          bounds.extend({ lat, lng })
+          has = true
+        }
       })
     }
 

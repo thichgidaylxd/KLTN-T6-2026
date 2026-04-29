@@ -36,4 +36,18 @@ export const taskMaterialService = {
     const validated = addTaskMaterialResponseSchema.parse(response.data);
     return validated.data;
   },
+
+  /**
+   * Xóa vật tư khỏi công việc
+   */
+  async deleteTaskMaterial(
+    planId: string,
+    stageId: string,
+    taskId: string,
+    materialId: string
+  ): Promise<void> {
+    await axiosInstance.delete(
+      `/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/materials/${materialId}`
+    );
+  },
 };

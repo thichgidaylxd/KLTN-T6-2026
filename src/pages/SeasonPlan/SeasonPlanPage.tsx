@@ -38,6 +38,7 @@ import { CreatePlanModal } from '@/components/season-plan/CreatePlanModal';
 import { ClonePlanModal } from '@/components/season-plan/ClonePlanModal';
 import { PlanDetailPanel } from '@/components/season-plan/PlanDetailPanel';
 import { CreatePhaseModal } from '@/components/season-plan/CreatePhaseModal';
+import { extractErrorMessage } from '@/utils/errorUtils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -205,28 +206,7 @@ export function SeasonPlanPage() {
   }, [selectedItem?.id, selectedItem?.phaseId, selectedItem?.type, selectedItem?.planId, fetchTasks]);
 
   // ── Error helper ──────────────────────────────────────────────────────────
-  const extractErrorMessage = (err: any): string => {
-    if (typeof err === 'string') return err;
-    if (Array.isArray(err)) return err.map(e => e.message || JSON.stringify(e)).join(', ');
 
-    // Handle error object from standard ApiResponse
-    if (err.message && typeof err.message === 'string') {
-      if (err.data && typeof err.data === 'object' && !Array.isArray(err.data)) {
-        // If there are detailed validation errors in data
-        const details = Object.values(err.data).join('; ');
-        if (details) return `${err.message}: ${details}`;
-      }
-      return err.message;
-    }
-
-    if (err.data && typeof err.data === 'object') {
-      if (Array.isArray(err.data))
-        return err.data.map((e: any) => e.message || e.code || JSON.stringify(e)).join('; ');
-      return err.message || err.code || JSON.stringify(err.data);
-    }
-
-    return err.message || 'Có lỗi xảy ra';
-  };
 
   const showError = (title: string, err: any) =>
     setNotification({ isOpen: true, type: 'error', title, message: extractErrorMessage(err) });
@@ -741,9 +721,9 @@ export function SeasonPlanPage() {
               onUpdateTask={handleUpdateTask}
               onDeleteTask={handleDeleteTask}
               onSelectPhase={(_id, phaseId) =>
-                setSelectedItem({ type: 'PHASE', id: phaseId, planId: planId! })}
+                setSelectedItem({ type: 'PHASE', id: phaseId, planId: _id })}
               onSelectTask={(_pid, stageId, taskId) =>
-                setSelectedItem({ type: 'TASK', id: taskId, phaseId: stageId, planId: planId! })}
+                setSelectedItem({ type: 'TASK', id: taskId, phaseId: stageId, planId: _pid })}
               onDeletePlan={handleDeletePlan}
               onClone={p => setCloneSourcePlan(p)}
               onAddPlots={handleAddPlotsToPlan}

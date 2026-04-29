@@ -1,6 +1,4 @@
 import { Phase, SeasonPlan } from '../types/seasonPlan';
-import { Crop } from '../types/crop';
-
 const DRAFT_STATUS = { id: '00000000-0000-0000-0000-000000000000', code: 'DRAFT', name: 'Bản nháp', color: '#94a3b8' };
 
 
@@ -17,61 +15,7 @@ export const addDays = (dateStr: string, days: number): string => {
   return `${year}-${month}-${day}`;
 };
 
-/**
- * Tự động sinh các giai đoạn dựa trên cấu hình cây trồng và ngày bắt đầu
- */
-export const generatePhasesFromCrop = (crop: Crop, startDate: string): Phase[] => {
 
-
-  if (!crop.stages || crop.stages.length === 0) {
-    // Nếu không có giai đoạn, sinh 1 giai đoạn mặc định
-    return [{
-      id: `phase-default-${Date.now()}`,
-      planId: '',
-      name: 'Chăm sóc',
-      source: 'MANUAL',
-      orderIndex: 0,
-      startDate: startDate,
-      endDate: addDays(startDate, 30),
-      duration: 30,
-      status: DRAFT_STATUS,
-      color: 'bg-green-500',
-      tasks: []
-    }];
-  }
-
-
-  const phaseColors = [
-    'bg-amber-600',
-    'bg-emerald-500',
-    'bg-green-600',
-    'bg-yellow-500',
-    'bg-blue-600',
-    'bg-indigo-600',
-  ];
-
-  let currentDate = startDate;
-  return crop.stages.map((stage, index) => {
-    const duration = stage.durationDays || 1;
-    const endDate = addDays(currentDate, duration);
-    const phase: Phase = {
-      id: `phase-${index}-${Date.now()}`,
-      planId: '',
-      name: stage.name,
-      source: 'TEMPLATE',
-      orderIndex: index,
-      startDate: currentDate,
-      endDate: endDate,
-      duration: duration,
-      status: DRAFT_STATUS,
-      color: phaseColors[index % phaseColors.length],
-      description: stage.description,
-      tasks: []
-    };
-    currentDate = endDate;
-    return phase;
-  });
-};
 
 /**
  * Kiểm tra xem hai khoảng thời gian có bị chồng lấn không
