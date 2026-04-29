@@ -40,6 +40,7 @@ export interface WarehouseItem {
 }
 
 export interface CreateWarehouseItemDto {
+  toLocationId: string;
   unitId: string;
   name: string;
   stock: number;

@@ -156,6 +156,7 @@ export function WarehouseDetailPage() {
         unitPrice: validation.data.unitPrice ?? 0,
         minStockQty: validation.data.minStockQty ?? 0,
         supplierId: validation.data.supplierId || "",
+        toLocationId: validation.data.toLocationId,
       }
       await createItem(farmId, warehouseId, payload).unwrap()
       toast.success('Đã thêm vật tư mới')

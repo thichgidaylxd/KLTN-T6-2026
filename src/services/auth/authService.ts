@@ -47,26 +47,16 @@ export const authService = {
   // ──────────────────────────────────────────────
 
   async forgotPassword(email: string): Promise<ApiResponse<string>> {
-    const response = await axiosInstance.post<ApiResponse<string>>(
-      '/api/v1/auth/forgot-password',
-      { email }
+    throw new Error(
+      `forgotPassword is not available in current API spec (email=${email}).`
     );
-    return response.data;
   },
 
-  async resetPassword(data: any): Promise<ApiResponse<string>> {
-    const response = await axiosInstance.post<ApiResponse<string>>(
-      '/api/v1/auth/reset-password',
-      data
-    );
-    return response.data;
+  async resetPassword(_data: any): Promise<ApiResponse<string>> {
+    throw new Error('resetPassword is not available in current API spec.');
   },
 
-  async changePassword(data: any): Promise<ApiResponse<string>> {
-    const response = await axiosInstance.post<ApiResponse<string>>(
-      '/api/v1/auth/change-password',
-      data
-    );
-    return response.data;
+  async changePassword(_data: any): Promise<ApiResponse<string>> {
+    throw new Error('changePassword is not available in current API spec.');
   }
 };

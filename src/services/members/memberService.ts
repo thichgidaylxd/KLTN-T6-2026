@@ -30,9 +30,10 @@ export const memberService = {
     return res.data;
   },
 
-  async changeRole(farmId: string, memberId: string, data: ChangeRoleRequest): Promise<ApiResponse<null>> {
-    const res = await axiosInstance.patch(`/api/v1/farms/${farmId}/members/${memberId}/role`, data);
-    return res.data;
+  async changeRole(farmId: string, memberId: string, _data: ChangeRoleRequest): Promise<ApiResponse<null>> {
+    throw new Error(
+      `changeRole is not available in current API spec (farmId=${farmId}, memberId=${memberId}).`
+    );
   },
 
   async getInvitations(farmId: string, status?: string): Promise<ApiResponse<Invitation[]>> {

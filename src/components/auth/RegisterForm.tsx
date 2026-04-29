@@ -3,16 +3,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
-import { Loader2, Mail, Lock, User, Tractor } from 'lucide-react';
+import { Loader2, Mail, Lock, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { useFarms } from '@/hooks/farms/useFarms';
 import { registerSchema } from '@/schemas/authSchemas';
 type RegisterFormValues = z.infer<typeof registerSchema>;
 export const RegisterForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { register: registerUser, login } = useAuth();
-  const { createFarm } = useFarms();
+
   const navigate = useNavigate();
   const {
     register,
@@ -34,30 +33,13 @@ export const RegisterForm: React.FC = () => {
       await registerUser(regPayload);
       
       // 2. Automatic Login to get Token
-      const loginResult = await login({
+      await login({
         email: data.email,
         password: data.password
       });
 
-      if (loginResult && loginResult.accessToken) {
-        // 3. Create Initial Farm
-        try {
-          await createFarm({
-            farmName: data.farmName,
-            description: `Trang trại của ${data.fullName}`
-          }).unwrap();
-          
-          toast.success('Đăng ký và tạo trang trại thành công!');
-          navigate('/dashboard');
-        } catch (farmError: any) {
-          console.error('Lỗi tạo farm:', farmError);
-          toast.success('Đăng ký thành công! Tuy nhiên không thể tạo trang trại tự động. Vui lòng tạo thủ công sau khi đăng nhập.');
-          navigate('/login');
-        }
-      } else {
-        toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
-        navigate('/login');
-      }
+      toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
+      navigate('/login');
     } catch (error: any) {
       toast.error(
         error.response?.data?.message || error.message ||
@@ -121,32 +103,7 @@ export const RegisterForm: React.FC = () => {
         }
       </div>
 
-      <div>
-        <label
-          htmlFor="farmName"
-          className="block text-sm font-medium text-gray-700">
-          
-          Tên trang trại
-        </label>
-        <div className="mt-1 relative rounded-md shadow-sm">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Tractor className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            id="farmName"
-            type="text"
-            disabled={isLoading}
-            className={`block w-full pl-10 pr-3 py-2 border ${errors.farmName ? 'border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'} rounded-md shadow-sm sm:text-sm transition-colors`}
-            placeholder="Tên trang trại (VD: Trang trại Xanh)"
-            {...register('farmName')} />
-          
-        </div>
-        {errors.farmName &&
-        <p className="mt-1.5 text-sm text-red-600">
-            {errors.farmName.message}
-          </p>
-        }
-      </div>
+
 
       <div>
         <label

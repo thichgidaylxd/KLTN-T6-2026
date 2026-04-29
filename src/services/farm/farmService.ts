@@ -35,10 +35,7 @@ export const farmService = {
    * [ĐANG CHỜ API] - Hiện chưa có trong tài liệu Backend mới nhất
    */
   async getFarmDetail(id: string): Promise<ApiResponse<Farm>> {
-    const response = await axiosInstance.get<ApiResponse<Farm>>(
-      `/api/v1/farms/${id}`
-    );
-    return response.data;
+    throw new Error(`getFarmDetail is not available in current API spec (id=${id}).`);
   },
 
   async selectFarm(farmId: string): Promise<ApiResponse<{ farmToken: string }>> {

@@ -20,7 +20,7 @@ export const registerSchema = z.object({
     .regex(/[A-Z]/, 'Mật khẩu phải chứa ít nhất 1 chữ hoa')
     .regex(/[0-9]/, 'Mật khẩu phải chứa ít nhất 1 số'),
   confirmPassword: z.string().min(1, 'Vui lòng xác nhận mật khẩu'),
-  farmName: z.string().min(1, 'Tên trang trại là bắt buộc'),
+
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Mật khẩu xác nhận không khớp',
   path: ['confirmPassword'],
