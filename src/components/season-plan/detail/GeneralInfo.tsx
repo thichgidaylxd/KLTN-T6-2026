@@ -1,5 +1,6 @@
 import { Calendar, Package, Zap, CheckSquare, Flag, FileText } from 'lucide-react';
 import { SeasonPlan, Phase, Task } from '@/types/seasonPlan';
+import { PlanStageStatusTransition } from '@/services/seasonplan/planStageStatusService';
 import { DateInput } from '@/components/ui/DateInput';
 import { 
   DetailRow, InlineText, StatusSelect, statusCodeOf, fmtDate 
@@ -20,6 +21,10 @@ interface GeneralInfoProps {
   setTempPhase: (p: Phase) => void;
   setTempTask: (t: Task) => void;
   onSelectPhase: (planId: string, phaseId: string) => void;
+  phaseStatusOptions?: { code: string; label: string }[];
+  phaseStatusTransitions?: PlanStageStatusTransition[];
+  taskStatusOptions?: { code: string; label: string }[];
+  taskStatusTransitions?: any[]; // use any or import TaskStatusTransition
 }
 
 export function GeneralInfo({
@@ -31,27 +36,48 @@ export function GeneralInfo({
   setTempPlan,
   setTempPhase,
   setTempTask,
-  onSelectPhase
+  onSelectPhase,
+  phaseStatusOptions,
+  phaseStatusTransitions,
+  taskStatusOptions,
+  taskStatusTransitions,
 }: GeneralInfoProps) {
   const { plan, type } = selection;
 
-  const phaseStatusOptions = [
-    { code: 'DRAFT', label: 'Bản nháp' },
-    { code: 'ACTIVE', label: 'Đang thực hiện' },
-    { code: 'READY_TO_HARVEST', label: 'Sẵn sàng thu hoạch' },
-    { code: 'HARVESTING', label: 'Đang thu hoạch' },
-    { code: 'COMPLETED', label: 'Hoàn thành' },
-    { code: 'CANCELLED', label: 'Đã hủy' },
-  ];
+  const resolvedPhaseStatusOptions = phaseStatusOptions ?? [];
+
+  // Filter phase options to only show valid transitions from current status
+  const currentPhaseStatusCode = statusCodeOf(tempPhase?.status ?? selection.phase?.status);
+  const validPhaseOptions = (() => {
+    if (!phaseStatusTransitions || phaseStatusTransitions.length === 0) {
+      return resolvedPhaseStatusOptions;
+    }
+    const validToCodes = new Set(
+      phaseStatusTransitions
+        .filter(t => t.fromStatus.code === currentPhaseStatusCode)
+        .map(t => t.toStatus.code)
+    );
+    // Always include current status so chip shows correctly
+    validToCodes.add(currentPhaseStatusCode);
+    return resolvedPhaseStatusOptions.filter(o => validToCodes.has(o.code));
+  })();
+
+  const resolvedTaskStatusOptions = taskStatusOptions ?? [];
+  const currentTaskStatusCode = statusCodeOf(tempTask?.status ?? selection.task?.status);
   
-  const taskStatusOptions = [
-    { code: 'UNASSIGNED', label: 'Chưa giao' },
-    { code: 'ASSIGNED', label: 'Đã giao việc' },
-    { code: 'IN_PROGRESS', label: 'Đang thực hiện' },
-    { code: 'COMPLETED', label: 'Hoàn thành' },
-    { code: 'OVERDUE', label: 'Trễ hạn' },
-    { code: 'CANCELLED', label: 'Đã hủy' },
-  ];
+  const validTaskOptions = (() => {
+    if (!taskStatusTransitions || taskStatusTransitions.length === 0) {
+      return resolvedTaskStatusOptions;
+    }
+    const validToCodes = new Set(
+      taskStatusTransitions
+        .filter(t => t.fromStatus.code === currentTaskStatusCode)
+        .map(t => t.toStatus.code)
+    );
+    // Always include current status so chip shows correctly
+    validToCodes.add(currentTaskStatusCode);
+    return resolvedTaskStatusOptions.filter(o => validToCodes.has(o.code));
+  })();
 
   return (
     <>
@@ -77,25 +103,20 @@ export function GeneralInfo({
 
         {/* Status lozenge */}
         <div className="flex items-center gap-2 mt-2.5">
-          {type === 'PLAN' && (
-            <StatusSelect
-              value={statusCodeOf(plan.status)}
-              options={phaseStatusOptions}
-              canEdit={false}
-            />
-          )}
+          {/* Plan status removed as requested (no API) */}
+
           {type === 'PHASE' && (
             <StatusSelect
               value={statusCodeOf(tempPhase?.status ?? selection.phase?.status)}
-              options={phaseStatusOptions}
+              options={validPhaseOptions}
               onChange={s => tempPhase && setTempPhase({ ...tempPhase, status: { ...tempPhase.status, code: s } })}
-              canEdit={isEditing}
+              canEdit={isEditing && validPhaseOptions.length > 0}
             />
           )}
           {type === 'TASK' && (
             <StatusSelect
               value={statusCodeOf(tempTask?.status ?? selection.task?.status)}
-              options={taskStatusOptions}
+              options={validTaskOptions}
               onChange={s => tempTask && setTempTask({ ...tempTask, status: { ...tempTask.status, code: s } })}
               canEdit={isEditing}
             />

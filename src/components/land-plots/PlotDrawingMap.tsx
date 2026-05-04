@@ -18,6 +18,8 @@ interface PlotDrawingMapProps {
   initialGeometry?: Geometry | null
   tempPlotData?: Partial<Plot>
   existingPlots?: Plot[]
+  /** Override chiều cao map container. Mặc định '400px' */
+  mapHeight?: string
 }
 
 const MAP_OPTIONS: google.maps.MapOptions = {
@@ -34,7 +36,8 @@ const SNAP_RADIUS = 20 // pixels
 export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapProps>(({ 
   onGeometryChange, 
   initialGeometry, 
-  existingPlots = [] 
+  existingPlots = [],
+  mapHeight = '400px',
 }, ref) => {
   const { isLoaded } = useGoogleMaps()
 
@@ -57,12 +60,8 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
     onGeometryChange(null, 0)
   }, [onGeometryChange])
 
-  // Expose clear function via ref
-  useImperativeHandle(ref, () => ({
-    clear: handleClear
-  }))
+  useImperativeHandle(ref, () => ({ clear: handleClear }))
 
-  // ── Stats calculation ─────────────────────────────────────
   useEffect(() => {
     if (drawPts.length >= 3 && window.google?.maps?.geometry) {
       const path = drawPts.map(p => new google.maps.LatLng(p.lat, p.lng))
@@ -73,7 +72,6 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
     }
   }, [drawPts])
 
-  // ── Real-time validation ──────────────────────────────────
   const checkOverlap = useCallback((from: GeoPoint, to: GeoPoint) => {
     const inside = existingPlots.find(p => {
       const path = getPlotPath(p)
@@ -102,7 +100,6 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
     setOverlappingPlotName(null)
   }, [drawPts, area, onGeometryChange])
 
-  // ── Handlers ──────────────────────────────────────────────
   const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
     if (!isDrawing || !e.latLng) return
     const pt = { lat: e.latLng.lat(), lng: e.latLng.lng() }
@@ -122,10 +119,7 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
         const p2 = proj.fromLatLngToPoint(e.latLng)
         if (p1 && p2) {
           const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y) * Math.pow(2, mapRef.current?.getZoom() || 0)
-          if (dist < SNAP_RADIUS) {
-            finishDrawing()
-            return
-          }
+          if (dist < SNAP_RADIUS) { finishDrawing(); return }
         }
       }
     }
@@ -137,10 +131,8 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
     const pt = { lat: e.latLng.lat(), lng: e.latLng.lng() }
     setHoverPt(pt)
     if (drawPts.length > 0) {
-      const conflict = checkOverlap(drawPts[drawPts.length - 1], pt)
-      setOverlappingPlotName(conflict)
-      const self = isSelfIntersecting([...drawPts, pt])
-      setIsSelfIntersect(self)
+      setOverlappingPlotName(checkOverlap(drawPts[drawPts.length - 1], pt))
+      setIsSelfIntersect(isSelfIntersecting([...drawPts, pt]))
     }
   }, [isDrawing, drawPts, checkOverlap])
 
@@ -150,16 +142,16 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
     return { lat: 10.3606, lng: 106.3653 }
   }, [initialGeometry])
 
-  if (!isLoaded) return <div>Loading...</div>
-
   const errorMessage = useMemo(() => {
     if (isSelfIntersect) return 'Ranh giới không hợp lệ: ranh giới lô đất không được tự cắt chính nó.'
     if (overlappingPlotName) return 'Ranh giới không hợp lệ: Các lô đất không được phép chồng lên nhau.'
     return null
   }, [isSelfIntersect, overlappingPlotName])
 
+  if (!isLoaded) return <div>Loading...</div>
+
   return (
-    <div className="flex flex-col gap-3 relative">
+    <div className="flex flex-col gap-3 relative" style={{ height: '100%' }}>
       {errorMessage && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none">
           <div className="bg-black/80 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg text-center min-w-[300px]">
@@ -170,7 +162,7 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
       )}
 
       {/* Toolbar */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
           onClick={() => {
@@ -190,18 +182,20 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
         >
           {isDrawing ? '⏹ Kết thúc vẽ' : '✏️ Vẽ polygon'}
         </button>
-        
         <button
           type="button"
           onClick={handleClear}
-          className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-all font-medium text-sm flex items-center gap-2"
+          className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-all font-medium text-sm"
         >
           Xóa
         </button>
       </div>
 
-      {/* Map Container */}
-      <div className="h-[400px] rounded-xl overflow-hidden border border-gray-200 shadow-sm relative group">
+      {/* Map Container — dùng mapHeight prop */}
+      <div
+        className="rounded-xl overflow-hidden border border-gray-200 shadow-sm relative group"
+        style={{ height: mapHeight, minHeight: 0, flex: mapHeight === '100%' ? 1 : undefined }}
+      >
         <GoogleMap
           mapContainerStyle={{ width: '100%', height: '100%' }}
           center={center}
@@ -271,15 +265,15 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
               errorMessage ? 'border-red-200' : 'border-emerald-100'
             }`}>
               <div className="flex items-center justify-between">
-                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Điểm đã vẽ</span>
-                 <span className={`text-sm font-black ${errorMessage ? 'text-red-500' : 'text-emerald-600'}`}>{drawPts.length}</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Điểm đã vẽ</span>
+                <span className={`text-sm font-black ${errorMessage ? 'text-red-500' : 'text-emerald-600'}`}>{drawPts.length}</span>
               </div>
               <div className="h-px bg-gray-100" />
               <div className="flex flex-col">
-                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Diện tích ước tính</span>
-                 <span className={`text-lg font-black ${errorMessage ? 'text-red-500' : 'text-emerald-600'}`}>
-                    {area.toFixed(4)} <span className="text-xs font-bold uppercase">ha</span>
-                 </span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Diện tích ước tính</span>
+                <span className={`text-lg font-black ${errorMessage ? 'text-red-500' : 'text-emerald-600'}`}>
+                  {area.toFixed(4)} <span className="text-xs font-bold uppercase">ha</span>
+                </span>
               </div>
             </div>
           </div>

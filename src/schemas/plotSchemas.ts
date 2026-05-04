@@ -11,6 +11,7 @@ export const geometrySchema = z.object({
 // có thê vẽ or không
 export const plotSchema = z.object({
   id: z.string().uuid(),
+  version: z.number().optional(),
   name: z.string(),
   areaHa: z.number().nullish().transform(v => v ?? 0),
   status: z.enum(['ACTIVE', 'INACTIVE']),
@@ -18,9 +19,10 @@ export const plotSchema = z.object({
   geometry: geometrySchema.nullish().transform(v => v ?? undefined),
 });
 
-// Schema cho Payload tạo Plot mới
+// Schema cho Payload tạo Plot mới — geometry KHÔNG bắt buộc
 export const createPlotSchema = z.object({
   name: z.string().trim().min(1, 'Vui lòng nhập tên lô đất'),
+  geometry: geometrySchema.optional().nullable(),
   description: z.string().optional().nullable(),
 });
 

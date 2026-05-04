@@ -1,10 +1,11 @@
 export interface Warehouse {
   id: string;
+  version?: number;
   name: string;
-  description: string;
-  address: string;
-  latitude: number;
-  longitude: number;
+  description?: string | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface CreateWarehouseRequest {
@@ -13,4 +14,8 @@ export interface CreateWarehouseRequest {
   address: string;
   latitude: number;
   longitude: number;
+}
+
+export interface UpdateWarehouseRequest extends Partial<CreateWarehouseRequest> {
+  version?: number;
 }

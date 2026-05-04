@@ -1,42 +1,45 @@
 export interface WarehouseItem {
   id: string;
+  version?: number;
   name: string;
   stock: number;
+  reservedQty: number;
   warehouse: {
     id: string;
     name: string;
-    description: string;
-    address: string;
-    latitude: number;
-    longitude: number;
+    description?: string | null;
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   unit: {
     id: string;
     code: string;
     name: string;
   };
-  supplier: {
+  supplier?: {
+    id: string;
     code: string;
     name: string;
     createdAt: string;
-  };
-  sku: {
+  } | null;
+  sku?: {
     sku: string;
-    description: string;
+    description?: string | null;
     createdAt: string;
-  };
+  } | null;
   createdBy: {
     id: string;
     fullName: string;
     email: string;
-    phone: string;
+    phone?: string | null;
     status: string;
     isLocked: boolean;
     createdAt: string;
   };
   createdAt: string;
   unitPrice: number;
-  minStockQty: number;
+  minStockQty?: number;
 }
 
 export interface CreateWarehouseItemDto {
@@ -48,4 +51,8 @@ export interface CreateWarehouseItemDto {
   unitPrice: number;
   supplierId: string;
   minStockQty: number;
+}
+
+export interface UpdateWarehouseItemDto extends Partial<CreateWarehouseItemDto> {
+  version?: number;
 }

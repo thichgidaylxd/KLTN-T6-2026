@@ -40,6 +40,7 @@ export interface Disease {
 // Response shape từ API POST /api/v1/crop và GET (khi có)
 export interface Crop {
   id: string;
+  version?: number;
   name: string;
   cropType: CropType;
   scope: string;           // 'SYSTEM' | 'FARM'
@@ -68,4 +69,6 @@ export interface CreateCropTypeRequest {
 }
 
 // UpdateCropRequest (dùng khi BE cung cấp endpoint update)
-export interface UpdateCropRequest extends Partial<CreateCropRequest> {}
+export interface UpdateCropRequest extends Partial<CreateCropRequest> {
+  version?: number;
+}

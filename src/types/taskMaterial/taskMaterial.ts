@@ -3,6 +3,8 @@ export interface TaskMaterialStatus {
   code: string;
   name: string;
   color: string;
+  isInitial?: boolean;
+  isTerminal?: boolean;
 }
 
 export interface TaskMaterial {

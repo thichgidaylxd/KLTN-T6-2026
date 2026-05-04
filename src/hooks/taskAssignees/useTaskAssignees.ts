@@ -1,7 +1,10 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useDispatch, useSelector } from 'react-redux';
 import { taskAssigneeService } from '../../services/taskAssignee/taskAssigneeService';
 import { AddTaskAssigneeRequest } from '../../types/taskAssignee';
+import { AppDispatch, RootState } from '../../store';
+import { setTaskAssigneesSnapshot } from '../../store/taskAssigneeSlice';
 
 const ASSIGNEE_KEYS = {
   all: ['task-assignees'] as const,
@@ -13,7 +16,10 @@ const withUnwrap = <T,>(promise: Promise<T>) =>
   Object.assign(promise, { unwrap: () => promise });
 
 export const useTaskAssignees = (planId?: string, stageId?: string, taskId?: string, enabled: boolean = true) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const taskAssigneeBridge = useSelector((state: RootState) => state.taskAssignee);
   const queryClient = useQueryClient();
+  const taskKey = planId && stageId && taskId ? `${planId}:${stageId}:${taskId}` : null;
 
   const assigneesQuery = useQuery({
     queryKey: planId && stageId && taskId ? ASSIGNEE_KEYS.task(planId, stageId, taskId) : ['task-assignees', 'empty'],
@@ -42,8 +48,14 @@ export const useTaskAssignees = (planId?: string, stageId?: string, taskId?: str
     [assigneesQuery.error, addAssigneeMutation.error]
   );
 
+  useEffect(() => {
+    if (taskKey && assigneesQuery.data) {
+      dispatch(setTaskAssigneesSnapshot({ taskKey, assignees: assigneesQuery.data }));
+    }
+  }, [assigneesQuery.data, dispatch, taskKey]);
+
   return {
-    assignees: assigneesQuery.data ?? [],
+    assignees: assigneesQuery.data ?? (taskKey ? taskAssigneeBridge.assigneesByTaskSnapshot[taskKey] ?? [] : []),
     loading: assigneesQuery.isLoading || assigneesQuery.isFetching,
     adding: addAssigneeMutation.isPending,
     error,
@@ -62,9 +74,9 @@ export const useTaskAssignees = (planId?: string, stageId?: string, taskId?: str
       return withUnwrap(addAssigneeMutation.mutateAsync(data));
     }, [addAssigneeMutation]),
 
-    deleteAssignee: useCallback((assigneeId: string) => {
+    deleteAssignee: useCallback((assigneeId: string, removalReason?: string) => {
       if (!planId || !stageId || !taskId) return Promise.reject(new Error('Missing IDs'));
-      return withUnwrap(taskAssigneeService.deleteTaskAssignee(planId, stageId, taskId, assigneeId).then(() => {
+      return withUnwrap(taskAssigneeService.deleteTaskAssignee(planId, stageId, taskId, assigneeId, removalReason).then(() => {
         queryClient.invalidateQueries({ queryKey: ASSIGNEE_KEYS.task(planId, stageId, taskId) });
       }));
     }, [planId, stageId, taskId, queryClient]),

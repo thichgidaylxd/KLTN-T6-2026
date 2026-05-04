@@ -35,6 +35,10 @@ export const apiTaskMaterialSchema = z.object({
 
 export const getTaskMaterialsResponseSchema = apiResponseSchema(z.array(apiTaskMaterialSchema));
 export const addTaskMaterialResponseSchema = apiResponseSchema(apiTaskMaterialSchema);
+export const deleteTaskMaterialResponseSchema = z.union([
+  apiResponseSchema(z.string()),
+  z.string(),
+]);
 
 export const createTaskMaterialSchema = z.object({
   warehouseItemId: z.string().uuid('Vui lòng chọn vật tư trong kho'),

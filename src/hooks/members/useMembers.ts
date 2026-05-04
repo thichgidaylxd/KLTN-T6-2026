@@ -7,6 +7,7 @@ const MEMBER_KEYS = {
   all: ['members'] as const,
   members: (farmId: string) => ['members', farmId] as const,
   invitations: (farmId: string) => ['members', farmId, 'invitations'] as const,
+  myInvitations: (status?: string) => ['members', 'me', 'invitations', status ?? 'all'] as const,
 };
 
 const withUnwrap = <T,>(promise: Promise<T>) =>
@@ -129,6 +130,16 @@ export const useMembers = () => {
           }),
         );
       },
+      [queryClient],
+    ),
+    fetchMyInvitations: useCallback(
+      (status?: string) =>
+        withUnwrap(
+          queryClient.fetchQuery({
+            queryKey: MEMBER_KEYS.myInvitations(status),
+            queryFn: async () => (await memberService.getMyInvitations(status)).data ?? [],
+          }),
+        ),
       [queryClient],
     ),
     inviteMember: useCallback(

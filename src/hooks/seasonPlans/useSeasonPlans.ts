@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useSeasonPlanPlans } from './useSeasonPlanPlans';
 import { useSeasonPlanPhases } from './useSeasonPlanPhases';
 import { useSeasonPlanTasks } from './useSeasonPlanTasks';
@@ -8,16 +7,15 @@ export const useSeasonPlans = () => {
   const phasePart = useSeasonPlanPhases({ updatePlansCache: plansPart.updatePlansCache });
   const taskPart = useSeasonPlanTasks({ updatePlansCache: plansPart.updatePlansCache });
 
-  const error = useMemo(
-    () => plansPart.error ?? phasePart.error ?? taskPart.error ?? null,
-    [plansPart.error, phasePart.error, taskPart.error],
-  );
 
   return {
     plans: plansPart.plans,
     loading: plansPart.loading,
     createLoading: plansPart.createLoading,
-    error,
+    error: plansPart.error,
+    createError: plansPart.createError,
+    deleteError: plansPart.deleteError,
+    updatePlanTimeError: plansPart.updatePlanTimeError,
     fetchPlans: plansPart.fetchPlans,
     createPlan: plansPart.createPlan,
     updatePlan: plansPart.updatePlan,
@@ -31,6 +29,13 @@ export const useSeasonPlans = () => {
     deletePhase: phasePart.deletePhase,
     updatePhase: phasePart.updatePhase,
     updatePhaseTime: phasePart.updatePhaseTime,
+    updatePhaseStatus: phasePart.updatePhaseStatus,
+    fetchPlanStageStatuses: phasePart.fetchPlanStageStatuses,
+    fetchPlanStageStatusTransitions: phasePart.fetchPlanStageStatusTransitions,
+    fetchStageStatusHistories: phasePart.fetchStageStatusHistories,
+    planStageStatuses: phasePart.planStageStatuses,
+    planStageStatusTransitions: phasePart.planStageStatusTransitions,
+    planStageStatusHistoriesByStage: phasePart.planStageStatusHistoriesByStage,
     optimisticallyUpdatePhaseTime: phasePart.optimisticallyUpdatePhaseTime,
     fetchTasks: taskPart.fetchTasks,
     createTask: taskPart.createTask,
@@ -38,5 +43,12 @@ export const useSeasonPlans = () => {
     updateTaskTime: taskPart.updateTaskTime,
     deleteTask: taskPart.deleteTask,
     optimisticallyUpdateTaskTime: taskPart.optimisticallyUpdateTaskTime,
+    taskStatuses: taskPart.taskStatuses,
+    taskStatusTransitions: taskPart.taskStatusTransitions,
+    taskStatusHistoriesByTask: taskPart.taskStatusHistoriesByTask,
+    fetchTaskStatuses: taskPart.fetchTaskStatuses,
+    fetchTaskStatusTransitions: taskPart.fetchTaskStatusTransitions,
+    fetchTaskStatusHistories: taskPart.fetchTaskStatusHistories,
+    updateTaskStatus: taskPart.updateTaskStatus,
   };
 };

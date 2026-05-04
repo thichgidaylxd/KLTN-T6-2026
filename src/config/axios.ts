@@ -54,15 +54,6 @@ const extractApiMessage = (payload: unknown): string | null => {
   return null;
 };
 
-const buildFallbackMessage = (error: any): string => {
-  const method = (error?.config?.method ?? 'request').toString().toUpperCase();
-  const url = error?.config?.url ?? 'unknown-endpoint';
-  const status = error?.response?.status;
-
-  if (status) return `Yeu cau ${method} ${url} that bai (HTTP ${status})`;
-  if (error?.request) return `Khong nhan duoc phan hoi tu server cho ${method} ${url}`;
-  return `Khong the thuc hien yeu cau ${method} ${url}`;
-};
 
 // Request interceptor to add the access token
 axiosInstance.interceptors.request.use(
@@ -145,10 +136,10 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // Ưu tiên message từ API response; nếu không có thì fallback theo request context
+    // Ưu tiên message từ API response; nếu không có thì dùng message mặc định của lỗi
     const responseMessage = extractApiMessage(error?.response?.data);
     const requestMessage = extractApiMessage(error?.data);
-    const finalMessage = responseMessage ?? requestMessage ?? buildFallbackMessage(error);
+    const finalMessage = responseMessage ?? requestMessage ?? error.message;
     error.message = finalMessage;
 
     return Promise.reject(error);

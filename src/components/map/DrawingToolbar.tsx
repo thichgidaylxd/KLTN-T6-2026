@@ -7,9 +7,7 @@ interface DrawingToolbarProps {
   onModeChange: (mode: DrawingMode) => void
   onSave: () => void
   onCancel: () => void
-  onDeleteClick: () => void
   canSave: boolean
-  hasBoundary: boolean
   /** Tên lô đang bị chồng chéo, null nếu không có */
   overlappingPlotName?: string | null
 }

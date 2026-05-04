@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSeasonPlans } from '../../hooks/seasonPlans/useSeasonPlans';
-import { SeasonPlan, PlanStatus, Task } from '../../types/seasonPlan';
+import { SeasonPlan, Task } from '../../types/seasonPlan';
 import {
   Search,
   ArrowLeft,
@@ -68,41 +68,8 @@ const NAV_TABS = [
 
 type NavTab = typeof NAV_TABS[number]['key'];
 
-// ─── Status helpers ───────────────────────────────────────────────────────────
+const toLabel = (code: string, name?: string) => name || code;
 
-function getStatusLabel(status: PlanStatus | any): string {
-  const code = typeof status === 'string' ? status : status?.code;
-  const name = typeof status === 'string' ? null : status?.name;
-  if (name) return name;
-  switch (code) {
-    case 'DRAFT': return 'Bản nháp';
-    case 'ACTIVE': return 'Đang thực hiện';
-    case 'READY_TO_HARVEST': return 'Sẵn sàng thu hoạch';
-    case 'HARVESTING': return 'Đang thu hoạch';
-    case 'COMPLETED': return 'Hoàn thành';
-    case 'CANCELLED': return 'Đã hủy';
-    case 'ASSIGNED': return 'Đã giao việc';
-    case 'IN_PROGRESS': return 'Đang thực hiện';
-    case 'OVERDUE': return 'Trễ hạn';
-    default: return code || 'N/A';
-  }
-}
-
-function getStatusColor(status: PlanStatus | any): string {
-  const code = typeof status === 'string' ? status : status?.code;
-  switch (code) {
-    case 'DRAFT': return 'bg-slate-100 text-slate-600';
-    case 'ACTIVE':
-    case 'IN_PROGRESS': return 'bg-blue-100 text-blue-700';
-    case 'READY_TO_HARVEST': return 'bg-lime-100 text-lime-700';
-    case 'HARVESTING': return 'bg-emerald-100 text-emerald-700';
-    case 'COMPLETED': return 'bg-slate-100 text-slate-400';
-    case 'OVERDUE': return 'bg-rose-100 text-rose-700';
-    case 'ASSIGNED': return 'bg-violet-100 text-violet-700';
-    case 'CANCELLED': return 'bg-red-100 text-red-700';
-    default: return 'bg-slate-100 text-slate-600';
-  }
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('vi-VN', {
@@ -125,8 +92,9 @@ export function SeasonPlanPage() {
     plans, loading, error,
     fetchPlans, createPlan, deletePlan: removePlan, updatePlanTime,
     fetchStages, fetchPlanPlots, createPhase, deletePhase: removePhase, updatePhase,
-    updatePhaseTime, fetchTasks, createTask: createSeasonTask,
-    updateTask: updateSeasonTask, updateTaskTime, deleteTask: removeSeasonTask,
+    updatePhaseTime, updatePhaseStatus, fetchPlanStageStatuses, fetchPlanStageStatusTransitions, planStageStatuses, planStageStatusTransitions, fetchTasks, createTask: createSeasonTask,
+    updateTask: updateSeasonTask, updateTaskTime, updateTaskStatus, deleteTask: removeSeasonTask,
+    fetchTaskStatuses, fetchTaskStatusTransitions, taskStatuses, taskStatusTransitions,
     addPlotsToPlan, optimisticallyUpdatePhaseTime, optimisticallyUpdateTaskTime,
     addPlanToState
   } = useSeasonPlans();
@@ -136,7 +104,6 @@ export function SeasonPlanPage() {
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<NavTab>('timeline');
-  const [statusFilter, setStatusFilter] = useState<PlanStatus | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
   // ── Modal state ───────────────────────────────────────────────────────────
@@ -172,15 +139,49 @@ export function SeasonPlanPage() {
   const displayPlans = currentPlan ? [currentPlan] : farmPlans;
 
   const filteredPlans = displayPlans.filter((p: SeasonPlan) => {
-    const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
+    return matchesSearch;
   });
+  const phaseStatusOptions = planStageStatuses.map((s) => ({
+    code: s.code,
+    label: toLabel(s.code, s.name),
+    color: s.color,
+  }));
+
+  const taskStatusOptions = taskStatuses.map((s) => ({
+    code: s.code,
+    label: toLabel(s.code, s.name),
+    color: s.color,
+  }));
 
   // ── Effects ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchPlans();
-  }, [fetchPlans, accessToken]);
+    if (accessToken) {
+      fetchPlans();
+      // If we are on a specific plan page, fetch its stages and plots immediately
+      // instead of waiting for plans to be fetched and currentPlan to be derived.
+      if (planId) {
+        fetchStages(planId);
+        fetchPlanPlots(planId);
+      }
+    }
+  }, [fetchPlans, fetchStages, fetchPlanPlots, accessToken, planId]);
+
+  useEffect(() => {
+    fetchPlanStageStatuses();
+  }, [fetchPlanStageStatuses]);
+
+  useEffect(() => {
+    fetchPlanStageStatusTransitions();
+  }, [fetchPlanStageStatusTransitions]);
+
+  useEffect(() => {
+    fetchTaskStatuses();
+  }, [fetchTaskStatuses]);
+
+  useEffect(() => {
+    fetchTaskStatusTransitions();
+  }, [fetchTaskStatusTransitions]);
 
   useEffect(() => {
     if (currentPlan) {
@@ -242,7 +243,7 @@ export function SeasonPlanPage() {
 
       // Cập nhật ngày bắt đầu và kết thúc → PUT /api/v1/plans/{planId}/time
       if (isDateChanged) {
-        await updatePlanTime(updatedPlan.id, updatedPlan.startDate, updatedPlan.endDate).unwrap();
+        await updatePlanTime(updatedPlan.id, updatedPlan.startDate, updatedPlan.endDate, original.version).unwrap();
       }
     } catch (err: any) {
       showError('Lỗi cập nhật kế hoạch', err);
@@ -261,7 +262,11 @@ export function SeasonPlanPage() {
     try {
       // Optimistic UI update so bar does not snap back while waiting for PUT response
       optimisticallyUpdatePhaseTime({ planId, stageId, startDate: data.startDate, endDate: data.endDate });
-      await updatePhaseTime(planId, stageId, data).unwrap();
+      const stageVersion = plans
+        .find((p) => p.id === planId)
+        ?.phases?.find((ph) => ph.id === stageId)
+        ?.version;
+      await updatePhaseTime(planId, stageId, { ...data, version: stageVersion }).unwrap();
       await fetchStages(planId).unwrap();
     } catch (err: any) {
       // Re-sync from server when PUT fails to rollback optimistic state
@@ -278,7 +283,12 @@ export function SeasonPlanPage() {
   ) => {
     try {
       optimisticallyUpdateTaskTime({ planId, stageId, taskId, startDate: data.startDate, endDate: data.endDate });
-      await updateTaskTime(planId, stageId, taskId, data).unwrap();
+      const taskVersion = plans
+        .find((p) => p.id === planId)
+        ?.phases?.find((ph) => ph.id === stageId)
+        ?.tasks?.find((t) => t.id === taskId)
+        ?.version;
+      await updateTaskTime(planId, stageId, taskId, { ...data, version: taskVersion }).unwrap();
     } catch (err: any) {
       // Re-sync from server when PUT fails to rollback optimistic state
       await fetchTasks(planId, stageId);
@@ -286,7 +296,12 @@ export function SeasonPlanPage() {
     }
   };
 
-  const handleUpdatePhase = async (planId: string, stageId: string, data: { name: string; startDate: string; endDate: string }, originalPhase?: any) => {
+  const handleUpdatePhase = async (
+    planId: string,
+    stageId: string,
+    data: { name: string; startDate: string; endDate: string; statusCode?: string },
+    originalPhase?: any
+  ) => {
     try {
       if (!originalPhase) {
         await updatePhase(planId, stageId, data).unwrap();
@@ -295,13 +310,36 @@ export function SeasonPlanPage() {
 
       const isDateChanged = originalPhase.startDate !== data.startDate || originalPhase.endDate !== data.endDate;
       const isNameChanged = originalPhase.name !== data.name;
+      const originalStatusCode = typeof originalPhase.status === 'string' ? originalPhase.status : originalPhase.status?.code;
+      const isStatusChanged = !!data.statusCode && originalStatusCode !== data.statusCode;
 
       if (isDateChanged) {
-        await updatePhaseTime(planId, stageId, { startDate: data.startDate, endDate: data.endDate }).unwrap();
+        await updatePhaseTime(planId, stageId, {
+          startDate: data.startDate,
+          endDate: data.endDate,
+          version: originalPhase.version,
+        }).unwrap();
       }
 
       if (isNameChanged) {
-        await updatePhase(planId, stageId, data).unwrap();
+        await updatePhase(planId, stageId, { ...data, version: originalPhase.version }).unwrap();
+      }
+
+      if (isStatusChanged) {
+        let targetStatus = planStageStatuses.find((s) => s.code === data.statusCode);
+        if (!targetStatus) {
+          const refreshedStatuses = await fetchPlanStageStatuses().unwrap();
+          targetStatus = refreshedStatuses.find((s: any) => s.code === data.statusCode);
+        }
+        if (!targetStatus) {
+          const availableCodes = planStageStatuses.map((s) => s.code).join(', ');
+          throw new Error(`Không tìm thấy status "${data.statusCode}" trong danh mục Plan Stage Status. Có sẵn: [${availableCodes}]`);
+        }
+
+        // Xóa phần hardcode check transition ở client, để API backend tự validate
+        // và trả về lỗi nếu transition không hợp lệ.
+
+        await updatePhaseStatus(planId, stageId, targetStatus.id).unwrap();
       }
     } catch (err: any) {
       showError('Lỗi cập nhật giai đoạn', err);
@@ -414,7 +452,7 @@ export function SeasonPlanPage() {
     try {
       await removeSeasonTask(planId, stageId, taskId).unwrap();
       setSelectedItem({ type: 'PHASE', id: stageId, planId });
-    } catch (err: any) {
+    } catch (err: any) {   
       showError('Lỗi xóa công việc', err);
     }
   };
@@ -442,19 +480,53 @@ export function SeasonPlanPage() {
     }
     try {
       if (!originalTask) {
-        await updateSeasonTask(planId, stageId, task.id, { name: task.name, description: task.description || '', startDate: task.startDate, endDate: task.endDate, plotId }).unwrap();
+        await updateSeasonTask(planId, stageId, task.id, {
+          version: task.version,
+          name: task.name,
+          description: task.description || '',
+          startDate: task.startDate,
+          endDate: task.endDate,
+          plotId,
+        }).unwrap();
         return;
       }
 
       const isDateChanged = originalTask.startDate !== task.startDate || originalTask.endDate !== task.endDate;
-      const isNameChanged = originalTask.name !== task.name || originalTask.description !== task.description;
+      const isContentChanged =
+        originalTask.name !== task.name ||
+        originalTask.description !== task.description ||
+        originalTask.plotId !== plotId;
+
+      const originalStatusCode = typeof originalTask.status === 'string' ? originalTask.status : originalTask.status?.code;
+      const newStatusCode = (task as any).statusCode || (typeof task.status === 'string' ? task.status : task.status?.code);
+      const isStatusChanged = !!newStatusCode && originalStatusCode !== newStatusCode;
 
       if (isDateChanged) {
-        await updateTaskTime(planId, stageId, task.id, { startDate: task.startDate, endDate: task.endDate }).unwrap();
+        await updateTaskTime(planId, stageId, task.id, {
+          startDate: task.startDate,
+          endDate: task.endDate,
+          version: originalTask.version,
+        }).unwrap();
       }
 
-      if (isNameChanged) {
-        await updateSeasonTask(planId, stageId, task.id, { name: task.name, description: task.description || '', startDate: task.startDate, endDate: task.endDate, plotId }).unwrap();
+      if (isContentChanged) {
+        await updateSeasonTask(planId, stageId, task.id, {
+          version: originalTask.version,
+          name: task.name,
+          description: task.description || '',
+          startDate: task.startDate,
+          endDate: task.endDate,
+          plotId,
+        }).unwrap();
+      }
+
+      if (isStatusChanged) {
+        const targetStatus = taskStatuses.find(s => s.code === newStatusCode);
+        if (targetStatus) {
+          await updateTaskStatus(planId, stageId, task.id, targetStatus.id);
+        } else {
+          throw new Error(`Không tìm thấy status "${newStatusCode}" trong danh mục Task Status.`);
+        }
       }
     } catch (err: any) {
       showError('Lỗi cập nhật', err);
@@ -510,12 +582,6 @@ export function SeasonPlanPage() {
             </h1>
             {currentPlan && (
               <div className="flex items-center gap-2 mt-0.5">
-                <span className={cn(
-                  'px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap inline-flex items-center justify-center',
-                  getStatusColor(currentPlan.status),
-                )}>
-                  {getStatusLabel(currentPlan.status)}
-                </span>
                 <span className="text-[11px] text-slate-400">
                   {formatDate(currentPlan.startDate)} — {formatDate(currentPlan.endDate)}
                 </span>
@@ -627,22 +693,6 @@ export function SeasonPlanPage() {
             </div>
 
             {/* Status filter pills */}
-            <div className="flex items-center gap-1 ml-2">
-              {(['ALL', 'DRAFT', 'ACTIVE', 'READY_TO_HARVEST', 'HARVESTING', 'COMPLETED', 'CANCELLED'] as const).map(status => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={cn(
-                    'px-2.5 py-1 text-[11px] font-medium rounded border transition-all',
-                    statusFilter === status
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:text-slate-900',
-                  )}
-                >
-                  {status === 'ALL' ? 'Tất cả' : getStatusLabel(status)}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div className="flex-1" />
@@ -693,7 +743,7 @@ export function SeasonPlanPage() {
                     onDeletePlan={handleDeletePlan}
                     onAddPhase={handleAddPhase}
                     onExpandPhase={handleExpandPhase}
-                    preExpandedPlanId={planId}
+                    preExpandedPlanId={currentPlan ? undefined : String(planId)}
                     canEdit={canEdit}
                   />
                 </div>
@@ -713,7 +763,8 @@ export function SeasonPlanPage() {
                 handleUpdatePhase(id, phase.id, {
                   name: phase.name,
                   startDate: phase.startDate,
-                  endDate: phase.endDate
+                  endDate: phase.endDate,
+                  statusCode: typeof phase.status === 'string' ? phase.status : phase.status?.code,
                 }, originalPhase);
               }}
               onDeletePhase={handleDeletePhase}
@@ -728,6 +779,10 @@ export function SeasonPlanPage() {
               onClone={p => setCloneSourcePlan(p)}
               onAddPlots={handleAddPlotsToPlan}
               canEdit={canEdit}
+              phaseStatusOptions={phaseStatusOptions}
+              phaseStatusTransitions={planStageStatusTransitions}
+              taskStatusOptions={taskStatusOptions}
+              taskStatusTransitions={taskStatusTransitions}
             />
           </>
         )}

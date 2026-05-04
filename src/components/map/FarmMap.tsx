@@ -1,8 +1,8 @@
 import {
-  useCallback, useMemo, Fragment, useRef, useEffect, useState,
+  useCallback, useMemo, Fragment, useRef, useEffect,
   forwardRef, useImperativeHandle,
 } from 'react'
-import { GoogleMap, Polygon, Polyline, Marker, InfoWindow } from '@react-google-maps/api'
+import { GoogleMap, Polygon, Marker, InfoWindow } from '@react-google-maps/api'
 import { useGoogleMaps } from '@/providers/GoogleMapsProvider'
 import { Plot, GeoPoint } from '@/types/plot'
 import { PlotInfoPopup } from './PlotInfoPopup'
@@ -15,11 +15,13 @@ import { Warehouse } from '@/types/warehouse/warehouse'
 const MAP_OPTIONS: google.maps.MapOptions = {
   mapTypeId: 'satellite', disableDefaultUI: false, zoomControl: true,
   mapTypeControl: false, scaleControl: true, streetViewControl: false,
-  rotateControl: true, fullscreenControl: true,
+  rotateControl: true, fullscreenControl: false, // Tắt nút Google — dùng nút tùy chỉnh của MapCanvas
 }
 
 export interface FarmMapHandle {
   getEditedPath: () => GeoPoint[]
+  getMapInstance: () => google.maps.Map | null
+  getHoverPoint: () => GeoPoint | null
 }
 
 interface FarmMapProps {
@@ -31,11 +33,14 @@ interface FarmMapProps {
   onPathChange: (path: GeoPoint[]) => void
   onPlotSelect: (plot: Plot | null) => void
   selectedPlot: Plot | null
-  onEditBoundaries: (plot: Plot) => void
   onOverlapChange?: (overlappingPlotName: string | null) => void
   warehouses: Warehouse[]
   selectedWarehouseId?: string
   onWarehouseSelect: (warehouse: Warehouse | null) => void
+  /** Callback khi Google Maps load xong, truyền map instance lên parent */
+  onMapLoad?: (map: google.maps.Map) => void
+  /** Callback khi người dùng double click để hoàn thành vẽ */
+  onDrawFinish?: () => void
 }
 
 const toLatLng = (geometry?: any): google.maps.LatLngLiteral[] => {
@@ -66,8 +71,9 @@ function segVsPlots(from: GeoPoint, to: GeoPoint, plots: Plot[]): boolean {
 
 export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
   { plots, selectedPlotId, isDrawing, isEditing, currentPath, onPathChange,
-    onPlotSelect, selectedPlot, onEditBoundaries, onOverlapChange, 
-    warehouses, selectedWarehouseId, onWarehouseSelect }, ref
+    onPlotSelect, selectedPlot, onOverlapChange,
+    warehouses, selectedWarehouseId, onWarehouseSelect,
+    onMapLoad, onDrawFinish }, ref
 ) {
   const { isLoaded } = useGoogleMaps()
   const mapRef = useRef<google.maps.Map | null>(null)
@@ -76,8 +82,7 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
   const rafRef = useRef<number | null>(null)
 
   // Drawing mode state
-  const [hoverPoint, setHoverPoint] = useState<GeoPoint | null>(null)
-  const [drawOverlap, setDrawOverlap] = useState(false)
+  const hoverPointRef = useRef<GeoPoint | null>(null)
 
   // Plots khác (loại trừ lô đang edit)
   const otherPlots = useMemo(
@@ -99,12 +104,26 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
         r.push({ lat: mvc.getAt(i).lat(), lng: mvc.getAt(i).lng() })
       return r
     },
+    getMapInstance(): google.maps.Map | null {
+      return mapRef.current
+    },
+    getHoverPoint(): GeoPoint | null {
+      return hoverPointRef.current
+    },
   }))
 
   // ── DRAWING: click handler — chặn nếu overlap ──────────────────
   const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
     if (!isDrawing || isEditing || !e.latLng) return
     const newPt: GeoPoint = { lat: e.latLng.lat(), lng: e.latLng.lng() }
+
+    // Ngăn chặn thêm điểm trùng lặp (ví dụ khi người dùng double click)
+    if (currentPath.length > 0) {
+      const last = currentPath[currentPath.length - 1]
+      if (Math.abs(last.lat - newPt.lat) < 0.00001 && Math.abs(last.lng - newPt.lng) < 0.00001) {
+        return
+      }
+    }
 
     // Kiểm tra điểm mới có nằm trong lô khác không
     if (otherPlots.some(p => {
@@ -121,11 +140,18 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
     onPathChange([...currentPath, newPt])
   }, [isDrawing, isEditing, currentPath, onPathChange, otherPlots])
 
+  // ── DRAWING: Double click để chốt ranh giới ──
+  const handleMapDblClick = useCallback((e: google.maps.MapMouseEvent) => {
+    if (!isDrawing && !isEditing) return
+    e.domEvent?.preventDefault()
+    onDrawFinish?.()
+  }, [isDrawing, isEditing, onDrawFinish])
+
   // ── DRAWING: mouse move — cập nhật preview + overlap realtime ──
   const handleMapMouseMove = useCallback((e: google.maps.MapMouseEvent) => {
     if (!isDrawing || isEditing || !e.latLng) return
     const pt: GeoPoint = { lat: e.latLng.lat(), lng: e.latLng.lng() }
-    setHoverPoint(pt)
+    hoverPointRef.current = pt
 
     // Check hover point nằm trong lô nào
     const hoverInPlot = otherPlots.find(p => {
@@ -133,7 +159,6 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
       return path.length >= 3 && pointInPolygon(pt, path)
     })
     if (hoverInPlot) {
-      setDrawOverlap(true)
       onOverlapChange?.(hoverInPlot.name)
       return
     }
@@ -166,7 +191,6 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
       : null
 
     const conflict = segConflict || existingConflict
-    setDrawOverlap(!!conflict)
     onOverlapChange?.(conflict ? conflict.name : null)
   }, [isDrawing, isEditing, currentPath, otherPlots, onOverlapChange])
 
@@ -228,8 +252,7 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
   // ── Reset khi thoát ─────────────────────────────────────────────
   useEffect(() => {
     if (!isDrawing) {
-      setDrawOverlap(false)
-      setHoverPoint(null)
+      hoverPointRef.current = null
       onOverlapChange?.(null)
     }
   }, [isDrawing, onOverlapChange])
@@ -261,7 +284,10 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
     return { lat: 10.3606, lng: 106.3653 }
   }, [selectedPlot, selectedWarehouseId, warehouses])
 
-  const onLoad = useCallback((map: google.maps.Map) => { mapRef.current = map }, [])
+  const onLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map
+    onMapLoad?.(map)
+  }, [onMapLoad])
   const onUnmount = useCallback(() => { mapRef.current = null }, [])
 
   useEffect(() => {
@@ -329,18 +355,17 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
       </div>
     )
 
-  const drawColor   = drawOverlap ? '#ef4444' : '#10b981'
-  const drawStroke  = drawOverlap ? '#dc2626' : '#059669'
-  const previewColor = drawOverlap ? '#ef4444' : '#3b82f6'
-
   return (
     <GoogleMap
       mapContainerStyle={{ width: '100%', height: '100%' }}
-      center={center} zoom={16}
-      onLoad={onLoad} onUnmount={onUnmount}
-      options={MAP_OPTIONS}
+      center={center}
+      zoom={16}
+      options={{ ...MAP_OPTIONS, disableDoubleClickZoom: isDrawing || isEditing, draggableCursor: isDrawing ? 'crosshair' : 'grab' }}
+      onLoad={onLoad}
+      onUnmount={onUnmount}
       onClick={handleMapClick}
       onMouseMove={handleMapMouseMove}
+      onDblClick={handleMapDblClick}
     >
       {/* ── 1. Tất cả lô đất ── */}
       {plots.map((plot) => {
@@ -403,59 +428,7 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
         );
       })}
 
-      {/* ── 2a. DRAWING: segments đã vẽ ── */}
-      {isDrawing && !isEditing && currentPath.length >= 2 && (
-        <Polyline
-          path={currentPath}
-          options={{ strokeColor: drawStroke, strokeOpacity: 1, strokeWeight: 3, zIndex: 5 }}
-        />
-      )}
-
-      {/* ── 2b. DRAWING: segment preview (cuối → hover) ── */}
-      {isDrawing && !isEditing && currentPath.length >= 1 && hoverPoint && (
-        <Polyline
-          path={[currentPath[currentPath.length - 1], hoverPoint]}
-          options={{ strokeColor: previewColor, strokeOpacity: 0.75, strokeWeight: 2, zIndex: 5 }}
-        />
-      )}
-
-      {/* ── 2c. DRAWING: closing line (hover → đầu) ── */}
-      {isDrawing && !isEditing && currentPath.length >= 3 && hoverPoint && (
-        <Polyline
-          path={[hoverPoint, currentPath[0]]}
-          options={{ strokeColor: drawColor, strokeOpacity: 0.35, strokeWeight: 1.5, zIndex: 4 }}
-        />
-      )}
-
-      {/* ── 2d. DRAWING: fill preview ── */}
-      {isDrawing && !isEditing && currentPath.length >= 3 && (
-        <Polygon
-          path={currentPath}
-          options={{
-            fillColor: drawColor, fillOpacity: 0.15,
-            strokeColor: 'transparent', strokeWeight: 0,
-            clickable: false, zIndex: 4,
-          }}
-        />
-      )}
-
-      {/* ── 2e. DRAWING: vertex markers ── */}
-      {isDrawing && !isEditing && currentPath.map((pt, i) => (
-        <Marker
-          key={`dp-${i}`}
-          position={pt}
-          icon={{
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: i === 0 ? 8 : 6,
-            fillColor: i === 0 ? (drawOverlap ? '#ef4444' : '#10b981') : '#ffffff',
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: drawOverlap ? '#dc2626' : '#059669',
-          }}
-        />
-      ))}
-
-      {/* ── 3. EDITING: polygon kéo được ── */}
+      {/* ── 2. DRAWING: handled entirely by CanvasOverlay ── */}      {/* ── 3. EDITING: polygon kéo được ── */}
       {isEditing && selectedPlot && currentPath.length >= 3 && (
         <Polygon
           key={`edit-${selectedPlot.id}`}
@@ -471,19 +444,17 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
       )}
 
       {/* ── 4a. Popup Lô đất ── */}
-      {selectedPlot && !isDrawing && !isEditing && (
+      {selectedPlot && !isDrawing && !isEditing && getPlotPath(selectedPlot).length > 0 && (
         <InfoWindow
           key={`info-plot-${selectedPlot.id}`}
           position={
-            (selectedPlot.geometry ? toLatLng(selectedPlot.geometry)[0] : null) ||
-            selectedPlot.boundaries?.[0] || center
+            getPlotPath(selectedPlot)[0] || center
           }
           onCloseClick={() => onPlotSelect(null)}
         >
           <PlotInfoPopup
             plot={selectedPlot}
             onClose={() => onPlotSelect(null)}
-            onEditBoundaries={onEditBoundaries}
           />
         </InfoWindow>
       )}

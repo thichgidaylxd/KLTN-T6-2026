@@ -1,7 +1,10 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useDispatch, useSelector } from 'react-redux';
 import { taskMaterialService } from '../../services/taskMaterial/taskMaterialService';
 import { AddTaskMaterialRequest } from '../../types/taskMaterial';
+import { AppDispatch, RootState } from '../../store';
+import { setTaskMaterialsSnapshot } from '../../store/taskMaterialSlice';
 
 const MATERIAL_KEYS = {
   all: ['task-materials'] as const,
@@ -15,7 +18,10 @@ const withUnwrap = <T,>(promise: Promise<T>) =>
  * Hook quản lý vật tư công việc (Task Materials)
  */
 export const useTaskMaterials = (planId?: string, stageId?: string, taskId?: string, enabled: boolean = true) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const taskMaterialBridge = useSelector((state: RootState) => state.taskMaterial);
   const queryClient = useQueryClient();
+  const taskKey = planId && stageId && taskId ? `${planId}:${stageId}:${taskId}` : null;
 
   // Query lấy danh sách vật tư
   const materialsQuery = useQuery({
@@ -46,8 +52,14 @@ export const useTaskMaterials = (planId?: string, stageId?: string, taskId?: str
     [materialsQuery.error, addMaterialMutation.error]
   );
 
+  useEffect(() => {
+    if (taskKey && materialsQuery.data) {
+      dispatch(setTaskMaterialsSnapshot({ taskKey, materials: materialsQuery.data }));
+    }
+  }, [dispatch, materialsQuery.data, taskKey]);
+
   return {
-    materials: materialsQuery.data ?? [],
+    materials: materialsQuery.data ?? (taskKey ? taskMaterialBridge.materialsByTaskSnapshot[taskKey] ?? [] : []),
     loading: materialsQuery.isLoading || materialsQuery.isFetching,
     adding: addMaterialMutation.isPending,
     error,

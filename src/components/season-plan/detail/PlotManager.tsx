@@ -27,6 +27,15 @@ export function PlotManager({
   onAddPlots
 }: PlotManagerProps) {
   const currentPlotIds = plan.plots?.map(p => p.plotId) || [];
+  const availablePlots = plots.filter(p => !currentPlotIds.includes(p.id));
+
+  const togglePlot = (id: string) => {
+    setSelectedPlotIds(
+      selectedPlotIds.includes(id)
+        ? selectedPlotIds.filter(pid => pid !== id)
+        : [...selectedPlotIds, id]
+    );
+  };
 
   return (
     <div className="px-4 py-3 border-t border-slate-100">
@@ -53,33 +62,66 @@ export function PlotManager({
             className="overflow-hidden mb-4"
           >
             <div className="p-3 bg-slate-50 rounded-xl border border-indigo-100">
-              <div className="max-h-[160px] overflow-y-auto mb-3 space-y-1 pr-1" style={{ scrollbarWidth: 'none' }}>
-                {loading ? (
-                  <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin text-slate-400" /></div>
-                ) : plots.filter(p => !currentPlotIds.includes(p.id)).length > 0 ? (
-                  plots.filter(p => !currentPlotIds.includes(p.id)).map(plot => (
-                    <button
-                      key={plot.id}
-                      onClick={() => {
-                        if (selectedPlotIds.includes(plot.id)) {
-                          setSelectedPlotIds(selectedPlotIds.filter(id => id !== plot.id));
-                        } else {
-                          setSelectedPlotIds([...selectedPlotIds, plot.id]);
-                        }
-                      }}
-                      className={cn(
-                        "w-full flex items-center justify-between px-3 py-2 rounded-lg text-[12px] transition-all",
-                        selectedPlotIds.includes(plot.id) ? "bg-indigo-50 text-indigo-700 font-bold" : "bg-white text-slate-600 hover:bg-slate-100"
-                      )}
-                    >
-                      {plot.name}
-                      {selectedPlotIds.includes(plot.id) && <Check size={14} />}
-                    </button>
-                  ))
-                ) : (
-                  <p className="text-[11px] text-slate-400 text-center py-2 italic">Không còn lô đất nào trống</p>
+              <div className="mb-3">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1 tracking-wider">
+                  Chọn lô đất cần gán
+                </label>
+
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm max-h-[180px] overflow-y-auto scrollbar-hide">
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2 py-6 text-slate-400">
+                      <Loader2 size={14} className="animate-spin" />
+                      <span className="text-[12px] italic">Đang tải dữ liệu...</span>
+                    </div>
+                  ) : availablePlots.length > 0 ? (
+                    availablePlots.map((plot, index) => {
+                      const isSelected = selectedPlotIds.includes(plot.id);
+                      return (
+                        <button
+                          key={plot.id}
+                          type="button"
+                          onClick={() => togglePlot(plot.id)}
+                          className={cn(
+                            'w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all',
+                            index !== availablePlots.length - 1 && 'border-b border-slate-100',
+                            isSelected
+                              ? 'bg-indigo-50 text-indigo-700'
+                              : 'text-slate-600 hover:bg-slate-50'
+                          )}
+                        >
+                          {/* Checkbox */}
+                          <div className={cn(
+                            'w-4 h-4 rounded flex items-center justify-center border-2 flex-shrink-0 transition-all',
+                            isSelected
+                              ? 'bg-indigo-600 border-indigo-600'
+                              : 'border-slate-300 bg-white'
+                          )}>
+                            {isSelected && <Check size={10} className="text-white" strokeWidth={3} />}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            <Package size={11} className={isSelected ? 'text-indigo-500' : 'text-slate-400'} />
+                            <span className="text-[12px] font-medium truncate">{plot.name}</span>
+                          </div>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 py-6 text-slate-400">
+                      <AlertCircle size={14} />
+                      <span className="text-[12px] italic">Không còn lô đất nào trống</span>
+                    </div>
+                  )}
+                </div>
+
+                {selectedPlotIds.length > 0 && (
+                  <p className="text-[10px] text-indigo-500 mt-1.5 ml-1 font-bold flex items-center gap-1">
+                    <Check size={10} />
+                    Đã chọn {selectedPlotIds.length} lô đất
+                  </p>
                 )}
               </div>
+
               <div className="flex gap-2">
                 <button
                   disabled={loadingAddPlot || selectedPlotIds.length === 0}
@@ -87,7 +129,7 @@ export function PlotManager({
                   className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-[12px] font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
                   {loadingAddPlot && <Loader2 size={12} className="animate-spin" />}
-                  Lưu thay đổi
+                  Lưu lô đất
                 </button>
                 <button
                   onClick={() => { setShowAddPlot(false); setSelectedPlotIds([]); }}

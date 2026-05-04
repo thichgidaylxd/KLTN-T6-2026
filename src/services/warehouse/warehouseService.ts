@@ -21,7 +21,7 @@ export const warehouseService = {
 
   async deleteWarehouse(farmId: string, warehouseId: string): Promise<ApiResponse<string>> {
     const res = await axiosInstance.delete(`/api/v1/farms/${farmId}/warehouses/${warehouseId}`);
-  
+
     return res.data;
   },
 };

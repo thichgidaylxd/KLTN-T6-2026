@@ -14,6 +14,7 @@ export const planStatusSchema = z.enum(['DRAFT', 'ACTIVE', 'READY_TO_HARVEST', '
 // Schema for a single Plan from API
 export const apiPlanSchema = z.object({
   id: z.string().uuid(),
+  version: z.number().optional(),
   farmId: z.string().uuid(),
   clonedFromId: z.string().uuid().nullable().optional(),
   name: z.string(),
@@ -31,6 +32,7 @@ export const apiPlanSchema = z.object({
 // Schema for Plan Stage (Phase)
 export const apiPlanStageSchema = z.object({
   id: z.string().uuid(),
+  version: z.number().optional(),
   planId: z.string().uuid(),
   farmId: z.string().uuid().nullable().optional(),
   name: z.string(),
@@ -45,6 +47,7 @@ export const apiPlanStageSchema = z.object({
 // Schema for Task
 export const apiTaskSchema = z.object({
   id: z.string().uuid(),
+  version: z.number().optional(),
   planStageId: z.string().uuid(),
   farmId: z.string().uuid().nullable().optional(),
   plotId: z.string().uuid().nullable().optional(),

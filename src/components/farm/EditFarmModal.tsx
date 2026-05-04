@@ -58,6 +58,7 @@ export function EditFarmModal({ isOpen, onClose, farm, onSuccess }: EditFarmModa
       }
 
       await updateFarm(targetFarmId, {
+        version: farm.version,
         name: data.name,
         description: data.description || ''
       }).unwrap();

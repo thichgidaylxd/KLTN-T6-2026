@@ -53,6 +53,10 @@ interface PlanDetailPanelProps {
   onClone?: (plan: SeasonPlan) => void;
   onAddPlots?: (planId: string, plotIds: string[]) => void;
   canEdit?: boolean;
+  phaseStatusOptions?: { code: string; label: string }[];
+  phaseStatusTransitions?: import('@/services/seasonplan/planStageStatusService').PlanStageStatusTransition[];
+  taskStatusOptions?: { code: string; label: string }[];
+  taskStatusTransitions?: any[];
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -72,6 +76,10 @@ export function PlanDetailPanel({
   onDeleteTask,
   onAddPlots,
   canEdit = false,
+  phaseStatusOptions = [],
+  phaseStatusTransitions = [],
+  taskStatusOptions = [],
+  taskStatusTransitions = [],
 }: PlanDetailPanelProps) {
   const { currentFarmId } = useAuth();
   const { selectedFarmId } = useSelector((state: RootState) => state.farm);
@@ -124,7 +132,6 @@ export function PlanDetailPanel({
   const [newTaskDesc, setNewTaskDesc] = useState('');
   const [newTaskStart, setNewTaskStart] = useState('');
   const [newTaskEnd, setNewTaskEnd] = useState('');
-  const [newTaskPlotId, setNewTaskPlotId] = useState('');
 
   const [showAddPlot, setShowAddPlot] = useState(false);
   const [selectedPlotIds, setSelectedPlotIds] = useState<string[]>([]);
@@ -169,8 +176,6 @@ export function PlanDetailPanel({
     setSelectedAssigneeUserId('');
     setPlannedQty('');
     if (selection) {
-      const defaultPlot = selection.plan.plots?.[0]?.plotId ?? '';
-      setNewTaskPlotId(defaultPlot);
 
       setTempPlan(selection.plan);
       if (selection.type === 'PHASE') setTempPhase(selection.phase);
@@ -213,7 +218,10 @@ export function PlanDetailPanel({
       } else if (selection.type === 'PHASE' && tempPhase) {
         await onUpdatePhase(tempPlan.id, tempPhase, selection.phase);
       } else if (selection.type === 'TASK' && tempPhase && tempTask) {
-        await onUpdateTask(tempPlan.id, tempPhase.id, tempTask, selection.task);
+        await onUpdateTask(tempPlan.id, tempPhase.id, {
+          ...tempTask,
+          statusCode: statusCodeOf(tempTask.status)
+        } as any, selection.task);
       }
       setIsEditing(false);
     } catch (err) {
@@ -246,12 +254,8 @@ export function PlanDetailPanel({
   const handleDelete = () => {
     setShowDeleteConfirm(false);
     if (sel.type === 'PLAN') {
-      const code = statusCodeOf(plan.status);
-      if (['ACTIVE', 'READY_TO_HARVEST', 'HARVESTING'].includes(code)) {
-        onUpdatePlan({ ...plan, status: 'CANCELLED' });
-      } else {
-        onDeletePlan?.(plan.id);
-      }
+      // Backend currently exposes DELETE /plans/{planId} for plan removal.
+      onDeletePlan?.(plan.id);
       onClose();
     } else if (sel.type === 'PHASE') {
       onDeletePhase?.(plan.id, sel.phase.id);
@@ -269,7 +273,7 @@ export function PlanDetailPanel({
       description: newTaskDesc,
       startDate: newTaskStart || sel.phase.startDate,
       endDate: newTaskEnd || sel.phase.endDate,
-      plotId: newTaskPlotId,
+      plotId: sel.phase.plotId || plan.plots?.[0]?.plotId || "",
     };
 
     const validation = createTaskSchema.safeParse(payload);
@@ -402,6 +406,10 @@ export function PlanDetailPanel({
                     setTempPhase={setTempPhase}
                     setTempTask={setTempTask}
                     onSelectPhase={onSelectPhase}
+                    phaseStatusOptions={phaseStatusOptions}
+                    phaseStatusTransitions={phaseStatusTransitions}
+                    taskStatusOptions={taskStatusOptions}
+                    taskStatusTransitions={taskStatusTransitions}
                   />
 
                   {sel.type === 'PLAN' && (
@@ -440,7 +448,11 @@ export function PlanDetailPanel({
                         <input
                           type="range" min="0" max="100"
                           value={sel.task.progressPercent ?? 0}
-                          onChange={e => onUpdateTask(plan.id, sel.phase.id, { ...sel.task, progressPercent: +e.target.value })}
+                          onChange={e => onUpdateTask(plan.id, sel.phase.id, { 
+                            ...sel.task, 
+                            progressPercent: +e.target.value,
+                            statusCode: statusCodeOf(sel.task.status)
+                          } as any)}
                           disabled={['COMPLETED', 'CANCELLED'].includes(statusCodeOf(sel.task.status))}
                           className="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                         />
@@ -463,8 +475,6 @@ export function PlanDetailPanel({
                       setNewTaskStart={setNewTaskStart}
                       newTaskEnd={newTaskEnd}
                       setNewTaskEnd={setNewTaskEnd}
-                      newTaskPlotId={newTaskPlotId}
-                      setNewTaskPlotId={setNewTaskPlotId}
                       onAddTask={handleAddTaskSubmit}
                       onSelectTask={(taskId) => onSelectTask(plan.id, sel.phase.id, taskId)}
                     />
@@ -520,13 +530,41 @@ export function PlanDetailPanel({
                   }}
                 />
               )}
-              {activeTab === 'MEMBERS' && sel.type !== 'TASK' && (
+              {activeTab === 'MEMBERS' && sel.type === 'PHASE' && (
+                <div className="px-4 py-3 border-t border-slate-100">
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <Users size={11} /> Giao việc theo công việc trong giai đoạn
+                  </p>
+                  {sel.phase.tasks.length > 0 ? (
+                    <div className="space-y-2">
+                      {sel.phase.tasks.map((task) => (
+                        <button
+                          key={task.id}
+                          onClick={() => {
+                            onSelectTask(plan.id, sel.phase.id, task.id);
+                            setActiveTab('MEMBERS');
+                          }}
+                          className="w-full text-left p-3 bg-white border border-slate-100 rounded-xl hover:border-indigo-200 hover:shadow-sm transition-all"
+                        >
+                          <div className="text-[13px] font-bold text-slate-800 truncate">{task.name}</div>
+                          <div className="text-[11px] text-slate-500 mt-1">Bấm để mở giao việc cho công việc này</div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                      <p className="text-[12px] text-slate-500 font-medium">Giai đoạn này chưa có công việc</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {activeTab === 'MEMBERS' && sel.type === 'PLAN' && (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-400 px-10 text-center">
                   <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
                     <Users size={24} />
                   </div>
-                  <h3 className="text-[13px] font-bold text-slate-700 mb-1">Chọn một công việc</h3>
-                  <p className="text-[11px] leading-relaxed">Bạn chỉ có thể giao việc cho thành viên khi đang xem chi tiết công việc.</p>
+                  <h3 className="text-[13px] font-bold text-slate-700 mb-1">Chọn một giai đoạn hoặc công việc</h3>
+                  <p className="text-[11px] leading-relaxed">Bạn có thể vào giai đoạn để chọn công việc cần giao việc cho thành viên.</p>
                 </div>
               )}
             </AnimatePresence>

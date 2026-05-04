@@ -3,6 +3,7 @@ import { ApiResponse } from '../../types/auth';
 import {
   Member,
   Invitation,
+  InvitationPreview,
   InviteMemberRequest,
   ChangeRoleRequest,
   FarmRole
@@ -46,5 +47,22 @@ export const memberService = {
   async getFarmRoles(): Promise<ApiResponse<FarmRole[]>> {
     const res = await axiosInstance.get('/api/v1/farms/roles')
     return res.data
+  },
+
+  async previewInvitation(invitationId: string): Promise<ApiResponse<InvitationPreview>> {
+    const res = await axiosInstance.get(`/api/v1/invitations/${invitationId}/preview`);
+    return res.data;
+  },
+
+  async acceptInvitation(invitationId: string): Promise<ApiResponse<Member>> {
+    const res = await axiosInstance.post(`/api/v1/invitations/${invitationId}/accept`);
+    return res.data;
+  },
+
+  async getMyInvitations(status?: string): Promise<ApiResponse<Invitation[]>> {
+    const res = await axiosInstance.get('/api/v1/invitations/me', {
+      params: status ? { status } : undefined,
+    });
+    return res.data;
   },
 };

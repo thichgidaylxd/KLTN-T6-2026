@@ -1,4 +1,61 @@
 import { z } from 'zod';
+import { apiResponseSchema } from './seasonPlanSchemas';
+
+const warehouseSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+});
+
+const unitSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  name: z.string(),
+});
+
+const supplierSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  name: z.string(),
+  createdAt: z.string(),
+});
+
+const skuSchema = z.object({
+  sku: z.string(),
+  description: z.string().nullable().optional(),
+  createdAt: z.string(),
+});
+
+const userSchema = z.object({
+  id: z.string().uuid(),
+  fullName: z.string(),
+  email: z.string().email(),
+  phone: z.string().nullable().optional(),
+  status: z.string(),
+  isLocked: z.boolean(),
+  createdAt: z.string(),
+});
+
+export const apiWarehouseItemSchema = z.object({
+  id: z.string().uuid(),
+  version: z.number().optional(),
+  name: z.string(),
+  stock: z.number(),
+  reservedQty: z.number(),
+  unitPrice: z.number(),
+  warehouse: warehouseSchema,
+  unit: unitSchema,
+  supplier: supplierSchema.nullable().optional(),
+  sku: skuSchema.nullable().optional(),
+  createdBy: userSchema,
+  createdAt: z.string(),
+});
+
+export const getWarehouseItemsResponseSchema = apiResponseSchema(z.array(apiWarehouseItemSchema));
+export const createWarehouseItemResponseSchema = apiResponseSchema(apiWarehouseItemSchema);
 
 export const createWarehouseItemSchema = z.object({
   name: z.string().trim().min(1, 'Vui lòng nhập tên vật tư'),

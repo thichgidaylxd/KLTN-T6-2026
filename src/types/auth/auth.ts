@@ -34,6 +34,11 @@ export interface VerifyRequest {
   token: string;
 }
 
+export interface ResendRegisterMailRequest {
+  email: string;
+  password: string;
+}
+
 export interface RefreshRequest {
   refreshToken: string;
 }

@@ -14,6 +14,7 @@ export interface CreateTaskRequest {
 }
 
 export interface UpdateTaskRequest {
+  version?: number;
   name?: string;
   description?: string;
   startDate?: string;
@@ -46,7 +47,7 @@ export const seasonPlanTaskService = {
     return mapToTask(validated.data);
   },
 
-  async updateTaskTime(planId: string, stageId: string, taskId: string, data: { startDate: string; endDate: string }): Promise<Task> {
+  async updateTaskTime(planId: string, stageId: string, taskId: string, data: { startDate: string; endDate: string; version?: number }): Promise<Task> {
     const response = await axiosInstance.put(`/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/time`, data);
     const validated = createTaskResponseSchema.parse(response.data);
     return mapToTask(validated.data);

@@ -25,7 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
   COMPLETED: 'bg-slate-50 text-slate-400 border-slate-200',
   CANCELLED: 'bg-rose-50 text-rose-700 border-rose-200',
   OVERDUE: 'bg-red-50 text-red-700 border-red-200',
-  ASSIGNED: 'bg-violet-50 text-violet-700 border-violet-200',
+  ASSIGNED: 'bg-indigo-50 text-indigo-700 border-indigo-200',
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {

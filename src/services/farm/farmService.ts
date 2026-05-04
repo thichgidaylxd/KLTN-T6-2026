@@ -1,7 +1,7 @@
 import { AxiosRequestConfig } from 'axios';
 import { axiosInstance } from '../../config/axios';
 import { ApiResponse } from '../../types/auth';
-import { Farm, CreateFarmRequest } from '../../types/farm';
+import { Farm, CreateFarmRequest, UpdateFarmRequest } from '../../types/farm';
 
 export const farmService = {
   async createFarm(data: CreateFarmRequest): Promise<ApiResponse<Farm>> {
@@ -47,7 +47,7 @@ export const farmService = {
 
   async updateFarm(
     farmId: string,
-    data: { name: string; description: string },
+    data: UpdateFarmRequest,
     config?: AxiosRequestConfig,
   ): Promise<ApiResponse<Farm>> {
     const response = await axiosInstance.patch<ApiResponse<Farm>>(

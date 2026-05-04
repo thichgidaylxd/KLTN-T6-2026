@@ -27,7 +27,8 @@ export function RegisterPage() {
     if (!isSuccess) return;
     const timer = setTimeout(() => {
       const email = getValues('email');
-      navigate('/verify-email', { state: { email } });
+      const password = getValues('password');
+      navigate('/verify-email', { state: { email, password } });
     }, 2000);
     return () => clearTimeout(timer);
   }, [isSuccess, navigate, getValues]);

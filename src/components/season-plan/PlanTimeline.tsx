@@ -12,6 +12,7 @@ import {
   addDays,
 } from '@/utils/seasonPlanUtils';
 import { SelectionState } from '@/pages/SeasonPlan/SeasonPlanPage';
+import { getStatusColor, getStatusLabel } from './detail/DetailCommon';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -549,31 +550,15 @@ export function PlanTimeline({
 
   // ── Status helpers ────────────────────────────────────────────────────────
   const statusCode = (s: any) => typeof s === 'string' ? s : (s?.code ?? '');
+  
+  // Try to find status from API prop first
   const statusLabel = (s: any) => {
-    switch (statusCode(s)) {
-      case 'COMPLETED': return 'HOÀN THÀNH';
-      case 'IN_PROGRESS': case 'ACTIVE': return 'ĐANG TIÊN HÀNH';
-      case 'OVERDUE': return 'QUÁ HẠN';
-      case 'ASSIGNED': return 'PHÂN CÔNG';
-      default: return 'CẦN LÀM';
-    }
+    return getStatusLabel(s);
   };
-  const statusBadgeCls = (s: any) => {
-    const l = statusLabel(s);
-    if (l === 'HOÀN THÀNH') return 'bg-emerald-100 text-emerald-700';
-    if (l === 'ĐANG TIÊN HÀNH') return 'bg-blue-100 text-blue-700';
-    if (l === 'QUÁ HẠN') return 'bg-rose-100 text-rose-700';
-    if (l === 'PHÂN CÔNG') return 'bg-violet-100 text-violet-700';
-    return 'bg-slate-100 text-slate-600';
-  };
-  const taskBarCls = (s: any) => {
-    const l = statusLabel(s);
-    if (l === 'HOÀN THÀNH') return 'bg-emerald-500';
-    if (l === 'ĐANG TIÊN HÀNH') return 'bg-blue-500';
-    if (l === 'QUÁ HẠN') return 'bg-rose-500';
-    if (l === 'PHÂN CÔNG') return 'bg-violet-500';
-    return 'bg-slate-400';
-  };
+
+  // Logic màu sắc và label hiện được xử lý trực tiếp bằng getPhaseStatusFromApi và getTaskStatusFromApi
+  // để đảm bảo luôn lấy dữ liệu mới nhất từ API mà không hardcode.
+
 
   // ── Row list ─────────────────────────────────────────────────────────────
   interface Row {
@@ -640,7 +625,7 @@ export function PlanTimeline({
           className="flex-shrink-0 border-r border-slate-200 flex flex-col justify-end pb-1 px-3"
           style={{ width: sidebarWidth }}
         >
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Work</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Công việc</span>
         </div>
         <div style={{ width: 4, flexShrink: 0 }} />
 
@@ -781,7 +766,6 @@ export function PlanTimeline({
             }
 
             if (r.type === 'phase') {
-              // FIX BUG 3: expanded state phải đọc từ expandedPhases, không phải expandedPlans
               const expanded = expandedPhases.has(r.id);
               return (
                 <AnimatedRow key={r.id} visible={visible} rowHeight={ROW_H}>
@@ -795,19 +779,25 @@ export function PlanTimeline({
                   >
                     <button
                       className="p-0.5 mr-1.5 text-slate-500 hover:text-indigo-500 flex-shrink-0 transition-transform duration-200"
-                      // FIX BUG 3: rotate dựa trên `expanded` (= expandedPhases.has(r.id))
-                      // expanded=true → mũi tên xuống (0deg), expanded=false → mũi tên phải (-90deg)
                       style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
                       onClick={e => togglePhase(r.id, r.planId, e)}
                     >
                       <ChevronDown size={14} strokeWidth={3} />
                     </button>
-                    <div className="w-3.5 h-3.5 rounded-sm bg-indigo-500 flex items-center justify-center mr-2 flex-shrink-0">
+                    <div className="w-3.5 h-3.5 rounded-sm flex items-center justify-center mr-2 flex-shrink-0" 
+                         style={{ backgroundColor: getStatusColor(r.item.status) }}>
                       <svg width="8" height="8" viewBox="0 0 8 8">
                         <path d="M4 1L7 4L4 7M1 4h6" stroke="white" strokeWidth="1.3" fill="none" strokeLinecap="round" />
                       </svg>
                     </div>
                     <span className="truncate text-[12px] font-medium text-slate-700 flex-1 min-w-0">{r.item.name}</span>
+                    <span className="ml-1 flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded font-bold tracking-wide"
+                          style={{ 
+                            backgroundColor: getStatusColor(r.item.status) + '15', 
+                            color: getStatusColor(r.item.status) 
+                          }}>
+                      {statusLabel(r.item.status)}
+                    </span>
                   </div>
                 </AnimatedRow>
               );
@@ -825,8 +815,12 @@ export function PlanTimeline({
                   )}
                   onClick={() => onSelect({ type: 'TASK', id: r.id, planId: r.planId, phaseId: r.phaseId })}
                 >
-                  <div className={cn('w-3 h-3 rounded-sm border mr-2 flex items-center justify-center flex-shrink-0', sc === 'HOÀN THÀNH' ? 'bg-indigo-500 border-indigo-500' : 'border-slate-400')}>
-                    {sc === 'HOÀN THÀNH' && (
+                  <div className="w-3 h-3 rounded-sm border mr-2 flex items-center justify-center flex-shrink-0"
+                       style={{ 
+                         backgroundColor: sc === 'COMPLETED' ? getStatusColor(r.item.status) : 'transparent',
+                         borderColor: getStatusColor(r.item.status)
+                       }}>
+                    {sc === 'COMPLETED' && (
                       <svg width="7" height="7" viewBox="0 0 8 8">
                         <path d="M1 4l2 2 4-3" stroke="white" strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
@@ -834,7 +828,11 @@ export function PlanTimeline({
                   </div>
                   <span className="text-[10px] text-slate-400 mr-1.5 flex-shrink-0 font-mono">{(r.item as any).code ?? ''}</span>
                   <span className="truncate text-[12px] text-slate-700 font-medium flex-1 min-w-0">{r.item.name}</span>
-                  <span className={cn('ml-1 flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide', statusBadgeCls(r.item.status))}>
+                  <span className="ml-1 flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide"
+                        style={{ 
+                          backgroundColor: getStatusColor(r.item.status) + '15', 
+                          color: getStatusColor(r.item.status) 
+                        }}>
                     {statusLabel(r.item.status)}
                   </span>
                 </div>
@@ -876,7 +874,7 @@ export function PlanTimeline({
           style={{ scrollbarWidth: 'none' }}
           onScroll={onBodyScroll}
         >
-          <div style={{ width: totalWidth, minHeight: 300, position: 'relative' }}>
+          <div style={{ width: totalWidth, minHeight: '100%', position: 'relative' }}>
 
             {/* Weekend shading */}
             {timeScale === 'weeks' && dayCells
@@ -956,17 +954,17 @@ export function PlanTimeline({
                       <div
                         className={cn(
                           'absolute flex items-center overflow-hidden rounded-md z-10',
-                          isSelected ? 'bg-indigo-600' : 'bg-indigo-500 hover:bg-indigo-600',
-                          isDragging ? 'opacity-90 ring-2 ring-indigo-300' : '',
+                          isDragging ? 'opacity-90 ring-2 ring-white/40' : '',
                           canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
                         )}
                         style={{
                           ...ps,
+                          backgroundColor: getStatusColor(ph.status),
                           top: '50%',
                           transform: 'translateY(-50%)',
                           height: 24,
                           willChange: 'left, width',
-                          transition: isDragging ? 'none' : 'left .15s ease-out, width .15s ease-out',
+                          transition: isDragging ? 'none' : 'left .15s ease-out, width .15s ease-out, background-color .2s ease',
                         }}
                         onMouseDown={canEdit ? e => startBarDrag(e, { kind: 'phase', planId: r.planId, phaseId: ph.id }, 'MOVE', ph.startDate, ph.endDate) : undefined}
                         onClick={e => { e.stopPropagation(); onSelect({ type: 'PHASE', id: ph.id, planId: r.planId }); }}
@@ -977,7 +975,10 @@ export function PlanTimeline({
                             <span className="w-px h-3 bg-white/60 rounded-full" />
                           </div>
                         )}
-                        <span className="text-[11px] font-semibold text-white px-3 truncate pointer-events-none">{ph.name}</span>
+                        <span className="text-[11px] font-semibold text-white px-3 truncate pointer-events-none flex-1 min-w-0">{ph.name}</span>
+                        <span className="text-[9px] text-white/70 pr-2 flex-shrink-0 pointer-events-none hidden md:block">
+                          {statusLabel(ph.status)}
+                        </span>
                         {canEdit && (
                           <div className="absolute right-0 top-0 bottom-0 w-2 cursor-e-resize z-20 flex items-center justify-center hover:bg-white/10"
                             onMouseDown={e => { e.stopPropagation(); startBarDrag(e, { kind: 'phase', planId: r.planId, phaseId: ph.id }, 'RESIZE_RIGHT', ph.startDate, ph.endDate); }}>
@@ -994,7 +995,6 @@ export function PlanTimeline({
               const tk = r.item as Task;
               const ps = previewStyle(r.planId, tk.id, 'task', tk.startDate, tk.endDate);
               const isDragging = barDrag?.target.kind === 'task' && (barDrag.target as any).taskId === tk.id;
-              const sc = statusCode(tk.status);
               return (
                 <AnimatedRow key={r.id} visible={visible} rowHeight={ROW_H}>
                   <div
@@ -1003,21 +1003,24 @@ export function PlanTimeline({
                     onClick={() => onSelect({ type: 'TASK', id: tk.id, planId: r.planId, phaseId: r.phaseId })}
                   >
                     <div
-                      className={cn('absolute rounded overflow-hidden z-10', taskBarCls(tk.status), isDragging ? 'opacity-90 ring-2 ring-indigo-300' : '', canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer')}
+                      className={cn(
+                        'absolute rounded overflow-hidden z-10',
+                        isDragging ? 'opacity-90 ring-2 ring-indigo-300' : '',
+                        canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+                      )}
                       style={{
                         ...ps,
+                        backgroundColor: getStatusColor(tk.status),
                         top: '50%',
                         transform: 'translateY(-50%)',
                         height: 14,
                         minWidth: 20,
                         willChange: 'left, width',
-                        transition: isDragging ? 'none' : 'left .15s ease-out, width .15s ease-out',
+                        transition: isDragging ? 'none' : 'left .15s ease-out, width .15s ease-out, background-color .2s ease',
                       }}
                       onMouseDown={canEdit ? e => startBarDrag(e, { kind: 'task', planId: r.planId, phaseId: r.phaseId!, taskId: tk.id }, 'MOVE', tk.startDate, tk.endDate) : undefined}
                       onClick={e => { e.stopPropagation(); onSelect({ type: 'TASK', id: tk.id, planId: r.planId, phaseId: r.phaseId }); }}
                     >
-                      <div className="absolute inset-0 bg-black/20 pointer-events-none"
-                        style={{ width: sc === 'HOÀN THÀNH' ? '100%' : sc === 'ĐANG TIÊN HÀNH' ? '45%' : '0%' }} />
                       {canEdit && (
                         <>
                           <div className="absolute left-0 top-0 bottom-0 w-2 cursor-w-resize z-10"
@@ -1031,6 +1034,13 @@ export function PlanTimeline({
                 </AnimatedRow>
               );
             })}
+
+            {/* Add Phase placeholders for Gantt side */}
+            {plans.map(plan =>
+              (plans.length === 1 || expandedPlans.has(plan.id)) && canEdit ? (
+                <div key={`add-bg-${plan.id}`} style={{ height: ROW_H }} className="border-b border-slate-50/50" />
+              ) : null
+            )}
           </div>
         </div>
       </div>

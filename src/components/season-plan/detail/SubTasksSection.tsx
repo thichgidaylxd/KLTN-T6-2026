@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Phase, SeasonPlan } from '@/types/seasonPlan';
 import { DateInput } from '@/components/ui/DateInput';
 import { cn } from '@/utils/cn';
-import { fmtDate, statusChipClass, statusViLabel, statusCodeOf } from './DetailCommon';
+import { fmtDate, getStatusColor, getStatusLabel } from './DetailCommon';
 
 interface SubTasksSectionProps {
   phase: Phase;
@@ -19,8 +19,6 @@ interface SubTasksSectionProps {
   setNewTaskStart: (v: string) => void;
   newTaskEnd: string;
   setNewTaskEnd: (v: string) => void;
-  newTaskPlotId: string;
-  setNewTaskPlotId: (v: string) => void;
   onAddTask: () => void;
   onSelectTask: (taskId: string) => void;
 }
@@ -39,8 +37,6 @@ export function SubTasksSection({
   setNewTaskStart,
   newTaskEnd,
   setNewTaskEnd,
-  newTaskPlotId,
-  setNewTaskPlotId,
   onAddTask,
   onSelectTask
 }: SubTasksSectionProps) {
@@ -95,19 +91,6 @@ export function SubTasksSection({
                   <DateInput value={newTaskEnd} onChange={setNewTaskEnd} />
                 </div>
               </div>
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">Lô đất áp dụng</span>
-                <select
-                  value={newTaskPlotId}
-                  onChange={e => setNewTaskPlotId(e.target.value)}
-                  className="w-full text-[12px] bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 transition-all"
-                >
-                  <option value="">Chọn lô đất...</option>
-                  {plan.plots?.map(p => (
-                    <option key={p.plotId} value={p.plotId}>{p.plotName}</option>
-                  ))}
-                </select>
-              </div>
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={onAddTask}
@@ -132,23 +115,29 @@ export function SubTasksSection({
         {tasks.map(t => (
           <button
             key={t.id}
+            type="button"
             onClick={() => onSelectTask(t.id)}
             className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition-all group text-left"
           >
-            <div className={cn(
-              "w-2 h-2 rounded-full shrink-0",
-              statusCodeOf(t.status) === 'COMPLETED' ? 'bg-slate-400' : 'bg-indigo-500'
-            )} />
+            <div 
+              className="w-2.5 h-2.5 rounded-full shrink-0"
+              style={{ backgroundColor: getStatusColor(t.status) }} 
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="text-[12px] font-bold text-slate-700 truncate group-hover:text-indigo-600 transition-colors">
                   {t.name}
                 </span>
-                <span className={cn(
-                  "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider",
-                  statusChipClass(statusCodeOf(t.status))
-                )}>
-                  {statusViLabel(statusCodeOf(t.status))}
+                <span 
+                  className={cn(
+                    "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
+                  )}
+                  style={{ 
+                    backgroundColor: getStatusColor(t.status) + '15', 
+                    color: getStatusColor(t.status) 
+                  }}
+                >
+                  {getStatusLabel(t.status)}
                 </span>
               </div>
               <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-400">

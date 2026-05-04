@@ -29,8 +29,8 @@ export const useSeasonPlanPlans = () => {
   });
 
   const updatePlanTimeMutation = useMutation({
-    mutationFn: ({ planId, startDate, endDate }: { planId: string; startDate: string; endDate: string }) =>
-      seasonPlanService.updatePlanTime(planId, { startDate, endDate }),
+    mutationFn: ({ planId, startDate, endDate, version }: { planId: string; startDate: string; endDate: string; version?: number }) =>
+      seasonPlanService.updatePlanTime(planId, { startDate, endDate, version }),
     onSuccess: (updatedPlan) => {
       updatePlansCache((prev) =>
         prev.map((plan) =>
@@ -40,16 +40,16 @@ export const useSeasonPlanPlans = () => {
     },
   });
 
-  const error = useMemo(
-    () => plansQuery.error ?? createPlanMutation.error ?? deletePlanMutation.error ?? updatePlanTimeMutation.error ?? null,
-    [plansQuery.error, createPlanMutation.error, deletePlanMutation.error, updatePlanTimeMutation.error],
-  );
+  const error = plansQuery.error;
 
   return {
     plans: plansQuery.data ?? [],
     loading: plansQuery.isLoading || plansQuery.isFetching,
     createLoading: createPlanMutation.isPending,
     error,
+    createError: createPlanMutation.error,
+    deleteError: deletePlanMutation.error,
+    updatePlanTimeError: updatePlanTimeMutation.error,
     updatePlansCache,
     fetchPlans: useCallback(
       () => withUnwrap(queryClient.fetchQuery({ queryKey: PLAN_KEYS.list, queryFn: () => seasonPlanService.getPlans() })),
@@ -62,8 +62,8 @@ export const useSeasonPlanPlans = () => {
     ),
     deletePlan: useCallback((planId: string) => withUnwrap(deletePlanMutation.mutateAsync(planId)), [deletePlanMutation]),
     updatePlanTime: useCallback(
-      (planId: string, startDate: string, endDate: string) =>
-        withUnwrap(updatePlanTimeMutation.mutateAsync({ planId, startDate, endDate })),
+      (planId: string, startDate: string, endDate: string, version?: number) =>
+        withUnwrap(updatePlanTimeMutation.mutateAsync({ planId, startDate, endDate, version })),
       [updatePlanTimeMutation],
     ),
     fetchPlanPlots: useCallback(

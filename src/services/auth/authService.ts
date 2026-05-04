@@ -4,6 +4,7 @@ import {
   AuthTokens,
   LoginRequest,
   RegisterRequest,
+  ResendRegisterMailRequest,
   VerifyRequest
 } from '../../types/auth';
 
@@ -28,6 +29,14 @@ export const authService = {
   async verify(data: VerifyRequest): Promise<ApiResponse<string>> {
     const response = await axiosInstance.post<ApiResponse<string>>(
       '/api/v1/auth/verify',
+      data
+    );
+    return response.data;
+  },
+
+  async resendRegisterMail(data: ResendRegisterMailRequest): Promise<ApiResponse<string>> {
+    const response = await axiosInstance.post<ApiResponse<string>>(
+      '/api/v1/auth/register/resend-mail',
       data
     );
     return response.data;

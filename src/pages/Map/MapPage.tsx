@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { usePlots } from '@/hooks/plots/usePlots';
@@ -42,6 +42,12 @@ export function MapPage() {
   const [overlappingPlotName, setOverlappingPlotName] = useState<string | null>(null);
   const farmMapRef = useRef<FarmMapHandle>(null);
   const pathToSaveRef = useRef<GeoPoint[]>([]);
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+
+  // Callback ổn định để nhận mapInstance từ FarmMap sau khi load
+  const handleMapLoad = useCallback((map: google.maps.Map) => {
+    setMapInstance(map);
+  }, []);
 
   const locationState = location.state as {
     selectedPlotId?: string;
@@ -190,8 +196,10 @@ export function MapPage() {
       };
       const isClearDescription =
         selectedPlot.description != null && selectedPlot.description.trim() === '';
+      const selectedPlotVersion = selectedPlot.version ?? plots.find((p) => p.id === selectedPlot.id)?.version;
       try {
         const result = await updatePlot(currentFarmId, selectedPlot.id, {
+          version: selectedPlotVersion,
           name: selectedPlot.name,
           status: selectedPlot.status,
           geometry,
@@ -221,7 +229,7 @@ export function MapPage() {
     pathToSaveRef.current = [];
   };
 
-  const startDrawing = (plot: Plot) => {
+  const handleStartDrawing = (plot: Plot) => {
     setSelectedPlot(plot);
     setMode('drawing');
     setCurrentPath([]);
@@ -270,18 +278,14 @@ export function MapPage() {
     }
   };
 
-  const handleStartDrawForPlot = (plot: Plot) => {
-    setSelectedPlot(plot);
-    setMode('drawing');
-    setCurrentPath([]);
-  };
 
   const handleDeleteBoundary = async () => {
     if (!currentFarmId) return;
     setIsDeleteModalOpen(false);
     if (!selectedPlot) return;
     try {
-      const result = await updatePlot(currentFarmId, selectedPlot.id, { isClearGeometry: true }).unwrap();
+      const selectedPlotVersion = selectedPlot.version ?? plots.find((p) => p.id === selectedPlot.id)?.version;
+      const result = await updatePlot(currentFarmId, selectedPlot.id, { version: selectedPlotVersion, isClearGeometry: true }).unwrap();
       toast.success('Đã xóa ranh giới lô đất');
       setSelectedPlot(result);
       setMode('none');
@@ -318,7 +322,9 @@ export function MapPage() {
     try {
       const isClearDescription =
         updatedPlot.description != null && updatedPlot.description.trim() === '';
+      const version = updatedPlot.version ?? plots.find((p) => p.id === updatedPlot.id)?.version;
       const result = await updatePlot(currentFarmId, updatedPlot.id, {
+        version,
         name: updatedPlot.name,
         status: updatedPlot.status,
         ...(isClearDescription
@@ -365,7 +371,13 @@ export function MapPage() {
         </div>
       </div>
 
-      <MapCanvas>
+      <MapCanvas
+        isDrawing={mode !== 'none'}
+        currentPath={currentPath}
+        farmMapRef={farmMapRef}
+        mapInstance={mapInstance}
+        isOverlapping={!!overlappingPlotName}
+      >
         <MapSidebar
           plots={plots}
           warehouses={warehouses}
@@ -375,7 +387,7 @@ export function MapPage() {
           onSelectWarehouse={handleSelectWarehouse}
           onEditPlot={setEditingPlot}
           onEditBoundaries={handleEditBoundaries}
-          onStartDraw={handleStartDrawForPlot}
+          onStartDraw={handleStartDrawing}
           onDeletePlot={handleDeletePlotClick}
         />
 
@@ -389,11 +401,12 @@ export function MapPage() {
           onPathChange={setCurrentPath}
           onPlotSelect={handleSelectPlot}
           selectedPlot={selectedPlot}
-          onEditBoundaries={startDrawing}
           onOverlapChange={setOverlappingPlotName}
           warehouses={warehouses}
           selectedWarehouseId={selectedWarehouse?.id}
           onWarehouseSelect={handleSelectWarehouse}
+          onMapLoad={handleMapLoad}
+          onDrawFinish={handleSaveDrawing}
         />
 
         <DrawingToolbar
@@ -401,9 +414,7 @@ export function MapPage() {
           onModeChange={setMode}
           onSave={handleSaveDrawing}
           onCancel={handleCancelDrawing}
-          onDeleteClick={() => setIsDeleteModalOpen(true)}
           canSave={currentPath.length >= 3}
-          hasBoundary={!!(selectedPlot?.geometry || (selectedPlot?.boundaries && selectedPlot.boundaries.length > 0))}
           overlappingPlotName={overlappingPlotName}
         />
 

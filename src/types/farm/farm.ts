@@ -1,5 +1,6 @@
 export interface Farm {
   id: string;
+  version?: number;
   ownerId: string;
   name: string;
   description?: string | null;
@@ -35,4 +36,10 @@ export interface FarmSummary {
 export interface CreateFarmInput {
   farmName: string;
   description?: string;
+}
+
+export interface UpdateFarmRequest {
+  name?: string;
+  description?: string;
+  version?: number;
 }

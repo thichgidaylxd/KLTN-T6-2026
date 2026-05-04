@@ -29,6 +29,8 @@ export interface CreateWarehouseLocationDto {
 const LOCATION_KEYS = {
     byWarehouse: (farmId: string, warehouseId: string) =>
         ['warehouse-locations', farmId, warehouseId] as const,
+    detail: (farmId: string, warehouseId: string, locationId: string) =>
+        ['warehouse-location-detail', farmId, warehouseId, locationId] as const,
 };
 
 const withUnwrap = <T,>(promise: Promise<T>) =>
@@ -105,6 +107,21 @@ export const useWarehouseLocations = (farmId?: string | null, warehouseId?: stri
             (fId: string, wId: string, data: CreateWarehouseLocationDto) =>
                 withUnwrap(createLocationMutation.mutateAsync({ fId, wId, data })),
             [createLocationMutation],
+        ),
+        getLocationDetail: useCallback(
+            (fId: string, wId: string, locationId: string) =>
+                withUnwrap(
+                    queryClient.fetchQuery({
+                        queryKey: LOCATION_KEYS.detail(fId, wId, locationId),
+                        queryFn: async (): Promise<WarehouseLocation> => {
+                            const res = await axiosInstance.get(
+                                `/api/v1/farms/${fId}/warehouses/${wId}/locations/${locationId}`,
+                            );
+                            return res.data.data;
+                        },
+                    }),
+                ),
+            [queryClient],
         ),
     };
 };

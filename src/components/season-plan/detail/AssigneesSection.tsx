@@ -50,14 +50,9 @@ export function AssigneesSection({
               disabled={selectableMembers.length === 0}
               className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-[12px] font-semibold text-slate-700 disabled:opacity-50"
             >
-              <ChevronDown size={14} className={`transition-transform ${isSelecting ? 'rotate-180' : ''}`} />
-              {isSelecting ? 'Đóng danh sách thành viên' : 'Thêm thành viên'}
+              <ChevronDown size={14} className={`transition-transform flex-shrink-0 ${isSelecting ? 'rotate-180' : ''}`} />
+              <span className="truncate">{isSelecting ? 'Đóng danh sách' : 'Thêm thành viên'}</span>
             </button>
-            {selectedMember && (
-              <span className="text-[11px] text-slate-500">
-                Vai trò: <b>{selectedMember.role?.name || selectedMember.role?.description || 'N/A'}</b>
-              </span>
-            )}
           </div>
           {isSelecting && (
             <div className="space-y-2">
@@ -73,7 +68,12 @@ export function AssigneesSection({
                   </option>
                 ))}
               </select>
-              <div className="flex gap-2">
+              {selectedMember && (
+                <div className="px-1 text-[11px] text-slate-500">
+                  Vai trò: <b className="text-slate-700">{selectedMember.role?.name || selectedMember.role?.description || 'Không xác định'}</b>
+                </div>
+              )}
+              <div className="flex gap-2 pt-1">
                 <button
                   disabled={adding || !selectedUserId}
                   onClick={() => {

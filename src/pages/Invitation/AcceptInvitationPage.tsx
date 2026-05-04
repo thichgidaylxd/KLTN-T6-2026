@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Loader2, CheckCircle2, XCircle, Eye, EyeOff, Sprout } from 'lucide-react'
-import { axiosInstance } from '../../config/axios'
 import { loginSchema } from '../../schemas/authSchemas'
 // Thêm vào imports
 import { useDispatch } from 'react-redux'
 import { loginSuccess } from '../../store/authSlice'
 import { authService } from '../../services/auth/authService'
+import { memberService } from '../../services/members/memberService'
 
 type Phase = 'loading' | 'login-required' | 'accepting' | 'success' | 'error'
 
@@ -43,7 +43,7 @@ export function AcceptInvitationPage() {
     useEffect(() => {
         const fetchInvitation = async () => {
             try {
-                const res = await axiosInstance.get(`/api/v1/invitations/${invitationId}/preview`)
+                const res = await memberService.previewInvitation(invitationId as string)
                 if (res.data.success) {
                     setInvitation(res.data.data)
                     // Pre-fill email từ invitation
@@ -70,10 +70,10 @@ export function AcceptInvitationPage() {
     const doAccept = async () => {
         setPhase('accepting')
         try {
-            const res = await axiosInstance.post(`/api/v1/invitations/${invitationId}/accept`)
+            const res = await memberService.acceptInvitation(invitationId as string)
             if (res.data.success) {
                 setPhase('success')
-                setTimeout(() => navigate('/farms'), 2500)
+                setTimeout(() => navigate('/farms'), 4000)
             }
         } catch (err: any) {
             setErrorMsg(err.response?.data?.message || 'Không thể chấp nhận lời mời')
@@ -91,7 +91,6 @@ export function AcceptInvitationPage() {
         }
 
         try {
-            console.log('s')
             setIsLoggingIn(true)
             const response = await authService.login({ email, password })
 

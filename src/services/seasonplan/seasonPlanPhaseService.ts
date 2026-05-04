@@ -25,13 +25,17 @@ export const seasonPlanPhaseService = {
     return mapToPhase(validated.data);
   },
 
-  async updateStage(planId: string, stageId: string, data: { name: string; startDate: string; endDate: string }): Promise<Phase> {
+  async updateStage(
+    planId: string,
+    stageId: string,
+    data: { name: string; startDate: string; endDate: string; version?: number }
+  ): Promise<Phase> {
     const response = await axiosInstance.patch(`/api/v1/plans/${planId}/stages/${stageId}`, data);
     const validated = createStageResponseSchema.parse(response.data);
     return mapToPhase(validated.data);
   },
 
-  async updateStageTime(planId: string, stageId: string, data: { startDate: string; endDate: string }): Promise<Phase> {
+  async updateStageTime(planId: string, stageId: string, data: { startDate: string; endDate: string; version?: number }): Promise<Phase> {
     const response = await axiosInstance.put(`/api/v1/plans/${planId}/stages/${stageId}/time`, data);
     const validated = createStageResponseSchema.parse(response.data);
     return mapToPhase(validated.data);

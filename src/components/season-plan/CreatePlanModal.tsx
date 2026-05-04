@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { X, Calendar, Sprout, Info, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCrops } from '@/hooks/crops/useCrops';
-import { useSeasonPlans } from '@/hooks/seasonPlans/useSeasonPlans';
 import { CreateSeasonPlanRequest } from '@/types/seasonPlan';
 import { createPlanRequestSchema } from '@/schemas/seasonPlanSchemas';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import { DateInput } from '@/components/ui/DateInput';
 interface CreatePlanModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (plan: CreateSeasonPlanRequest) => void;
+  onSave: (plan: CreateSeasonPlanRequest) => Promise<void>;
 }
 
 export function CreatePlanModal({
@@ -20,7 +19,7 @@ export function CreatePlanModal({
   onSave,
 }: CreatePlanModalProps) {
   const { crops, fetchCrops, loading: cropsLoading } = useCrops();
-  const { createLoading: planLoading } = useSeasonPlans();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [cropId, setCropId] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -31,21 +30,21 @@ export function CreatePlanModal({
   useEffect(() => {
     if (isOpen) {
       fetchCrops();
+      setError(''); // Clear error when opening
     }
   }, [isOpen, fetchCrops]);
 
-  // Auto-generate name and suggest end date
+  // Auto-generate name
   useEffect(() => {
-    if (cropId) {
+    if (cropId && !name) { // Only auto-fill if name is empty
       const crop = crops.find((c) => c.id === cropId);
       if (crop) {
-        // Auto name - only if current name is empty or matched previous auto-name
-        setName(prev => (!prev || prev.includes(' - Vụ mùa ')) ? `${crop.name} - Vụ mùa ${new Date().getFullYear()}` : prev);
+        setName(`${crop.name} - Vụ mùa ${new Date().getFullYear()}`);
       }
     }
-  }, [cropId, crops]);
+  }, [cropId, crops, name]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -65,20 +64,28 @@ export function CreatePlanModal({
     const crop = crops.find(c => c.id === cropId);
     if (!crop) return;
 
-    onSave({
-      name: validation.data.name,
-      cropId: validation.data.cropId,
-      startDate: validation.data.startDate,
-      endDate: validation.data.endDate,
-      note: validation.data.note || '', 
-    });
+    setIsSubmitting(true);
+    try {
+      await onSave({
+        name: validation.data.name,
+        cropId: validation.data.cropId,
+        startDate: validation.data.startDate,
+        endDate: validation.data.endDate,
+        note: validation.data.note || '', 
+      });
 
-    // Reset
-    setCropId('');
-    setStartDate('');
-    setEndDate('');
-    setName('');
-    onClose();
+      // Reset only on success
+      setCropId('');
+      setStartDate('');
+      setEndDate('');
+      setName('');
+      onClose();
+    } catch (err: any) {
+      console.error('[CreatePlanModal] Submit failed:', err);
+      setError(err.message || 'Có lỗi xảy ra khi tạo kế hoạch');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -172,10 +179,10 @@ export function CreatePlanModal({
               </Button>
               <Button
                 type="submit"
-                disabled={planLoading}
+                disabled={isSubmitting}
                 className="flex-[2] py-6 rounded-2xl font-black uppercase tracking-wider bg-slate-900 text-white shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all border-none relative overflow-hidden"
               >
-                {planLoading ? (
+                {isSubmitting ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="animate-spin" size={18} />
                     <span>Đang tạo kế hoạch...</span>

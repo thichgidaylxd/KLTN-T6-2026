@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/auth/useAuth';
 import { useSeasonPlans } from '../../hooks/seasonPlans/useSeasonPlans';
 import { useCrops } from '../../hooks/crops/useCrops';
-import { SeasonPlan, PlanStatus, StatusObject } from '../../types/seasonPlan';
+import { SeasonPlan } from '../../types/seasonPlan';
 import { canEditPlan } from '../../utils/seasonPlanUtils';
 import { Search, Calendar, Loader2, Info, CheckCircle2, AlertCircle, Trash2, ArrowLeft } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
@@ -13,12 +13,13 @@ import { CreatePlanModal } from '@/components/season-plan/CreatePlanModal';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { Navigate } from 'react-router-dom';
 import { getRolesFromToken } from '../../utils/jwt';
+import { getStatusColor } from '@/components/season-plan/detail/DetailCommon';
 
 export function SeasonPlanListPage() {
   const navigate = useNavigate();
   const { currentFarmId, user, accessToken } = useAuth();
-  const { plans, loading, error, fetchPlans, createPlan, deletePlan: removePlan } = useSeasonPlans();
-  const { fetchCrops } = useCrops();
+  const { plans, loading, error, fetchPlans, createPlan, deletePlan: removePlan, fetchStages } = useSeasonPlans();
+  const { fetchCrops, crops } = useCrops();
 
   // Kiểm tra quyền
   const canEdit = canEditPlan(user?.role, accessToken);
@@ -29,14 +30,25 @@ export function SeasonPlanListPage() {
   }
 
   useEffect(() => {
-    if (accessToken) {
-      fetchPlans();
-    }
-  }, [fetchPlans, accessToken]);
+    const loadData = async () => {
+      if (accessToken) {
+        try {
+          fetchCrops();
+          const fetchedPlans = await fetchPlans();
+          if (fetchedPlans && Array.isArray(fetchedPlans)) {
+            // Fetch stages for each plan in parallel to populate phase info in cards
+            await Promise.allSettled(fetchedPlans.map(plan => fetchStages(plan.id)));
+          }
+        } catch (err) {
+          console.error('[SeasonPlanListPage] Failed to load plans or stages:', err);
+        }
+      }
+    };
+    loadData();
+  }, [fetchPlans, fetchStages, fetchCrops, accessToken]);
 
   const farmPlans = plans.filter((p: SeasonPlan) => p.farmId === currentFarmId || p.farmId === '');
 
-  const [statusFilter, setStatusFilter] = useState<PlanStatus | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
@@ -71,9 +83,8 @@ export function SeasonPlanListPage() {
   }, [isCreateModalOpen, fetchCrops]);
 
   const filteredPlans = farmPlans.filter((p: SeasonPlan) => {
-    const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
+    return matchesSearch;
   });
 
   const handleCreatePlan = async (newPlanData: any) => {
@@ -81,7 +92,7 @@ export function SeasonPlanListPage() {
     try {
       await createPlan(newPlanData).unwrap();
       console.log('[SeasonPlanListPage] createPlan succeeded');
-      setIsCreateModalOpen(false);
+      // The modal handles its own closing on success
     } catch (err: any) {
       console.error('[SeasonPlanListPage] createPlan failed:', err);
       let errorMsg = 'Dữ liệu không hợp lệ. Hãy kiểm tra lại thời gian bắt đầu/kết thúc.';
@@ -103,6 +114,9 @@ export function SeasonPlanListPage() {
         message: errorMsg,
         details: details.length > 0 ? details : undefined
       });
+      
+      // Re-throw to let the modal know it failed
+      throw err;
     }
   };
 
@@ -133,31 +147,6 @@ export function SeasonPlanListPage() {
     }
   };
 
-  const getStatusLabel = (status: PlanStatus | StatusObject) => {
-    const code = typeof status === 'string' ? status : status.code;
-    switch (code) {
-      case 'DRAFT': return 'Bản nháp';
-      case 'ACTIVE': return 'Đang thực hiện';
-      case 'READY_TO_HARVEST': return 'Sẵn sàng thu hoạch';
-      case 'HARVESTING': return 'Đang thu hoạch';
-      case 'COMPLETED': return 'Hoàn thành';
-      case 'CANCELLED': return 'Đã hủy';
-      default: return code;
-    }
-  };
-
-  const getStatusColor = (status: PlanStatus | StatusObject) => {
-    const code = typeof status === 'string' ? status : status.code;
-    switch (code) {
-      case 'DRAFT': return 'bg-slate-100 text-slate-600';
-      case 'ACTIVE': return 'bg-indigo-100 text-indigo-700';
-      case 'READY_TO_HARVEST': return 'bg-lime-100 text-lime-700';
-      case 'HARVESTING': return 'bg-emerald-100 text-emerald-700';
-      case 'COMPLETED': return 'bg-slate-100 text-slate-400';
-      case 'CANCELLED': return 'bg-red-100 text-red-700';onabort
-      default: return 'bg-slate-100 text-slate-600';
-    }
-  };
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '---';
@@ -218,22 +207,6 @@ export function SeasonPlanListPage() {
             />
           </div>
 
-          <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl shrink-0 overflow-x-auto max-w-full no-scrollbar">
-            {(['ALL', 'DRAFT', 'ACTIVE', 'READY_TO_HARVEST', 'HARVESTING', 'COMPLETED', 'CANCELLED'] as const).map((status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={cn(
-                  "px-4 py-1.5 text-xs font-bold rounded-lg transition-all uppercase tracking-wider",
-                  statusFilter === status
-                    ? "bg-white text-indigo-600 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 font-medium"
-                )}
-              >
-                {status === 'ALL' ? 'Tất cả' : getStatusLabel(status)}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -265,52 +238,71 @@ export function SeasonPlanListPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredPlans.map((plan) => (
+              (() => {
+                const activePhaseCount = plan.phases.filter((phase) => {
+                  const code = typeof phase.status === 'string' ? phase.status : phase.status?.code;
+                  return code === 'ACTIVE' || code === 'IN_PROGRESS';
+                }).length;
+                const cropName = crops.find(c => c.id === plan.cropId)?.name || (plan as any).cropName;
+
+                return (
               <div
                 key={plan.id}
                 onClick={() => navigate(`/farms/${currentFarmId}/season-plans/${plan.id}`)}
-                className="bg-white rounded-xl border border-slate-200 p-5 cursor-pointer hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100/50 transition-all group flex flex-col h-full"
+                className="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100/50 transition-all group flex flex-col h-full"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-2 min-h-[3.5rem]">
+                <div className="flex items-start justify-between gap-3 mb-2.5">
+                  <h3 className="text-[16px] font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-2 flex-1">
                     {plan.name}
                   </h3>
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap",
-                      getStatusColor(plan.status)
-                    )}>
-                      {getStatusLabel(plan.status)}
-                    </span>
-                    {canEdit && (
-                      <button
-                        onClick={(e) => handleDeletePlan(e, plan.id)}
-                        className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                        title="Xóa kế hoạch"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                  {canEdit && (
+                    <button
+                      onClick={(e) => handleDeletePlan(e, plan.id)}
+                      className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all shrink-0"
+                      title="Xóa kế hoạch"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  {/* Badge row */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {cropName && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold uppercase tracking-wider">
+                        {cropName}
+                      </span>
                     )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Calendar size={14} />
-                    <span>
-                      {formatDate(plan.startDate)} - {formatDate(plan.endDate)}
+                    <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                      <Calendar size={10} /> {formatDate(plan.startDate)} – {formatDate(plan.endDate)}
                     </span>
                   </div>
+
+                  {/* Progress */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[11px] font-bold">
+                      <span className="text-slate-400 uppercase tracking-widest">Tiến độ</span>
+                      <span className="text-indigo-600">
+                        {activePhaseCount > 0 ? `${activePhaseCount}/${plan.phases.length} đang chạy` : `${plan.phases.length} giai đoạn`}
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                      <div className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                        style={{ width: `${(activePhaseCount / Math.max(plan.phases.length, 1)) * 100}%` }} />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between mt-4">
                   <div className="flex items-center gap-2">
-                    <div className="flex -space-x-2">
+                    <div className="flex -space-x-1.5">
                       {plan.phases.slice(0, 3).map((phase, idx) => {
-                        const color = phase.status?.color || '#8b5cf6';
+                        const color = getStatusColor(phase.status);
                         return (
                           <div
                             key={phase.id}
-                            className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold text-white shadow-sm"
+                            className="w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[7px] font-bold text-white shadow-sm"
                             style={{ backgroundColor: color.startsWith('bg-') ? undefined : color }}
                           >
                             {idx + 1}
@@ -318,23 +310,22 @@ export function SeasonPlanListPage() {
                         );
                       })}
                       {plan.phases.length > 3 && (
-                        <div className="w-6 h-6 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-600">
+                        <div className="w-5 h-5 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-600">
                           +{plan.phases.length - 3}
                         </div>
                       )}
                     </div>
-                    <span className="text-xs text-slate-400">
-                      {plan.phases.length} giai đoạn
-                    </span>
                   </div>
-                  <div className="text-xs font-medium text-indigo-600 group-hover:text-indigo-700 flex items-center gap-1">
-                    Xem chi tiết
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="text-[11px] font-black uppercase tracking-wider text-indigo-600 group-hover:text-indigo-700 flex items-center gap-0.5">
+                    Chi tiết
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
                 </div>
               </div>
+                );
+              })()
             ))}
           </div>
         )}

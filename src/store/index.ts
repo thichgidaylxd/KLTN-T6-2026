@@ -10,6 +10,8 @@ import warehouseItemReducer from './warehouseItemSlice';
 import supplierReducer from './supplierSlice';
 import skuReducer from './skuSlice';
 import unitReducer from './unitSlice';
+import taskMaterialReducer from './taskMaterialSlice';
+import taskAssigneeReducer from './taskAssigneeSlice';
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +26,8 @@ export const store = configureStore({
     supplier: supplierReducer,
     sku: skuReducer,
     unit: unitReducer,
+    taskMaterial: taskMaterialReducer,
+    taskAssignee: taskAssigneeReducer,
   }
 });
 

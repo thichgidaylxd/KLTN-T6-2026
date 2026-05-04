@@ -18,6 +18,7 @@ export interface PhaseConfig {
 
 export interface Task {
   id: string;
+  version?: number;
   planStageId: string;
   farmId?: string;
   plotId: string | null;
@@ -37,7 +38,9 @@ export interface Task {
 }
 
 export interface Phase {
+  plotId: string | undefined;
   id: string;
+  version?: number;
   planId: string;
   name: string;
   source: 'TEMPLATE' | 'MANUAL' | 'CUSTOM';
@@ -56,6 +59,7 @@ export interface Phase {
 
 export interface SeasonPlan {
   id: string;
+  version?: number;
   farmId: string;
   clonedFromId?: string | null;
   name: string;
@@ -87,6 +91,7 @@ export interface CreateSeasonPlanRequest {
 }
 
 export interface UpdateSeasonPlanRequest {
+  version?: number;
   name?: string;
   cropId?: string;
   startDate?: string;

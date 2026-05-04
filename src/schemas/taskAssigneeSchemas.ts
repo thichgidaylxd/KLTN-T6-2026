@@ -22,15 +22,12 @@ export const taskAssigneeSchema = z.object({
 
 export const getTaskAssigneesResponseSchema = apiResponseSchema(z.array(taskAssigneeSchema));
 export const addTaskAssigneeResponseSchema = apiResponseSchema(taskAssigneeSchema);
-export const deleteTaskAssigneeResponseSchema = z.union([
-  apiResponseSchema(z.string()),
-  z.string(),
-]);
+export const deleteTaskAssigneeResponseSchema = apiResponseSchema(taskAssigneeSchema);
 
 export const createTaskAssigneeSchema = z.object({
   userId: z.string().uuid('Vui lòng chọn thành viên hợp lệ'),
 });
 
 export const createTaskAssigneesSchema = z.object({
-  userIds: z.array(z.string().uuid('Vui lòng chọn thành viên hợp lệ')).min(2, 'Vui lòng chọn ít nhất 2 thành viên'),
+  userIds: z.array(z.string().uuid('Vui lòng chọn thành viên hợp lệ')),
 });

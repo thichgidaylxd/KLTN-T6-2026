@@ -16,17 +16,34 @@ export function fmtDate(d: string) {
   return `${day}/${m}/${y}`;
 }
 
-export function statusChipClass(code: string): string {
-  switch (code) {
-    case 'ACTIVE': case 'IN_PROGRESS': return 'bg-blue-600 text-white';
-    case 'READY_TO_HARVEST': return 'bg-lime-600 text-white';
-    case 'HARVESTING': return 'bg-emerald-600 text-white';
-    case 'COMPLETED': return 'bg-slate-500 text-white';
-    case 'CANCELLED': return 'bg-rose-600 text-white';
-    case 'OVERDUE': return 'bg-red-600 text-white';
-    case 'ASSIGNED': return 'bg-violet-600 text-white';
-    case 'DRAFT': default: return 'bg-slate-200 text-slate-700';
+export function statusCodeToColor(code: string): string {
+  const normalized = (code || 'UNKNOWN').toUpperCase();
+  const palette = [
+    '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444',
+    '#06b6d4', '#84cc16', '#ec4899', '#f97316', '#14b8a6',
+  ];
+  let hash = 0;
+  for (let i = 0; i < normalized.length; i += 1) {
+    hash = (hash * 31 + normalized.charCodeAt(i)) >>> 0;
   }
+  return palette[hash % palette.length];
+}
+
+export function getStatusColor(s: string | StatusObject | null | undefined): string {
+  if (!s) return '#cbd5e1';
+  if (typeof s !== 'string' && s.color) return s.color;
+  return statusCodeToColor(statusCodeOf(s));
+}
+
+export function getStatusLabel(s: string | StatusObject | null | undefined): string {
+  if (!s) return 'Nháp';
+  if (typeof s !== 'string' && s.name) return s.name;
+  return statusViLabel(statusCodeOf(s));
+}
+
+export function statusChipClass(code: string): string {
+  void code;
+  return 'text-white';
 }
 
 export function statusViLabel(code: string): string {
@@ -78,24 +95,36 @@ export function InlineText({
 }
 
 export function StatusSelect({ value, options, onChange, canEdit }: {
-  value: string;
-  options: { code: string; label: string }[];
+  value: string | StatusObject;
+  options: { code: string; label: string; color?: string }[];
   onChange?: (code: string) => void;
   canEdit: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const code = statusCodeOf(value);
+  const currentOpt = options.find(o => o.code === code);
+  
+  const currentLabel = currentOpt?.label || getStatusLabel(value);
+  const currentColor = currentOpt?.color || getStatusColor(value);
+
   const chip = (
     <button
       disabled={!canEdit}
+      type="button"
       onClick={() => canEdit && setOpen(o => !o)}
       className={cn(
-        'flex items-center justify-center gap-1.5 h-6 px-2.5 rounded text-[10px] font-bold uppercase tracking-wider whitespace-nowrap',
-        statusChipClass(value),
-        canEdit && 'cursor-pointer hover:opacity-90',
+        'flex items-center justify-center gap-1.5 h-6 px-2.5 rounded text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all',
+        !currentColor && statusChipClass(code),
+        canEdit && 'cursor-pointer hover:brightness-95 active:scale-95',
         !canEdit && 'cursor-default',
       )}
+      style={{ 
+        backgroundColor: currentColor, 
+        color: 'white',
+        boxShadow: `0 2px 8px ${currentColor}30`
+      }}
     >
-      {statusViLabel(value)}
+      {currentLabel}
       {canEdit && <ChevronDown size={10} />}
     </button>
   );
@@ -112,23 +141,29 @@ export function StatusSelect({ value, options, onChange, canEdit }: {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: .97 }}
             transition={{ duration: .12 }}
-            className="absolute top-8 left-0 z-50 bg-white border border-slate-200 rounded-lg shadow-xl py-1 min-w-[160px]"
+            className="absolute top-8 left-0 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl py-1.5 min-w-[180px] overflow-hidden"
           >
             {options.map(opt => (
               <button
                 key={opt.code}
+                type="button"
                 onClick={() => { onChange?.(opt.code); setOpen(false); }}
                 className={cn(
-                  'w-full flex items-center gap-2 px-3 py-2 text-left transition-colors',
-                  opt.code === value ? 'bg-slate-50' : 'hover:bg-slate-50',
+                  'w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors',
+                  opt.code === code ? 'bg-slate-50' : 'hover:bg-slate-50',
                 )}
               >
+                <span 
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: opt.color || getStatusColor(opt.code) }} 
+                />
                 <span className={cn(
-                  'w-2 h-2 rounded-sm flex-shrink-0',
-                  statusChipClass(opt.code).split(' ')[0],
-                )} />
-                <span className="text-[12px] text-slate-700 font-medium">{opt.label}</span>
-                {opt.code === value && <CheckCircle2 size={12} className="text-indigo-500 ml-auto" />}
+                  'text-[12px] font-semibold transition-colors',
+                  opt.code === code ? 'text-indigo-600' : 'text-slate-700'
+                )}>
+                  {opt.label}
+                </span>
+                {opt.code === code && <CheckCircle2 size={14} className="text-indigo-500 ml-auto" />}
               </button>
             ))}
           </motion.div>

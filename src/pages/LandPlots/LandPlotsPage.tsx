@@ -68,8 +68,10 @@ export function LandPlotsPage() {
     try {
       const isClearDescription =
         updatedPlot.description != null && updatedPlot.description.trim() === '';
+      const version = updatedPlot.version ?? plots.find((p) => p.id === updatedPlot.id)?.version;
 
       await updatePlot(currentFarmId, updatedPlot.id, {
+        version,
         name: updatedPlot.name,
         status: updatedPlot.status,
         ...(isClearDescription
@@ -116,7 +118,7 @@ export function LandPlotsPage() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 bg-white p-6 transition-all duration-300">
         <div className="flex items-center gap-6 w-full">
-          <button 
+          <button
             onClick={() => navigate(`/farms/${currentFarmId}/actions`)}
             className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all font-bold text-xs shrink-0"
           >
@@ -125,7 +127,7 @@ export function LandPlotsPage() {
             </div>
             Quay lại
           </button>
-          
+
           <div className="h-10 w-px bg-slate-200 mx-1 hidden sm:block" />
 
           <div className="flex items-center gap-4 flex-1">

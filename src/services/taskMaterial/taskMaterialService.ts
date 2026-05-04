@@ -2,6 +2,7 @@ import { axiosInstance } from '../../config/axios';
 import {
   getTaskMaterialsResponseSchema,
   addTaskMaterialResponseSchema,
+  deleteTaskMaterialResponseSchema,
 } from '../../schemas/taskMaterialSchemas';
 import { AddTaskMaterialRequest, TaskMaterial } from '../../types/taskMaterial';
 
@@ -45,9 +46,11 @@ export const taskMaterialService = {
     stageId: string,
     taskId: string,
     materialId: string
-  ): Promise<void> {
-    await axiosInstance.delete(
+  ): Promise<string> {
+    const response = await axiosInstance.delete(
       `/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/materials/${materialId}`
     );
+    const validated = deleteTaskMaterialResponseSchema.parse(response.data);
+    return typeof validated === 'string' ? validated : validated.data;
   },
 };

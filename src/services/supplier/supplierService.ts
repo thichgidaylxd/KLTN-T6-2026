@@ -12,8 +12,8 @@ export const supplierService = {
     return response.data.data;
   },
 
-  async deleteSupplier(farmId: string, supplierCode: string): Promise<void> {
-    await axiosInstance.delete(`/api/v1/farms/${farmId}/suppliers/${supplierCode}`);
+  async deleteSupplier(farmId: string, supplierId: string): Promise<void> {
+    await axiosInstance.delete(`/api/v1/farms/${farmId}/suppliers/${supplierId}`);
   },
 };
 

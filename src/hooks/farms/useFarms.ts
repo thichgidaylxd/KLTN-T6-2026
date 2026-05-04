@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateFarmInput } from '../../types/farm';
+import type { UpdateFarmRequest } from '../../types/farm';
 import { farmService } from '../../services/farm/farmService';
 
 const FARM_KEYS = {
@@ -45,7 +46,7 @@ export const useFarms = () => {
   });
 
   const updateFarmMutation = useMutation({
-    mutationFn: async ({ farmId, data }: { farmId: string; data: { name: string; description: string } }) => {
+    mutationFn: async ({ farmId, data }: { farmId: string; data: UpdateFarmRequest }) => {
       const selectRes = await farmService.selectFarm(farmId);
       if (!selectRes.success || !selectRes.data?.farmToken) {
         throw new Error('Không thể lấy mã định danh trang trại (Farm Token)');
@@ -115,7 +116,7 @@ export const useFarms = () => {
     ),
     createFarm: useCallback((data: CreateFarmInput) => withUnwrap(createFarmMutation.mutateAsync(data)), [createFarmMutation.mutateAsync]),
     updateFarm: useCallback(
-      (farmId: string, data: { name: string; description: string }) =>
+      (farmId: string, data: UpdateFarmRequest) =>
         withUnwrap(updateFarmMutation.mutateAsync({ farmId, data })),
       [updateFarmMutation.mutateAsync],
     ),

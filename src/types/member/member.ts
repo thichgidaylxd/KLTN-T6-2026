@@ -27,6 +27,14 @@ export interface Invitation {
   inviter: { id: string; fullName: string; email: string };
 }
 
+export interface InvitationPreview {
+  farmName: string;
+  inviterName: string;
+  role: string;
+  email: string;
+  expiresAt: string;
+}
+
 export interface InviteMemberRequest {
   email: string;
   roleId: string;

@@ -12,6 +12,7 @@ export type PlotStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface Plot {
   id: string;
+  version?: number;
   name: string;
   areaHa: number;
   status: PlotStatus;
@@ -27,6 +28,7 @@ export interface CreatePlotInput {
 }
 
 export interface UpdatePlotInput {
+  version?: number;
   name?: string;
   status?: PlotStatus;
   geometry?: Geometry;

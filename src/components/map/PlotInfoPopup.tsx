@@ -5,13 +5,11 @@ import { InfoIcon, ChevronRightIcon } from 'lucide-react'
 interface PlotInfoPopupProps {
   plot: Plot
   onClose: () => void
-  onEditBoundaries?: (plot: Plot) => void
 }
 
 export function PlotInfoPopup({
   plot,
   onClose,
- 
 }: PlotInfoPopupProps) {
   return (
     <div className="bg-white rounded-xl shadow-lg p-3 min-w-[200px] max-w-[220px] border border-gray-100 font-sans animate-in fade-in zoom-in-95 duration-200">

@@ -82,7 +82,7 @@ export const seasonPlanService = {
   /**
    * Cập nhật thời gian kế hoạch (PUT /api/v1/plans/{planId}/time)
    */
-  async updatePlanTime(planId: string, data: { startDate: string; endDate: string }): Promise<SeasonPlan> {
+  async updatePlanTime(planId: string, data: { startDate: string; endDate: string; version?: number }): Promise<SeasonPlan> {
     const response = await axiosInstance.put(`/api/v1/plans/${planId}/time`, data);
     const validated = createPlanResponseSchema.parse(response.data);
     return {
