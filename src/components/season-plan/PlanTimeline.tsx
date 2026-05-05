@@ -12,7 +12,7 @@ import {
   addDays,
 } from '@/utils/seasonPlanUtils';
 import { SelectionState } from '@/pages/SeasonPlan/SeasonPlanPage';
-import { getStatusColor, getStatusLabel } from './detail/DetailCommon';
+import { getStatusColor, statusLabel } from './detail/DetailCommon';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -550,11 +550,6 @@ export function PlanTimeline({
 
   // ── Status helpers ────────────────────────────────────────────────────────
   const statusCode = (s: any) => typeof s === 'string' ? s : (s?.code ?? '');
-  
-  // Try to find status from API prop first
-  const statusLabel = (s: any) => {
-    return getStatusLabel(s);
-  };
 
   // Logic màu sắc và label hiện được xử lý trực tiếp bằng getPhaseStatusFromApi và getTaskStatusFromApi
   // để đảm bảo luôn lấy dữ liệu mới nhất từ API mà không hardcode.

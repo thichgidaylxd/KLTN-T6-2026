@@ -103,7 +103,7 @@ export function DetailHeader({
             <button className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded transition-colors" title="Mở rộng">
               <ExternalLink size={13} />
             </button>
-            {canEdit && type !== 'PLAN' && (
+            {canEdit && (
               <button
                 className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
                 onClick={onDelete}

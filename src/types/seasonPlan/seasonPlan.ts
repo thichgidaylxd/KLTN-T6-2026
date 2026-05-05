@@ -5,6 +5,14 @@ export interface StatusObject {
   code: string;
   name: string;
   color: string;
+  isInitial?: boolean;
+  isTerminal?: boolean;
+}
+
+/** Trạng thái công việc (Task Status) — có thêm cờ isInitial / isTerminal từ API */
+export interface TaskStatusObject extends StatusObject {
+  isInitial?: boolean;
+  isTerminal?: boolean;
 }
 
 export type PlanStatus = 'DRAFT' | 'ACTIVE' | 'READY_TO_HARVEST' | 'HARVESTING' | 'COMPLETED' | 'CANCELLED' | 'UNASSIGNED' | 'ASSIGNED' | 'OVERDUE';
@@ -26,7 +34,7 @@ export interface Task {
   description: string;
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
-  status: StatusObject;
+  status: TaskStatusObject;
   progressPercent: number;
   acceptedAt?: string;
   completedAt?: string;

@@ -11,7 +11,6 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/utils/cn';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { Navigate } from 'react-router-dom';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const configs: Record<string, { label: string, color: string }> = {
@@ -35,9 +34,25 @@ export default function SubscriptionHistoryPage() {
   const navigate = useNavigate();
   const { currentFarmId } = useAuth();
   
-  // Redirect if no farm context
+  // Redirect if no farm context (Optional: could show placeholder instead)
   if (!currentFarmId) {
-    return <Navigate to="/farms" replace />;
+    return (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white min-h-[400px]">
+          <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-300 mb-4">
+            <CreditCard size={32} />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 mb-2">Vui lòng chọn trang trại</h2>
+          <p className="text-slate-500 text-sm mb-6 text-center max-w-xs">
+            Bạn cần chọn một trang trại để xem lịch sử gói dịch vụ và các giao dịch liên quan.
+          </p>
+          <button 
+            onClick={() => navigate('/farms')}
+            className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors"
+          >
+            Đến danh sách trang trại
+          </button>
+        </div>
+    );
   }
 
   const { data: current, isLoading: loadingCurrent } = useCurrentSubscription();

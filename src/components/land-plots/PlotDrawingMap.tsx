@@ -1,12 +1,16 @@
-import { useCallback, useRef, useState, useMemo, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { useCallback, useRef, useState, useMemo, useEffect, forwardRef, useImperativeHandle, Fragment } from 'react'
+import { Maximize2, Minimize2, Trash2 } from 'lucide-react'
 import { GoogleMap, Polygon, Polyline, Marker } from '@react-google-maps/api'
 import { Geometry, GeoPoint, Plot } from '@/types/plot'
 import { useGoogleMaps } from '@/providers/GoogleMapsProvider'
+import { cn } from '@/utils/cn'
 import { 
   isSelfIntersecting, 
   getPlotPath, 
   pointInPolygon, 
-  segmentsIntersect 
+  segmentsIntersect,
+  getColorFromId,
+  calculateCentroid
 } from '@/utils/plotUtils'
 
 export interface PlotDrawingMapHandle {
@@ -25,6 +29,8 @@ interface PlotDrawingMapProps {
 const MAP_OPTIONS: google.maps.MapOptions = {
   mapTypeId: 'satellite',
   tilt: 0,
+  disableDefaultUI: true,
+  zoomControl: false,
   mapTypeControl: false,
   streetViewControl: false,
   rotateControl: false,
@@ -40,6 +46,8 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
   mapHeight = '400px',
 }, ref) => {
   const { isLoaded } = useGoogleMaps()
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const [drawPts, setDrawPts] = useState<GeoPoint[]>([])
   const [hoverPt, setHoverPt] = useState<GeoPoint | null>(null)
@@ -161,41 +169,72 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
         </div>
       )}
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          type="button"
-          onClick={() => {
-            if (isDrawing) {
-              if (drawPts.length >= 3) finishDrawing()
-              else setIsDrawing(false)
-            } else {
-              handleClear()
-              setIsDrawing(true)
-            }
-          }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all font-medium text-sm ${
-            isDrawing 
-              ? 'bg-amber-500 border-amber-500 text-white shadow-lg' 
-              : 'bg-white border-gray-200 text-gray-700 hover:border-emerald-500 hover:text-emerald-600'
-          }`}
-        >
-          {isDrawing ? '⏹ Kết thúc vẽ' : '✏️ Vẽ polygon'}
-        </button>
-        <button
-          type="button"
-          onClick={handleClear}
-          className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-all font-medium text-sm"
-        >
-          Xóa
-        </button>
-      </div>
-
-      {/* Map Container — dùng mapHeight prop */}
       <div
-        className="rounded-xl overflow-hidden border border-gray-200 shadow-sm relative group"
-        style={{ height: mapHeight, minHeight: 0, flex: mapHeight === '100%' ? 1 : undefined }}
+        ref={containerRef}
+        className={cn(
+          "rounded-xl overflow-hidden border border-gray-200 shadow-sm relative group transition-all duration-300",
+          isFullscreen ? "fixed inset-0 z-[200] rounded-none m-0 border-none" : ""
+        )}
+        style={{ 
+          height: isFullscreen ? '100vh' : mapHeight, 
+          minHeight: 0,
+          flex: (!isFullscreen && mapHeight === '100%') ? 1 : undefined
+        }}
       >
+        {/* Toolbar nổi bên trái — Vẽ ranh giới */}
+        <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              if (isDrawing) {
+                if (drawPts.length >= 3) finishDrawing()
+                else setIsDrawing(false)
+              } else {
+                handleClear()
+                setIsDrawing(true)
+              }
+            }}
+            className={cn(
+              "px-3 py-1.5 rounded-lg border transition-all font-bold text-[10px] uppercase tracking-wider shadow-md backdrop-blur-md active:scale-95",
+              isDrawing 
+                ? "bg-amber-500 border-amber-400 text-white" 
+                : "bg-white border-gray-100 text-gray-700"
+            )}
+          >
+            {isDrawing ? "Kết thúc vẽ" : "Vẽ ranh giới"}
+          </button>
+
+          {drawPts.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="flex items-center justify-center w-7 h-7 rounded-lg bg-white border border-gray-100 text-gray-400 shadow-md backdrop-blur-md transition-all active:scale-95"
+              title="Xóa bản vẽ"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Nút Toàn màn hình bên phải */}
+        <button
+          type="button"
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          className="absolute top-2 right-2 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-gray-700 shadow-md border border-gray-100 backdrop-blur-sm transition-all active:scale-95"
+        >
+          {isFullscreen ? (
+            <>
+              <Minimize2 size={13} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Thu nhỏ</span>
+            </>
+          ) : (
+            <>
+              <Maximize2 size={13} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Toàn màn hình</span>
+            </>
+          )}
+        </button>
+
         <GoogleMap
           mapContainerStyle={{ width: '100%', height: '100%' }}
           center={center}
@@ -205,19 +244,52 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
           onClick={handleMapClick}
           onMouseMove={handleMouseMove}
         >
+          {/* Nhãn thông tin dạng Card trắng tại tâm vùng đang vẽ */}
+          {drawPts.length >= 3 && (
+            <Marker
+              position={calculateCentroid(drawPts)}
+              icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 0 }}
+              label={{
+                text: `${area.toFixed(4)} ha / ${drawPts.length} điểm`,
+                color: '#10b981',
+                fontSize: '11px',
+                fontWeight: '900',
+                className: 'bg-white px-3 py-2 rounded-xl shadow-2xl border border-emerald-50 text-center min-w-[120px]'
+              }}
+            />
+          )}
+
           {existingPlots.map(plot => {
             const path = getPlotPath(plot)
             if (path.length < 3) return null
+            const color = getColorFromId(plot.id)
+            const centroid = calculateCentroid(path)
+            
             return (
-              <Polygon
-                key={plot.id}
-                path={path}
-                options={{
-                  fillColor: '#10b981', fillOpacity: 0.1,
-                  strokeColor: '#34d399', strokeWeight: 1,
-                  clickable: false, zIndex: 0
-                }}
-              />
+              <Fragment key={plot.id}>
+                <Polygon
+                  path={path}
+                  options={{
+                    fillColor: color, 
+                    fillOpacity: 0.2,
+                    strokeColor: color, 
+                    strokeWeight: 2,
+                    clickable: false, 
+                    zIndex: 0
+                  }}
+                />
+                <Marker
+                  position={centroid}
+                  icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 0 }}
+                  label={{
+                    text: plot.name || 'Lô đất',
+                    color: 'white',
+                    fontSize: '11px',
+                    fontWeight: '900',
+                    className: 'plot-label-shadow'
+                  }}
+                />
+              </Fragment>
             )
           })}
 
@@ -258,26 +330,6 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
             />
           )}
         </GoogleMap>
-
-        {(drawPts.length > 0 || area > 0) && (
-          <div className="absolute bottom-4 right-4 z-20 flex flex-col gap-2">
-            <div className={`bg-white/90 backdrop-blur-md px-4 py-3 rounded-2xl shadow-2xl border flex flex-col gap-2 min-w-[140px] ${
-              errorMessage ? 'border-red-200' : 'border-emerald-100'
-            }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Điểm đã vẽ</span>
-                <span className={`text-sm font-black ${errorMessage ? 'text-red-500' : 'text-emerald-600'}`}>{drawPts.length}</span>
-              </div>
-              <div className="h-px bg-gray-100" />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Diện tích ước tính</span>
-                <span className={`text-lg font-black ${errorMessage ? 'text-red-500' : 'text-emerald-600'}`}>
-                  {area.toFixed(4)} <span className="text-xs font-bold uppercase">ha</span>
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

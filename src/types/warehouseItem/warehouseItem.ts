@@ -3,7 +3,7 @@ export interface WarehouseItem {
   version?: number;
   name: string;
   stock: number;
-  reservedQty: number;
+  reservedQty?: number | null;
   warehouse: {
     id: string;
     name: string;

@@ -66,4 +66,11 @@ export const taskStatusService = {
     const response = await axiosInstance.get('/api/v1/task-status-transitions');
     return getTaskStatusTransitionsResponseSchema.parse(response.data).data;
   },
+
+  async getAvailableStatuses(planId: string, stageId: string, taskId: string): Promise<TaskStatusObject[]> {
+    const response = await axiosInstance.get(
+      `/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/available-statuses`
+    );
+    return getTaskStatusesResponseSchema.parse(response.data).data;
+  },
 };

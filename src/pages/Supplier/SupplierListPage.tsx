@@ -89,11 +89,11 @@ export function SupplierListPage() {
     try {
       await deleteSupplier(farmId, supplierToDelete).unwrap()
       toast.success('Đã xóa nhà cung cấp')
-      setIsDeleteConfirmOpen(false)
     } catch (err: any) {
       toast.error(extractErrorMessage(err))
     } finally {
       setIsDeleting(false)
+      setIsDeleteConfirmOpen(false)
       setSupplierToDelete(null)
     }
   }
@@ -244,7 +244,7 @@ export function SupplierListPage() {
                     {canManage && (
                       <button
                         onClick={() => handleDeleteClick(s.id)}
-                        className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
+                        className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all flex-shrink-0"
                       >
                         <Trash2 size={13} />
                       </button>

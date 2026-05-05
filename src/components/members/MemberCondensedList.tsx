@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMembers } from '@/hooks/members/useMembers';
+import { getRoleDisplayName } from '@/utils/roleUtils';
 
 export const MemberCondensedList: React.FC = () => {
   const navigate = useNavigate();
@@ -33,12 +34,14 @@ export const MemberCondensedList: React.FC = () => {
 
             <div className="flex-1 min-w-0">
               <p className="text-sm font-black text-slate-800 truncate">{member.fullName || member.email}</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{member.role?.description || member.role?.name}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                {getRoleDisplayName(member.role?.name)}
+              </p>
             </div>
 
             {member.role?.name === 'OWNER' ? (
               <span className="px-2.5 py-1 rounded-full bg-white text-slate-600 text-[10px] font-black uppercase tracking-wider border border-slate-100 shadow-sm">
-                Chủ sở hữu
+                Chủ trang trại
               </span>
             ) : (
               <span className="px-2.5 py-1 rounded-full bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-wider border border-slate-100">

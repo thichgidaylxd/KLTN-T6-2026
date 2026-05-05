@@ -44,6 +44,11 @@ export const memberService = {
     return res.data;
   },
 
+  async getInvitationById(farmId: string, invitationId: string): Promise<ApiResponse<string>> {
+    const res = await axiosInstance.get(`/api/v1/farms/${farmId}/invitations/${invitationId}`);
+    return res.data;
+  },
+
   async getFarmRoles(): Promise<ApiResponse<FarmRole[]>> {
     const res = await axiosInstance.get('/api/v1/farms/roles')
     return res.data

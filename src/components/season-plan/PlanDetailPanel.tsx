@@ -29,7 +29,9 @@ import { AssigneesSection } from './detail/AssigneesSection';
 import { SubTasksSection } from './detail/SubTasksSection';
 import { DeleteConfirmModal } from './detail/DeleteConfirmModal';
 import { PlotManager } from './detail/PlotManager';
+import { DependenciesSection } from './detail/DependenciesSection';
 import { statusCodeOf } from './detail/DetailCommon';
+import { useTaskDependencies } from '@/hooks/seasonPlans/useTaskDependencies';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -118,6 +120,19 @@ export function PlanDetailPanel({
     activeSelection?.type === 'TASK' ? (activeSelection as any).phase.id : undefined,
     activeSelection?.type === 'TASK' ? (activeSelection as any).task.id : undefined,
     isOpen && activeTab === 'MEMBERS' && activeSelection?.type === 'TASK'
+  );
+
+  const {
+    dependencies,
+    loading: isDependenciesLoading,
+    adding: isAddingDependency,
+    addDependency,
+    deleteDependency
+  } = useTaskDependencies(
+    activeSelection?.plan.id,
+    activeSelection?.type === 'TASK' ? (activeSelection as any).phase.id : undefined,
+    activeSelection?.type === 'TASK' ? (activeSelection as any).task.id : undefined,
+    isOpen && activeTab === 'INFO' && activeSelection?.type === 'TASK'
   );
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -427,37 +442,51 @@ export function PlanDetailPanel({
                   )}
 
                   {sel.type === 'TASK' && (
-                    <div className="px-4 py-3 border-t border-slate-100">
-                      <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                        <BarChart2 size={11} /> Tiến độ
-                      </p>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <motion.div
-                            className="h-full bg-indigo-500 rounded-full"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${sel.task.progressPercent ?? 0}%` }}
-                            transition={{ duration: .4, ease: 'easeOut' }}
-                          />
+                    <>
+                      <div className="px-4 py-3 border-t border-slate-100">
+                        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                          <BarChart2 size={11} /> Tiến độ
+                        </p>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <motion.div
+                              className="h-full bg-indigo-500 rounded-full"
+                              initial={{ width: 0 }}
+                              animate={{ width: `${sel.task.progressPercent ?? 0}%` }}
+                              transition={{ duration: .4, ease: 'easeOut' }}
+                            />
+                          </div>
+                          <span className="text-[11px] font-bold text-slate-600 w-8 text-right tabular-nums">
+                            {sel.task.progressPercent ?? 0}%
+                          </span>
                         </div>
-                        <span className="text-[11px] font-bold text-slate-600 w-8 text-right tabular-nums">
-                          {sel.task.progressPercent ?? 0}%
-                        </span>
+                        {canEdit && (
+                          <input
+                            type="range" min="0" max="100"
+                            value={sel.task.progressPercent ?? 0}
+                            onChange={e => onUpdateTask(plan.id, sel.phase.id, { 
+                              ...sel.task, 
+                              progressPercent: +e.target.value,
+                              statusCode: statusCodeOf(sel.task.status)
+                            } as any)}
+                            disabled={['COMPLETED', 'CANCELLED'].includes(statusCodeOf(sel.task.status))}
+                            className="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                          />
+                        )}
                       </div>
-                      {canEdit && (
-                        <input
-                          type="range" min="0" max="100"
-                          value={sel.task.progressPercent ?? 0}
-                          onChange={e => onUpdateTask(plan.id, sel.phase.id, { 
-                            ...sel.task, 
-                            progressPercent: +e.target.value,
-                            statusCode: statusCodeOf(sel.task.status)
-                          } as any)}
-                          disabled={['COMPLETED', 'CANCELLED'].includes(statusCodeOf(sel.task.status))}
-                          className="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                        />
-                      )}
-                    </div>
+
+                      <DependenciesSection
+                        taskId={sel.task.id}
+                        phase={sel.phase}
+                        dependencies={dependencies}
+                        loading={isDependenciesLoading}
+                        adding={isAddingDependency}
+                        canEdit={canEdit}
+                        onAdd={addDependency}
+                        onDelete={deleteDependency}
+                        onSelectTask={(tid) => onSelectTask(plan.id, sel.phase.id, tid)}
+                      />
+                    </>
                   )}
 
                   {sel.type === 'PHASE' && (

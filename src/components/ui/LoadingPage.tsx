@@ -17,7 +17,7 @@ export const LoadingPage: React.FC = () => {
         {/* Loading Text */}
         <div className="space-y-2">
           <h1 className="text-3xl font-bold text-gray-800">
-            Quản Lý Nông Trại
+            Farmar Management
           </h1>
           <p className="text-lg text-gray-600">
             Đang tải dữ liệu...

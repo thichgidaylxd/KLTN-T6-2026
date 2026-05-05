@@ -14,15 +14,22 @@ export const warehouseSchema = z.object({
 export const createWarehouseSchema = z.object({
   name: z.string().min(1, "Tên kho không được để trống"),
   description: z.string().optional(),
-  address: z.string().min(1, "Địa chỉ không được để trống"),
-  latitude: z
-    .number({ invalid_type_error: "Vui lòng click chọn vị trí trên bản đồ" })
-    .min(-90).max(90),
-  longitude: z
-    .number({ invalid_type_error: "Vui lòng click chọn vị trí trên bản đồ" })
-    .min(-180).max(180),
+  address: z.string().optional(),
+  latitude: z.number({ required_error: "Vui lòng chọn vị trí trên bản đồ" }),
+  longitude: z.number({ required_error: "Vui lòng chọn vị trí trên bản đồ" }),
+});
+
+export const updateWarehouseSchema = z.object({
+  name: z.string().min(1, "Tên kho không được để trống").optional(),
+  description: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+  version: z.number(), // Bắt buộc
 });
 
 export const getWarehousesResponseSchema = apiResponseSchema(z.array(warehouseSchema));
+export const updateWarehouseResponseSchema = apiResponseSchema(warehouseSchema);
 
 export type CreateWarehouseFormValues = z.infer<typeof createWarehouseSchema>;
+export type UpdateWarehouseFormValues = z.infer<typeof updateWarehouseSchema>;

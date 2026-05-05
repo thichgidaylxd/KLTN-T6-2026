@@ -15,7 +15,6 @@ export const createCropTypeSchema = z.object({
 export const growthStageSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, 'Tên giai đoạn là bắt buộc'),
-  durationDays: z.number({ invalid_type_error: 'Phải là số' }).min(1, 'Thời gian phải lớn hơn 0'),
   description: z.string().optional(),
 });
 

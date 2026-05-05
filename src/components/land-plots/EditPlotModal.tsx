@@ -39,7 +39,8 @@ export function EditPlotModal({
     const validation = updatePlotSchema.safeParse({
       name,
       status,
-      description
+      description,
+      version: plot.version
     })
 
     if (!validation.success) {

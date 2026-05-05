@@ -19,7 +19,7 @@ export const useUnits = () => {
   const unitsQuery = useQuery({
     queryKey: UNIT_KEYS.list,
     queryFn: async () => (await unitService.getUnits()).data ?? [],
-    enabled: false,
+    enabled: true,
   });
 
   useEffect(() => {

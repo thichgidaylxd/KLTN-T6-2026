@@ -94,8 +94,8 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
   const getRoleDesc = (name: string) => {
     const map: Record<string, string> = {
-      MANAGER: 'Toàn quyền quản lý lô đất và nhân sự',
-      WORKER: 'Chỉ xem thông tin được giao',
+      MANAGER: 'Quản lý lô đất, kho và phân công nhân sự',
+      WORKER: 'Chỉ xem và thực hiện phần được giao',
     }
     return map[name] ?? ''
   }

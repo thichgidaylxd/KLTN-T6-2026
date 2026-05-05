@@ -38,7 +38,7 @@ import { CreatePlanModal } from '@/components/season-plan/CreatePlanModal';
 import { ClonePlanModal } from '@/components/season-plan/ClonePlanModal';
 import { PlanDetailPanel } from '@/components/season-plan/PlanDetailPanel';
 import { CreatePhaseModal } from '@/components/season-plan/CreatePhaseModal';
-import { extractErrorMessage } from '@/utils/errorUtils';
+import { extractErrorMessage, extractDeleteTaskErrorMessage, extractDeletePhaseErrorMessage } from '@/utils/errorUtils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -353,6 +353,7 @@ export function SeasonPlanPage() {
 
   const confirmDelete = async () => {
     if (!deleteConfirm.planId) return;
+    
     setDeleteConfirm(prev => ({ ...prev, isDeleting: true }));
     try {
       await removePlan(deleteConfirm.planId).unwrap();
@@ -440,20 +441,46 @@ export function SeasonPlanPage() {
   };
 
   const handleDeletePhase = async (planId: string, stageId: string) => {
+    const cachedPhase = plans
+      .find(p => p.id === planId)
+      ?.phases?.find(ph => ph.id === stageId);
+
+    const phaseStatus = cachedPhase?.status && typeof cachedPhase.status === 'object' ? cachedPhase.status : null;
+    const statusName = (phaseStatus as any)?.name ?? (typeof cachedPhase?.status === 'string' ? cachedPhase.status : undefined);
+
     try {
       await removePhase(planId, stageId).unwrap();
       setSelectedItem(null);
     } catch (err: any) {
-      showError('Lỗi xóa giai đoạn', err);
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Lỗi xóa giai đoạn',
+        message: extractDeletePhaseErrorMessage(err, statusName),
+      });
     }
   };
 
   const handleDeleteTask = async (planId: string, stageId: string, taskId: string) => {
+    // Lấy thông tin task từ cache để kiểm tra trạng thái trước khi xóa
+    const cachedTask = plans
+      .find(p => p.id === planId)
+      ?.phases?.find(ph => ph.id === stageId)
+      ?.tasks?.find(t => t.id === taskId);
+
+    const taskStatus = typeof cachedTask?.status === 'object' ? cachedTask?.status : null;
+    const statusName = taskStatus?.name ?? (typeof cachedTask?.status === 'string' ? cachedTask.status : undefined);
+
     try {
       await removeSeasonTask(planId, stageId, taskId).unwrap();
-      setSelectedItem({ type: 'PHASE', id: stageId, planId });
-    } catch (err: any) {   
-      showError('Lỗi xóa công việc', err);
+      setSelectedItem(null);
+    } catch (err: any) {
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Lỗi xóa công việc',
+        message: extractDeleteTaskErrorMessage(err, statusName),
+      });
     }
   };
 
@@ -481,7 +508,7 @@ export function SeasonPlanPage() {
     try {
       if (!originalTask) {
         await updateSeasonTask(planId, stageId, task.id, {
-          version: task.version,
+          version: task.version ?? 0,
           name: task.name,
           description: task.description || '',
           startDate: task.startDate,
@@ -511,7 +538,7 @@ export function SeasonPlanPage() {
 
       if (isContentChanged) {
         await updateSeasonTask(planId, stageId, task.id, {
-          version: originalTask.version,
+          version: originalTask.version ?? 0,
           name: task.name,
           description: task.description || '',
           startDate: task.startDate,

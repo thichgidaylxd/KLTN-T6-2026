@@ -15,9 +15,10 @@ export const ROLE_DISPLAY_NAMES: Record<RoleId, string> = {
 
 export const getRoleDisplayName = (role: string | undefined): string => {
   if (!role) return 'Người dùng';
-  
-  // Xử lý cả trường hợp dùng 'worker' thay vì 'employee'
-  const normalizedRole = role === 'worker' ? 'employee' : role;
-  
+
+  const lower = role.toLowerCase();
+  // API farm thường trả OWNER / MANAGER / WORKER (chữ hoa)
+  const normalizedRole = lower === 'worker' ? 'employee' : lower;
+
   return ROLE_DISPLAY_NAMES[normalizedRole as RoleId] || role;
 };

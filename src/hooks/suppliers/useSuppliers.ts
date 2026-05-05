@@ -18,7 +18,7 @@ export const useSuppliers = () => {
   const suppliersQuery = useQuery({
     queryKey: farmId ? SUPPLIER_KEYS.byFarm(farmId) : ['suppliers', 'inactive'],
     queryFn: async (): Promise<Supplier[]> => supplierService.getSuppliers(farmId as string),
-    enabled: false,
+    enabled: !!farmId,
   });
 
   const createSupplierMutation = useMutation({

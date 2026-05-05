@@ -7,6 +7,7 @@ import { Modal } from '../ui/Modal';
 import { memberService } from '../../services/members/memberService';
 import { type Member, type FarmRole } from '../../types/member';
 import { changeRoleSchema } from '../../schemas/memberSchemas'
+import { getRoleDisplayName } from '../../utils/roleUtils'
 
 interface ChangeRoleModalProps {
   isOpen: boolean
@@ -85,7 +86,7 @@ export function ChangeRoleModal({ isOpen, onClose, member }: ChangeRoleModalProp
             <p className="text-sm text-gray-600 mb-1">Thành viên</p>
             <p className="font-semibold text-gray-900">{member.fullName}</p>
             <p className="text-sm text-gray-600 mt-2">Vai trò hiện tại</p>
-            <p className="font-medium text-gray-900">{member.role?.description ?? member.role?.name}</p>
+            <p className="font-medium text-gray-900">{getRoleDisplayName(member.role?.name)}</p>
           </div>
 
           {/* Select role */}
@@ -107,7 +108,7 @@ export function ChangeRoleModal({ isOpen, onClose, member }: ChangeRoleModalProp
               >
                 {roles.map(role => (
                   <option key={role.id} value={role.id}>
-                    {role.description || role.name}
+                    {getRoleDisplayName(role.name) || role.description || role.name}
                   </option>
                 ))}
               </select>

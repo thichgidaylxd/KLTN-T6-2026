@@ -1,15 +1,22 @@
+import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Sprout, LayoutDashboard, LogOut, ChevronLeft } from "lucide-react";
+import { Sprout, LayoutDashboard, LogOut, ChevronLeft, Settings, Key } from "lucide-react";
 import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
+  const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const handleChangePassword = () => {
+    setIsSettingsMenuOpen(false);
+    navigate("/profile/change-password");
   };
 
   const navItems = [
@@ -27,46 +34,74 @@ export default function AdminLayout() {
 
   return (
     <div className="w-full h-screen bg-[#F8FAFC] flex overflow-hidden">
-      {/* Admin Sidebar - Dark Green Theme */}
-      <aside className="w-72 bg-[#1A3020] flex flex-col shadow-2xl">
-        <div className="p-8 flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#25422D] rounded-xl flex items-center justify-center border border-white/10 shadow-lg">
-            <Sprout className="w-7 h-7 text-green-400 group-hover:rotate-12 transition-transform" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-bold text-lg text-white leading-tight">Quản trị</span>
-            <span className="text-xs text-green-400/80 font-medium uppercase tracking-widest">Hệ thống</span>
-          </div>
+      {/* Admin Sidebar - Light Emerald Gradient Theme */}
+      <aside className="w-72 bg-gradient-to-br from-slate-50 via-white to-emerald-100/80 flex flex-col shadow-sm border-r border-slate-200/60 transition-all duration-300">
+        <div className="p-8 pb-4 flex flex-col">
+          <span className="font-black text-2xl text-slate-900 leading-tight tracking-tight">Quản trị</span>
+          <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-[2px] mt-1">Hệ thống</span>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2 mt-6">
+        <nav className="flex-1 px-4 space-y-1.5 mt-6">
+          <h3 className="px-5 text-[10px] font-bold text-slate-500 uppercase tracking-[2px] mb-3">
+            Quản lý
+          </h3>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-2xl transition-all duration-300 ${
-                  isActive
-                    ? "bg-[#3E6B47] text-white font-bold shadow-lg shadow-black/20 translate-x-1"
-                    : "text-green-100/60 hover:text-white hover:bg-white/5 active:scale-95"
-                }`}
+                className={`w-full flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-200 group ${isActive
+                    ? "bg-emerald-100/70 text-emerald-800 shadow-sm font-bold border border-emerald-200/50"
+                    : "text-slate-600 hover:bg-emerald-50/50 hover:text-emerald-700 font-medium"
+                  }`}
               >
-                <item.icon className={`w-5 h-5 ${isActive ? "text-green-300" : "opacity-70 text-green-100"}`} />
-                <span className="tracking-wide">{item.name}</span>
+                <item.icon className={`w-5 h-5 transition-colors ${isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-emerald-500"}`} />
+                <span className="text-sm">{item.name}</span>
               </button>
             );
           })}
         </nav>
 
-        <div className="p-6 border-t border-white/5 mb-2">
+        {/* Settings & Account at Bottom */}
+        <div className="p-6 border-t border-slate-100/50 relative">
           <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-5 py-3.5 rounded-2xl text-red-400 hover:bg-red-500/10 transition-all font-medium active:scale-95 group"
+            onClick={() => setIsSettingsMenuOpen(!isSettingsMenuOpen)}
+            className={`w-full flex items-center justify-between px-5 py-3 rounded-xl transition-all duration-200 font-bold text-sm shadow-sm border ${isSettingsMenuOpen
+              ? "bg-emerald-600 text-white border-emerald-600"
+              : "bg-white text-slate-700 border-slate-200"
+              }`}
           >
-            <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            <span className="tracking-wide">Đăng xuất</span>
+            <div className="flex items-center gap-3">
+              <Settings className={`w-5 h-5 ${isSettingsMenuOpen ? "animate-spin-slow" : ""}`} />
+              <span>Cài đặt</span>
+            </div>
+            <div className={`w-1.5 h-1.5 rounded-full ${isSettingsMenuOpen ? "bg-white" : "bg-emerald-500"}`}></div>
           </button>
+
+          {/* Popover Menu */}
+          {isSettingsMenuOpen && (
+            <div className="absolute bottom-full left-6 right-6 mb-2 bg-white border border-slate-100 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <button
+                onClick={handleChangePassword}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-700 hover:bg-slate-50 transition-all font-semibold text-sm group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                  <Key size={16} />
+                </div>
+                <span>Đổi mật khẩu</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 transition-all font-semibold text-sm group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center text-rose-600 group-hover:scale-110 transition-transform">
+                  <LogOut size={16} />
+                </div>
+                <span>Đăng xuất</span>
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -74,19 +109,20 @@ export default function AdminLayout() {
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header - Only visible on Dashboard */}
         {location.pathname === "/admin/dashboard" && (
-          <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-10 shadow-sm z-10">
+          <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-10 shadow-sm z-10 shrink-0">
             <div className="flex items-center gap-6">
-              <button 
+              <button
                 onClick={() => navigate(-1)}
                 className="group p-2.5 hover:bg-slate-50 border border-slate-100 rounded-xl transition-all text-slate-400 hover:text-slate-600 active:scale-90"
               >
                 <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
               </button>
+              <h1 className="text-xl font-black text-slate-900 tracking-tight">Hệ thống quản trị</h1>
             </div>
-            
+
             {/* User Profile Pill */}
             <div className="flex items-center p-1.5 pr-5 bg-white border border-slate-200 rounded-full shadow-sm">
-              <div className="w-10 h-10 rounded-full bg-[#3E6B47] flex items-center justify-center text-white font-black text-sm shadow-inner mr-3 group overflow-hidden relative">
+              <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-black text-sm shadow-inner mr-3 group overflow-hidden relative">
                 <span className="relative z-10">AD</span>
                 <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </div>
@@ -99,7 +135,7 @@ export default function AdminLayout() {
         )}
 
         {/* Page Content - Full Width Minimalist */}
-        <div className="flex-1 overflow-y-auto bg-white">
+        <div className="flex-1 overflow-y-auto bg-white no-scrollbar">
           <Outlet />
         </div>
       </main>

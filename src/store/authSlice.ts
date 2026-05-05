@@ -13,7 +13,7 @@ const initialState: AuthState = {
   isAuthenticated: !!sessionStorage.getItem('accessToken'),
   accessToken: sessionStorage.getItem('accessToken'),
   hubToken: sessionStorage.getItem('hubToken'),
-  currentFarmId: sessionStorage.getItem('currentFarmId'),
+  currentFarmId: sessionStorage.getItem('currentFarmId') === 'null' ? null : sessionStorage.getItem('currentFarmId'),
   subscriptionVersion: 0
 };
 
@@ -54,7 +54,11 @@ const authSlice = createSlice({
       state.currentFarmId = action.payload.currentFarmId;
       state.accessToken = action.payload.token;
 
-      sessionStorage.setItem('currentFarmId', action.payload.currentFarmId);
+      if (action.payload.currentFarmId) {
+        sessionStorage.setItem('currentFarmId', action.payload.currentFarmId);
+      } else {
+        sessionStorage.removeItem('currentFarmId');
+      }
       sessionStorage.setItem('accessToken', action.payload.token);
     },
 

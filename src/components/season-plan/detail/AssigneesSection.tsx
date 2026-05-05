@@ -3,6 +3,7 @@ import { ChevronDown, Loader2, Trash2, UserPlus, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TaskAssignee } from '@/types/taskAssignee';
 import { Member } from '@/types/member';
+import { getRoleDisplayName } from '@/utils/roleUtils';
 
 interface AssigneesSectionProps {
   assignees: TaskAssignee[];
@@ -70,7 +71,10 @@ export function AssigneesSection({
               </select>
               {selectedMember && (
                 <div className="px-1 text-[11px] text-slate-500">
-                  Vai trò: <b className="text-slate-700">{selectedMember.role?.name || selectedMember.role?.description || 'Không xác định'}</b>
+                  Vai trò:{' '}
+                  <b className="text-slate-700">
+                    {getRoleDisplayName(selectedMember.role?.name) || 'Không xác định'}
+                  </b>
                 </div>
               )}
               <div className="flex gap-2 pt-1">

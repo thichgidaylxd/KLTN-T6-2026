@@ -11,7 +11,7 @@ const GoogleMapsContext = createContext<GoogleMapsContextType | undefined>(undef
 
 export function GoogleMapsProvider({ children }: { children: ReactNode }) {
   const libraries = useMemo<("drawing" | "geometry" | "places" | "visualization")[]>(
-    () => ['geometry', 'drawing'],
+    () => ['geometry', 'drawing', 'places', 'visualization'],
     []
   );
 
@@ -19,6 +19,8 @@ export function GoogleMapsProvider({ children }: { children: ReactNode }) {
     id: 'google-map-script',
     googleMapsApiKey: ENV.GOOGLE_MAP_KEY,
     libraries,
+    language: 'vi', // Ưu tiên tiếng Việt
+    region: 'VN'    // Ưu tiên vùng Việt Nam
   });
 
   return (

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Phase, SeasonPlan } from '@/types/seasonPlan';
 import { DateInput } from '@/components/ui/DateInput';
 import { cn } from '@/utils/cn';
-import { fmtDate, getStatusColor, getStatusLabel } from './DetailCommon';
+import { fmtDate, getStatusColor, statusLabel } from './DetailCommon';
 
 interface SubTasksSectionProps {
   phase: Phase;
@@ -137,7 +137,7 @@ export function SubTasksSection({
                     color: getStatusColor(t.status) 
                   }}
                 >
-                  {getStatusLabel(t.status)}
+                  {statusLabel(t.status)}
                 </span>
               </div>
               <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-400">

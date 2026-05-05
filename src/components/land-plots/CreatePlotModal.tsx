@@ -3,6 +3,7 @@ import { XIcon, AlertCircleIcon } from 'lucide-react'
 import { Plot, Geometry } from '@/types/plot'
 import { PlotDrawingMap, PlotDrawingMapHandle } from './PlotDrawingMap'
 import { createPlotSchema } from '@/schemas/plotSchemas'
+import { cn } from '@/utils/cn'
 
 interface CreatePlotModalProps {
   isOpen: boolean
@@ -174,20 +175,52 @@ export function CreatePlotModal({
                 />
               </div>
 
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-tight pt-1.5 border-t border-gray-100">
-                <span className={geometry ? 'text-emerald-600' : 'text-gray-400'}>
-                  {geometry
-                    ? `● Ranh giới đã sẵn sàng (${areaHa.toLocaleString(undefined, { maximumFractionDigits: 4 })} ha)`
-                    : '○ Chờ vẽ ranh giới'}
-                </span>
+              <div className="pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm",
+                      geometry 
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                        : "bg-slate-50 text-slate-500 border border-slate-200"
+                    )}>
+                      {geometry ? (
+                        <>
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Đã xác định ranh giới
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                          Chờ vẽ ranh giới
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {geometry && (
+                    <button
+                      type="button"
+                      onClick={() => mapRef.current?.clear()}
+                      className="text-[10px] font-bold text-red-500 hover:text-red-600 hover:underline transition-colors uppercase tracking-tight"
+                    >
+                      Xóa để vẽ lại
+                    </button>
+                  )}
+                </div>
                 {geometry && (
-                  <button
-                    type="button"
-                    onClick={() => mapRef.current?.clear()}
-                    className="text-red-500 hover:underline"
-                  >
-                    Xóa để vẽ lại
-                  </button>
+                  <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-emerald-50/30 border border-emerald-100/50 rounded-xl">
+                    <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                      <svg className="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-emerald-600/60 font-bold uppercase tracking-tighter leading-none">Diện tích lô đất</p>
+                      <p className="text-[13px] font-black text-emerald-700 leading-tight">
+                        {areaHa.toLocaleString(undefined, { maximumFractionDigits: 4 })} <span className="text-[10px] font-bold opacity-70">ha</span>
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

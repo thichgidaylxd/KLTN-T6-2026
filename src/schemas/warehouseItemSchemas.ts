@@ -6,8 +6,8 @@ const warehouseSchema = z.object({
   name: z.string(),
   description: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
 });
 
 const unitSchema = z.object({
@@ -44,7 +44,7 @@ export const apiWarehouseItemSchema = z.object({
   version: z.number().optional(),
   name: z.string(),
   stock: z.number(),
-  reservedQty: z.number(),
+  reservedQty: z.number().nullable().optional(),
   unitPrice: z.number(),
   warehouse: warehouseSchema,
   unit: unitSchema,

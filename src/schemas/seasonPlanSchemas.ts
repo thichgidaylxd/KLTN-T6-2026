@@ -6,6 +6,8 @@ export const statusObjectSchema = z.object({
   code: z.string(),
   name: z.string(),
   color: z.string(),
+  isInitial: z.boolean().optional(),
+  isTerminal: z.boolean().optional(),
 });
 
 // Enum for Plan Status (legacy/simple)

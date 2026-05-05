@@ -28,7 +28,7 @@ export interface CreatePlotInput {
 }
 
 export interface UpdatePlotInput {
-  version?: number;
+  version: number; // Bắt buộc truyền version
   name?: string;
   status?: PlotStatus;
   geometry?: Geometry;

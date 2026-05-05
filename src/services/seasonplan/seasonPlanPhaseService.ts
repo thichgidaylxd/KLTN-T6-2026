@@ -19,6 +19,12 @@ export const seasonPlanPhaseService = {
     return validated.data.map(mapToPhase);
   },
 
+  async getStageById(planId: string, stageId: string): Promise<Phase> {
+    const response = await axiosInstance.get(`/api/v1/plans/${planId}/stages/${stageId}`);
+    const validated = createStageResponseSchema.parse(response.data);
+    return mapToPhase(validated.data);
+  },
+
   async createStage(planId: string, data: { name: string; startDate: string; endDate: string }): Promise<Phase> {
     const response = await axiosInstance.post(`/api/v1/plans/${planId}/stages`, data);
     const validated = createStageResponseSchema.parse(response.data);

@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Tag, Plus, Trash2, Loader2, ArrowLeft, Search, Barcode } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractErrorMessage } from '../../utils/errorUtils'
 import { useAuth } from '../../hooks/auth/useAuth'
 import { useSkus } from '../../hooks/skus/useSkus'
 import { useFarms } from '../../hooks/farms/useFarms'
@@ -62,7 +63,7 @@ export function SKUListPage() {
       setIsModalOpen(false)
       setNewSku({ sku: '', description: '' })
     } catch (err: any) {
-      toast.error(err || 'Không thể thêm mã SKU')
+      toast.error(extractErrorMessage(err))
     } finally {
       setSubmitting(false)
     }
@@ -79,11 +80,11 @@ export function SKUListPage() {
     try {
       await deleteSku(farmId, skuToDelete).unwrap()
       toast.success('Đã xóa mã SKU')
-      setIsDeleteConfirmOpen(false)
     } catch (err: any) {
-      toast.error(err || 'Không thể xóa mã SKU')
+      toast.error(extractErrorMessage(err))
     } finally {
       setIsDeleting(false)
+      setIsDeleteConfirmOpen(false)
       setSkuToDelete(null)
     }
   }

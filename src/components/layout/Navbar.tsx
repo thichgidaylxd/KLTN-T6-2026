@@ -256,7 +256,7 @@ export function Navbar({
                     className={`font-roboto text-[13px] font-semibold leading-tight ${scrolled ? "text-gray-800" : "text-light-yellow-1"
                       }`}
                   >
-                    {user?.fullName || user?.email || "User"}
+                    {user?.fullName || roleDisplay}
                   </span>
                   <span
                     className={`font-roboto text-[11px] font-normal leading-tight ${scrolled ? "text-gray-600" : "text-light-yellow-1/80"

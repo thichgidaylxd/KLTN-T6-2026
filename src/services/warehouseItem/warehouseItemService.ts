@@ -31,5 +31,30 @@ export const warehouseItemService = {
     const response = await axiosInstance.post(`/api/v1/farms/${farmId}/warehouses/${warehouseId}/items`, itemData);
     return createWarehouseItemResponseSchema.parse(response.data).data;
   },
+
+  async updateWarehouseItem(
+    farmId: string,
+    warehouseId: string,
+    warehouseItemId: string,
+    itemData: any,
+  ): Promise<WarehouseItem> {
+    const response = await axiosInstance.patch(`/api/v1/farms/${farmId}/warehouses/${warehouseId}/items/${warehouseItemId}`, itemData);
+    return createWarehouseItemResponseSchema.parse(response.data).data;
+  },
+
+  async deleteWarehouseItem(
+    farmId: string,
+    warehouseId: string,
+    warehouseItemId: string,
+  ): Promise<void> {
+    await axiosInstance.delete(`/api/v1/farms/${farmId}/warehouses/${warehouseId}/items/${warehouseItemId}`);
+  },
+
+  async deleteItemFromFarm(
+    farmId: string,
+    warehouseItemId: string,
+  ): Promise<void> {
+    await axiosInstance.delete(`/api/v1/farms/${farmId}/items/${warehouseItemId}`);
+  },
 };
 

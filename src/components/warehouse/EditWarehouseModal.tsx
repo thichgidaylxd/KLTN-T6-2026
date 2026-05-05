@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useWarehouses } from "@/hooks/warehouses/useWarehouses";
 import { usePlots } from "@/hooks/plots/usePlots";
-import { X, Loader2, Warehouse, Info, MapPin } from "lucide-react";
+import { X, Loader2, Warehouse, Info, Save } from "lucide-react";
 import LocationPickerMap from "./LocationPickerMap";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
@@ -13,16 +13,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import { createWarehouseSchema, type CreateWarehouseFormValues } from "@/schemas/warehouseSchemas";
+import { Warehouse as WarehouseType } from "@/types/warehouse/warehouse";
 
 interface Props {
   farmId: string;
+  warehouse: WarehouseType;
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-export function CreateWarehouseModal({ farmId, isOpen, onClose, onSuccess }: Props) {
-  const { warehouses, fetchWarehouses, createWarehouse, submitting } = useWarehouses();
+export function EditWarehouseModal({ farmId, warehouse, isOpen, onClose, onSuccess }: Props) {
+  const { updateWarehouse, submitting } = useWarehouses();
   const { plots, fetchPlots } = usePlots();
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -34,67 +36,70 @@ export function CreateWarehouseModal({ farmId, isOpen, onClose, onSuccess }: Pro
     formState: { errors },
   } = useForm<CreateWarehouseFormValues>({
     resolver: zodResolver(createWarehouseSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      address: "",
-    }
   });
 
-  // Tự động nạp danh sách lô đất và kho hàng khi mở modal
+  // Pre-fill dữ liệu khi mở modal
   useEffect(() => {
-    if (isOpen && farmId) {
-      void fetchPlots(farmId);
-      void fetchWarehouses(farmId);
+    if (isOpen && warehouse) {
+      reset({
+        name: warehouse.name,
+        description: warehouse.description || "",
+        address: warehouse.address || "",
+        latitude: warehouse.latitude || 0,
+        longitude: warehouse.longitude || 0,
+      });
+      
+      if (warehouse.latitude && warehouse.longitude) {
+        setLocation({ lat: warehouse.latitude, lng: warehouse.longitude });
+      }
+      
+      if (farmId) {
+        void fetchPlots(farmId);
+      }
     }
-  }, [isOpen, farmId, fetchPlots, fetchWarehouses]);
+  }, [isOpen, warehouse, reset, farmId, fetchPlots]);
 
   const handleLocationChange = (coords: { lat: number; lng: number } | null) => {
     setLocation(coords);
     if (coords) {
       setValue("latitude", coords.lat, { shouldValidate: true });
       setValue("longitude", coords.lng, { shouldValidate: true });
-    } else {
-      // @ts-ignore
-      setValue("latitude", undefined);
-      // @ts-ignore
-      setValue("longitude", undefined);
     }
   };
 
   const onSubmit = async (data: CreateWarehouseFormValues) => {
     try {
-      await createWarehouse(farmId, data).unwrap();
-      toast.success("Tạo kho hàng thành công!");
-      handleClose();
+      // Backend PATCH yêu cầu field version để chống conflict
+      const payload = {
+        ...data,
+        version: warehouse.version
+      };
+      
+      await updateWarehouse(farmId, warehouse.id, payload).unwrap();
+      toast.success("Cập nhật kho hàng thành công!");
+      onClose();
       onSuccess?.();
     } catch (err: any) {
-      toast.error(typeof err === 'string' ? err : "Có lỗi xảy ra khi tạo kho hàng");
+      toast.error(typeof err === 'string' ? err : "Có lỗi xảy ra khi cập nhật kho hàng");
     }
   };
 
-  const handleClose = () => {
-    reset();
-    setLocation(null);
-    onClose();
-  };
-
   return (
-    <Modal isOpen={isOpen} onClose={handleClose}>
+    <Modal isOpen={isOpen} onClose={onClose}>
       <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden border border-slate-100">
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-slate-50 shrink-0">
           <div className="flex items-center gap-4 text-left">
-            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center border border-emerald-100">
-              <Warehouse className="w-6 h-6 text-emerald-600" />
+            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center border border-blue-100 text-blue-600">
+              <Warehouse className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-800 tracking-tight">Thêm kho hàng mới</h2>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">Xác định vị trí kho trên bản đồ Google Maps</p>
+              <h2 className="text-xl font-bold text-slate-800 tracking-tight">Chỉnh sửa kho hàng</h2>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">Cập nhật thông tin và vị trí kho hàng</p>
             </div>
           </div>
           <button
-            onClick={handleClose}
+            onClick={onClose}
             className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors"
           >
             <X size={20} />
@@ -102,7 +107,7 @@ export function CreateWarehouseModal({ farmId, isOpen, onClose, onSuccess }: Pro
         </div>
 
         {/* Form Body */}
-        <form id="create-warehouse-form" onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-6 text-left">
+        <form id="edit-warehouse-form" onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-6 text-left">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Thông tin cơ bản */}
             <div className="space-y-6">
@@ -132,29 +137,6 @@ export function CreateWarehouseModal({ farmId, isOpen, onClose, onSuccess }: Pro
                 />
               </div>
 
-              {location && (
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-100 text-emerald-600 shadow-sm">
-                      <MapPin size={18} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tọa độ đã chọn</p>
-                      <p className="text-sm font-black text-slate-700 font-mono">
-                        {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                      </p>
-                    </div>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => handleLocationChange(null as any)}
-                    className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              )}
-
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
                   Địa chỉ cụ thể
@@ -172,12 +154,7 @@ export function CreateWarehouseModal({ farmId, isOpen, onClose, onSuccess }: Pro
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
                 Vị trí tọa độ <span className="text-rose-500">*</span>
               </label>
-              <LocationPickerMap 
-                value={location} 
-                onChange={handleLocationChange} 
-                plots={plots} 
-                warehouses={warehouses}
-              />
+              <LocationPickerMap value={location} onChange={handleLocationChange} plots={plots} />
               {(errors.latitude || errors.longitude) && (
                 <p className="mt-1 text-[10px] font-bold text-rose-500 flex items-center gap-1">
                   <Info size={10} /> Vui lòng click chọn vị trí trên bản đồ
@@ -192,13 +169,13 @@ export function CreateWarehouseModal({ farmId, isOpen, onClose, onSuccess }: Pro
           <Button
             type="button"
             variant="outline"
-            onClick={handleClose}
+            onClick={onClose}
             className="flex-1 rounded-2xl h-[54px] font-bold"
           >
             Hủy bỏ
           </Button>
           <Button
-            form="create-warehouse-form"
+            form="edit-warehouse-form"
             type="submit"
             variant="dark-olive"
             disabled={submitting}
@@ -211,8 +188,8 @@ export function CreateWarehouseModal({ farmId, isOpen, onClose, onSuccess }: Pro
               </>
             ) : (
               <>
-                <Warehouse className="w-4 h-4" />
-                <span>Hoàn tất tạo kho</span>
+                <Save className="w-4 h-4" />
+                <span>Lưu thay đổi</span>
               </>
             )}
           </Button>

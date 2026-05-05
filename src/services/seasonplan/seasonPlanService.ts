@@ -12,9 +12,6 @@ import {
  * Đồng bộ theo API Backend: /api/v1/plans
  */
 export const seasonPlanService = {
-  /**
-   * Lấy danh sách kế hoạch của farm hiện tại
-   */
   async getPlans(): Promise<SeasonPlan[]> {
     const response = await axiosInstance.get('/api/v1/plans');
     const validated = getPlansResponseSchema.parse(response.data);
@@ -24,6 +21,20 @@ export const seasonPlanService = {
       phases: [],
       description: plan.note || '',
     })) as SeasonPlan[];
+  },
+
+  /**
+   * Lấy chi tiết một kế hoạch
+   */
+  async getPlanById(planId: string): Promise<SeasonPlan> {
+    const response = await axiosInstance.get(`/api/v1/plans/${planId}`);
+    const validated = createPlanResponseSchema.parse(response.data);
+
+    return {
+      ...validated.data,
+      phases: [],
+      description: validated.data.note || '',
+    } as SeasonPlan;
   },
 
   /**

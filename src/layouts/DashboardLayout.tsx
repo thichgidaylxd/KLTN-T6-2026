@@ -1,4 +1,5 @@
 import { Outlet, useNavigate, useLocation, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
@@ -53,6 +54,7 @@ export default function DashboardLayout() {
 
   const getActive = () => {
     const p = location.pathname;
+    if (p.includes("/actions")) return "home";
     if (p.includes("/dashboard")) return "dashboard";
     // Check for farm list or any farm-scoped page to highlight the 'tree' icon if needed, 
     // but specific farm pages usually have their own keys.
@@ -60,8 +62,8 @@ export default function DashboardLayout() {
     if (p.includes("/members")) return "members";
     if (p.includes("/land-plots")) return "land-plots";
     if (p.includes("/map")) return "map";
-    if (p.includes("/subscription")) return "subscription";
     if (p.includes("/activity")) return "activity";
+    if (p.includes("/metrics")) return "metrics";
     if (p.includes("/wallet")) return "wallet";
     if (p.includes("/tasks") || p === "/task") return "task";
     if (p.includes("/gemini")) return "gemini";
@@ -74,6 +76,7 @@ export default function DashboardLayout() {
 
     // If URL is /farms/:id/actions, maybe highlight 'tree' or nothing?
     // User seems to view 'tree' as the entry to farms.
+    if (p.includes("/farms/") && p.endsWith("/actions")) return "home";
     if (p.includes("/farms/")) return "tree";
 
     return p.split("/").pop() || "dashboard";
@@ -95,36 +98,64 @@ export default function DashboardLayout() {
     return null;
   }
 
-  if (isSyncing) {
-    return (
-      <div className="w-screen h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
-        <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
-        <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Đang thiết lập kết nối trang trại...</p>
-      </div>
-    );
-  }
-
   const handleNav = (key: string) => {
     setActive(key);
 
-    // Handle special keys
-    if (key === "dashboard") {
+    // Navigation logic for specialized keys
+    if (key === "metrics") {
+      navigate(currentFarmId ? `/farms/${currentFarmId}/metrics` : '/farms');
+      return;
+    }
+    if (key === "wallet") {
+      navigate(currentFarmId ? `/farms/${currentFarmId}/wallet` : '/wallet');
+      return;
+    }
+    if (key === "gemini") {
+      navigate(currentFarmId ? `/farms/${currentFarmId}/gemini` : '/gemini');
+      return;
+    }
+    if (key === "activity") {
+      navigate(currentFarmId ? `/farms/${currentFarmId}/activity` : '/activity');
+      return;
+    }
+    if (key === "task") {
+      navigate(currentFarmId ? `/farms/${currentFarmId}/task` : '/task');
+      return;
+    }
+
+    if (key === "subscription") {
+      navigate(currentFarmId ? `/farms/${currentFarmId}/subscription/history` : '/subscription/pricing');
+      return;
+    }
+
+    // Farm management routes (require farm selection)
+    const farmSpecificKeys = [
+      "map", "land-plots", "crop-catalog", "season-plans", 
+      "warehouses", "suppliers", "skus", "members"
+    ];
+
+    if (farmSpecificKeys.includes(key)) {
       if (currentFarmId) {
-        navigate(`/farms/${currentFarmId}/actions`);
+        navigate(`/farms/${currentFarmId}/${key}`);
       } else {
-        clearFarmContext();
-        navigate("/dashboard");
+        toast.info("Vui lòng chọn trang trại", {
+          description: "Bạn cần chọn một trang trại để sử dụng chức năng này.",
+          icon: "🚜"
+        });
+        navigate('/farms');
       }
       return;
     }
 
+    // Default dashboard/home logic
     if (key === "tree") {
-      if (currentFarmId) {
-        navigate(`/farms/${currentFarmId}/actions`);
-      } else {
-        clearFarmContext();
-        navigate("/farms");
-      }
+      navigate('/farms');
+      return;
+    }
+
+    if (key === "home" || key === "dashboard") {
+      clearFarmContext();
+      navigate("/dashboard");
       return;
     }
 
@@ -139,19 +170,21 @@ export default function DashboardLayout() {
     }
 
     // Context-dependent routes (Wallet, Activity, Task, Gemini, etc.)
-    const farmContextKeys = ["wallet", "activity", "task", "gemini", "season-plans", "map", "land-plots", "members", "subscription", "warehouses", "suppliers", "skus"];
+    const farmContextKeys = ["wallet", "activity", "metrics", "task", "gemini", "season-plans", "map", "land-plots", "members", "subscription", "warehouses", "suppliers", "skus"];
 
     if (farmContextKeys.includes(key)) {
       if (currentFarmId) {
         // Navigate to farm-specific route
         // Map 'task' key to 'tasks' route
-        let routePart = key === "task" ? "tasks" : key;
+        let routePart = key;
+        if (key === "task") routePart = "tasks";
         if (key === "subscription") routePart = "subscription/history";
         
         navigate(`/farms/${currentFarmId}/${routePart}`);
       } else {
         // Navigate to global route if no farm selected
-        let routePart = key === "task" ? "task" : key;
+        let routePart = key;
+        if (key === "task") routePart = "task";
         if (key === "subscription") routePart = "subscription/history";
         
         navigate(`/${routePart}`);
@@ -185,7 +218,14 @@ export default function DashboardLayout() {
 
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col bg-white rounded-[32px] shadow-sm border border-slate-200 ${location.pathname.includes('/map') ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-        <Outlet />
+        {isSyncing ? (
+          <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 gap-4">
+            <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
+            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest text-[10px]">Đang đồng bộ dữ liệu trang trại...</p>
+          </div>
+        ) : (
+          <Outlet />
+        )}
       </div>
     </div>
   );

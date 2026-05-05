@@ -13,9 +13,14 @@ import {
 import { Warehouse } from '@/types/warehouse/warehouse'
 
 const MAP_OPTIONS: google.maps.MapOptions = {
-  mapTypeId: 'satellite', disableDefaultUI: false, zoomControl: true,
-  mapTypeControl: false, scaleControl: true, streetViewControl: false,
-  rotateControl: true, fullscreenControl: false, // Tắt nút Google — dùng nút tùy chỉnh của MapCanvas
+  mapTypeId: 'satellite',
+  disableDefaultUI: true, // Tắt toàn bộ UI mặc định (Zoom +/-, StreetView, Scale...)
+  zoomControl: false,
+  mapTypeControl: false,
+  scaleControl: false,
+  streetViewControl: false,
+  rotateControl: false,
+  fullscreenControl: false,
 }
 
 export interface FarmMapHandle {
@@ -309,7 +314,8 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
       const wh = warehouses.find(w => w.id === selectedWarehouseId)
       if (wh) {
         const lat = Number(wh.latitude), lng = Number(wh.longitude)
-        if (isFinite(lat) && isFinite(lng)) {
+        // Chỉ zoom nếu tọa độ khác 0,0
+        if (isFinite(lat) && isFinite(lng) && (lat !== 0 || lng !== 0)) {
           bounds.extend({ lat, lng })
           has = true
         }
@@ -328,7 +334,7 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
       })
       warehouses.forEach(wh => {
         const lat = Number(wh.latitude), lng = Number(wh.longitude)
-        if (isFinite(lat) && isFinite(lng)) {
+        if (isFinite(lat) && isFinite(lng) && (lat !== 0 || lng !== 0)) {
           bounds.extend({ lat, lng })
           has = true
         }
@@ -407,11 +413,14 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
 
       {/* ── 1b. Tất cả kho hàng ── */}
       {warehouses.map((wh) => {
-        if (isNaN(Number(wh.latitude)) || isNaN(Number(wh.longitude))) return null;
+        const lat = Number(wh.latitude), lng = Number(wh.longitude)
+        // Không vẽ marker nếu tọa độ là 0,0
+        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;
+
         return (
           <Marker
             key={`wh-${wh.id}`}
-            position={{ lat: Number(wh.latitude), lng: Number(wh.longitude) }}
+            position={{ lat, lng }}
             onClick={() => !isDrawing && onWarehouseSelect(wh)}
             icon={{
               url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',

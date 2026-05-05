@@ -25,6 +25,7 @@ import { FarmSummary } from '../../types/farm/farm'
 import { extractErrorMessage } from '../../utils/errorUtils'
 import { useWarehouseLocations, WarehouseLocation } from '@/hooks/warehouses/useWarehouseLocation'
 import { cn } from '../../utils/cn'
+import { EditWarehouseModal, EditWarehouseItemModal, DeleteWarehouseItemModal, DeleteLocationModal } from '../../components/warehouse'
 
 type ActiveTab = 'items' | 'locations'
 
@@ -79,8 +80,8 @@ export function WarehouseDetailPage() {
   const { farmId, warehouseId } = useParams<{ farmId: string; warehouseId: string }>()
   const navigate = useNavigate()
 
-  const { items, loading, fetchItems, createItem } = useWarehouseItems(farmId, warehouseId)
-  const { locations, loading: locLoading, submitting: locSubmitting, fetchLocations, createLocation } = useWarehouseLocations(farmId, warehouseId)
+  const { items, loading, fetchItems, createItem, deleteItem } = useWarehouseItems(farmId, warehouseId)
+  const { locations, loading: locLoading, submitting: locSubmitting, fetchLocations, createLocation, deleteLocation } = useWarehouseLocations(farmId, warehouseId)
   const { suppliers, fetchSuppliers } = useSuppliers()
   const { skus, fetchSkus } = useSkus()
   const { units, fetchUnits } = useUnits()
@@ -93,6 +94,12 @@ export function WarehouseDetailPage() {
   const [locationView, setLocationView] = useState<'grid' | 'list'>('grid')
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<WarehouseItem | null>(null)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isDeleteLocModalOpen, setIsDeleteLocModalOpen] = useState(false)
+  const [selectedLoc, setSelectedLoc] = useState<WarehouseLocation | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const currentWarehouse = useMemo(() => warehouses.find(w => w.id === warehouseId), [warehouses, warehouseId])
@@ -119,7 +126,7 @@ export function WarehouseDetailPage() {
 
   const filteredItems = items.filter((item: WarehouseItem) =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.sku.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    item.sku?.sku.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const activeLocations = locations.filter((l: WarehouseLocation) => l.isActive)
@@ -166,6 +173,31 @@ export function WarehouseDetailPage() {
     finally { setIsSubmitting(false) }
   }
 
+  const handleDeleteItem = (item: WarehouseItem) => {
+    setSelectedItem(item)
+    setIsDeleteModalOpen(true)
+  }
+
+  const confirmDeleteItem = async () => {
+    if (!farmId || !warehouseId || !selectedItem) return
+    try {
+      setIsSubmitting(true)
+      await deleteItem(farmId, warehouseId, selectedItem.id).unwrap()
+      toast.success('Đã xóa vật tư thành công')
+    } catch (err: any) {
+      toast.error(extractErrorMessage(err))
+    } finally {
+      setIsSubmitting(false)
+      setIsDeleteModalOpen(false)
+      setSelectedItem(null)
+    }
+  }
+
+  const handleEditItem = (item: WarehouseItem) => {
+    setSelectedItem(item)
+    setIsEditItemModalOpen(true)
+  }
+
   const handleCreateLocation = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!farmId || !warehouseId) return
@@ -177,6 +209,26 @@ export function WarehouseDetailPage() {
       setLocationForm({ code: '', name: '', description: '', isActive: true })
     } catch (err: any) { toast.error(extractErrorMessage(err)) }
     finally { setIsSubmitting(false) }
+  }
+
+  const handleDeleteLocation = (loc: WarehouseLocation) => {
+    setSelectedLoc(loc)
+    setIsDeleteLocModalOpen(true)
+  }
+
+  const confirmDeleteLocation = async () => {
+    if (!farmId || !warehouseId || !selectedLoc) return
+    try {
+      setIsSubmitting(true)
+      await deleteLocation(farmId, warehouseId, selectedLoc.id).unwrap()
+      toast.success('Đã xóa vị trí thành công')
+    } catch (err: any) {
+      toast.error(extractErrorMessage(err))
+    } finally {
+      setIsSubmitting(false)
+      setIsDeleteLocModalOpen(false)
+      setSelectedLoc(null)
+    }
   }
 
   const numericInput = (value: number, onChange: (n: number) => void, extra?: React.InputHTMLAttributes<HTMLInputElement>) => ({
@@ -238,9 +290,21 @@ export function WarehouseDetailPage() {
             <Warehouse size={18} />
           </div>
           <div>
-            <h1 className="text-[17px] font-bold text-slate-900 leading-tight">
-              {currentWarehouse?.name || 'Đang tải...'}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-[17px] font-bold text-slate-900 leading-tight">
+                {currentWarehouse?.name || 'Đang tải...'}
+              </h1>
+              {/* Tạm ẩn nút sửa vì API chưa hỗ trợ PATCH/PUT cho Warehouse */}
+              {/* {canManage && currentWarehouse && (
+                <button 
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all"
+                  title="Chỉnh sửa thông tin kho"
+                >
+                  <Edit2 size={14} />
+                </button>
+              )} */}
+            </div>
             {currentWarehouse?.address && (
               <p className="text-[12px] text-slate-500 mt-0.5 flex items-center gap-1">
                 <MapPin size={11} /> {currentWarehouse.address}
@@ -367,7 +431,7 @@ export function WarehouseDetailPage() {
                               </div>
                               <div>
                                 <p className="text-[13px] font-semibold text-slate-800 leading-tight">{item.name}</p>
-                                <p className="text-[11px] text-emerald-600 font-mono mt-0.5">{item.sku.sku}</p>
+                                <p className="text-[11px] text-emerald-600 font-mono mt-0.5">{item.sku?.sku || 'N/A'}</p>
                               </div>
                             </div>
                           </td>
@@ -404,11 +468,18 @@ export function WarehouseDetailPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                            <div className="flex items-center justify-end gap-1">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleEditItem(item); }}
+                                className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              >
                                 <Edit2 size={13} />
                               </button>
-                              <button className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                              <button 
+                                onClick={() => handleDeleteItem(item)}
+                                disabled={loading}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50"
+                              >
                                 <Trash2 size={13} />
                               </button>
                             </div>
@@ -489,9 +560,20 @@ export function WarehouseDetailPage() {
                         <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', c.badge)}>
                           <MapPin size={15} />
                         </div>
-                        <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', loc.isActive ? c.badge : 'bg-slate-100 text-slate-400')}>
-                          {loc.isActive ? 'Active' : 'Off'}
-                        </span>
+                        <div className="flex gap-1">
+                          {canManage && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDeleteLocation(loc); }}
+                              disabled={locLoading}
+                              className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                          <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', loc.isActive ? c.badge : 'bg-slate-100 text-slate-400')}>
+                            {loc.isActive ? 'Active' : 'Off'}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex-1">
                         <p className="text-[13px] font-bold text-slate-800 leading-tight">{loc.name}</p>
@@ -556,9 +638,15 @@ export function WarehouseDetailPage() {
                             }
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center justify-end gap-1">
                               <button className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><Edit2 size={13} /></button>
-                              <button className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 size={13} /></button>
+                               <button 
+                                 onClick={() => handleDeleteLocation(loc)} 
+                                 disabled={locLoading} 
+                                 className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50"
+                               >
+                                 <Trash2 size={13} />
+                               </button>
                             </div>
                           </td>
                         </tr>
@@ -702,6 +790,62 @@ export function WarehouseDetailPage() {
             </button>
           </div>
         </Modal>
+      )}
+
+      {/* ══ MODAL: Chỉnh sửa kho hàng ══ */}
+      {farmId && currentWarehouse && (
+        <EditWarehouseModal
+          farmId={farmId}
+          warehouse={currentWarehouse}
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSuccess={() => {
+            fetchWarehouses(farmId);
+          }}
+        />
+      )}
+
+      {/* ══ MODAL: Chỉnh sửa vật tư ══ */}
+      {farmId && warehouseId && selectedItem && (
+        <EditWarehouseItemModal
+          farmId={farmId}
+          warehouseId={warehouseId}
+          item={selectedItem}
+          isOpen={isEditItemModalOpen}
+          onClose={() => {
+            setIsEditItemModalOpen(false)
+            setSelectedItem(null)
+          }}
+          onSuccess={() => {
+            fetchItems(farmId, warehouseId)
+          }}
+        />
+      )}
+
+      {selectedItem && (
+        <DeleteWarehouseItemModal
+          isOpen={isDeleteModalOpen}
+          item={selectedItem}
+          onClose={() => {
+            setIsDeleteModalOpen(false)
+            setSelectedItem(null)
+          }}
+          onConfirm={confirmDeleteItem}
+          loading={isSubmitting}
+        />
+      )}
+
+      {selectedLoc && (
+        <DeleteLocationModal
+          isOpen={isDeleteLocModalOpen}
+          location={selectedLoc}
+          onClose={() => {
+            setIsDeleteLocModalOpen(false)
+            setSelectedLoc(null)
+          }}
+          onConfirm={confirmDeleteLocation}
+          loading={isSubmitting}
+        />
       )}
     </div>
   )

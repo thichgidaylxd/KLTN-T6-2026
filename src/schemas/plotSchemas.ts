@@ -46,6 +46,7 @@ export const updatePlotSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
   description: z.string().optional().nullable(),
   geometry: geometrySchema.optional(),
+  version: z.number(), // Bắt buộc truyền version để Optimistic Locking
   isClearDescription: z.boolean().optional(),
   isClearGeometry: z.boolean().optional(),
 });

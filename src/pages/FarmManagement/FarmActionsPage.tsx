@@ -1,45 +1,106 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft,
-  Info,
-  Edit2,
-  Users,
-  Home,
-  Clock,
-  Trees,
-  Trash2
-} from 'lucide-react';
 import { useFarms } from '@/hooks/farms/useFarms';
+import { usePlots } from '@/hooks/plots/usePlots';
+import { useCrops } from '@/hooks/crops/useCrops';
+import { useAuth } from '@/hooks/auth/useAuth';
+import { useSeasonPlans } from '@/hooks/seasonPlans/useSeasonPlans';
 import { EditFarmModal } from '../../components/farm/EditFarmModal';
-import { MemberCondensedList } from '../../components/members/MemberCondensedList';
 import { toast } from 'sonner';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
-import { FarmSummary } from '../../types/farm/farm';
 import { extractErrorMessage } from '../../utils/errorUtils';
+
+// New Components
+import DashboardHeader from '../../components/farm/DashboardHeader';
+import QuickStats from '../../components/farm/QuickStats';
+import WelcomeSection from '../../components/farm/WelcomeSection';
+import FarmInfoSection from '../../components/farm/FarmInfoSection';
 
 const FarmActionsPage: React.FC = () => {
     const { farmId } = useParams<{ farmId: string }>();
     const navigate = useNavigate();
-    const { farmSummary, fetchFarmsSummary, deleteFarm } = useFarms();
-    
-    React.useEffect(() => {
-        fetchFarmsSummary();
-    }, []); // Run once on mount to avoid infinite loops
+    const { user } = useAuth();
+    const { farmSummary, farms, fetchFarms, fetchFarmsSummary, deleteFarm, loading: loadingFarms } = useFarms();
+    const { plots, fetchPlots, loading: loadingPlots } = usePlots();
+    const { crops, fetchCrops, loading: loadingCrops } = useCrops();
+    const { plans, fetchPlans, fetchStages, loading: loadingPlans } = useSeasonPlans();
 
-    const farm = farmSummary.find((f: FarmSummary) => f.farmId === farmId);
+    useEffect(() => {
+        if (farmId === 'null' || !farmId) {
+            navigate('/farms', { replace: true });
+        }
+    }, [farmId, navigate]);
+
+    useEffect(() => {
+        if (farmId && farmId !== 'null') {
+            fetchPlots(farmId);
+            fetchCrops();
+            fetchPlans();
+        }
+    }, [farmId, fetchFarmsSummary, fetchPlots, fetchCrops, fetchPlans]);
+
+    // Tự động fetch stages cho tất cả plans để có dữ liệu tiến trình thực tế
+    useEffect(() => {
+        if (plans.length > 0) {
+            plans.forEach(plan => {
+                if (!plan.phases || plan.phases.length === 0) {
+                    fetchStages(plan.id);
+                }
+            });
+        }
+    }, [plans, fetchStages]);
+
+    useEffect(() => {
+        if (farms.length === 0) {
+            fetchFarms();
+        }
+    }, [farms.length, fetchFarms]);
+
+    // Calculate plan progress average based on API data (Phases/Stages)
+    const planProgress = plans.length > 0
+        ? Math.round(plans.reduce((acc, plan) => {
+            const phases = plan.phases || [];
+            if (phases.length === 0) {
+                // Fallback mapping nếu phases chưa kịp load
+                const status = typeof plan.status === 'string' ? plan.status : plan.status.code;
+                if (status === 'COMPLETED') return acc + 100;
+                if (status === 'HARVESTING') return acc + 90;
+                if (status === 'ACTIVE') return acc + 40;
+                return acc;
+            }
+            
+            const totalPhases = phases.length;
+            const completedCount = phases.filter(ph => {
+                const code = typeof ph.status === 'string' ? ph.status : ph.status?.code;
+                return code === 'COMPLETED';
+            }).length;
+            const activeCount = phases.filter(ph => {
+                const code = typeof ph.status === 'string' ? ph.status : ph.status?.code;
+                return code === 'ACTIVE' || code === 'IN_PROGRESS';
+            }).length;
+
+            // Tính toán tiến độ dựa trên tỷ lệ các giai đoạn (Real-time logic)
+            const ratio = (completedCount + (activeCount * 0.4)) / totalPhases;
+            return acc + (ratio * 100);
+        }, 0) / plans.length)
+        : 0;
+
+    // Ưu tiên tìm trong list 'farms' (full detail) để có description
+    const farm = farms.find((f: any) => f.id === farmId) ||
+        farmSummary.find((f: any) => f.farmId === farmId);
+    
+    const farmName = farm?.farmName || farm?.name || 'Trang Trại';
     const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
     const [isDeleting, setIsDeleting] = React.useState(false);
 
     const handleDelete = async () => {
         if (!farmId) return;
-        
+
         setIsDeleting(true);
         try {
             await deleteFarm(farmId).unwrap();
             toast.success("Xóa trang trại thành công");
-            
             navigate('/farms');
         } catch (error: any) {
             console.error("Lỗi khi xóa farm:", error);
@@ -51,12 +112,25 @@ const FarmActionsPage: React.FC = () => {
     };
 
     if (!farm) {
+        if (loadingFarms) {
+            return (
+                <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh]">
+                    <div className="relative">
+                        <div className="w-16 h-16 border-4 border-emerald-100 rounded-full"></div>
+                        <div className="absolute top-0 left-0 w-16 h-16 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                    <p className="mt-6 text-gray-500 font-medium animate-pulse">Đang tải thông tin trang trại...</p>
+                </div>
+            );
+        }
+
         return (
-            <div className="p-8 text-center bg-gray-50 min-h-full flex flex-col items-center justify-center">
-                <p className="text-gray-500 mb-4">Không tìm thấy thông tin trang trại này.</p>
-                <button 
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
+                <h2 className="text-xl font-bold text-gray-800 mb-2">Không tìm thấy trang trại</h2>
+                <p className="text-gray-500 mb-8 max-w-sm">Dữ liệu không tồn tại hoặc bạn không có quyền truy cập vào trang trại này.</p>
+                <button
                     onClick={() => navigate('/farms')}
-                    className="text-emerald-600 font-medium hover:underline"
+                    className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
                 >
                     Quay lại danh sách
                 </button>
@@ -64,136 +138,52 @@ const FarmActionsPage: React.FC = () => {
         );
     }
 
+    const canManage = farm?.owner ||
+        farm?.ownerId === user?.id ||
+        farm?.myRole?.toLowerCase() === 'owner';
+
     return (
-        <div className="min-h-full bg-white pb-20 no-scrollbar overflow-y-auto px-8 pt-6">
-            {/* Top Toolbar */}
-            <div className="flex items-center justify-between mb-8">
-                <button 
-                    onClick={() => navigate('/farms')}
-                    className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all font-bold text-sm"
-                >
-                    <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center">
-                        <ArrowLeft size={16} />
-                    </div>
-                    Quay lại
-                </button>
+        <div className="min-h-full bg-[#F8FAFC] pb-20 overflow-y-auto no-scrollbar">
+            <DashboardHeader
+                farmName={farmName}
+                onEdit={() => setIsEditModalOpen(true)}
+                onDelete={() => setIsDeleteModalOpen(true)}
+                showActions={canManage}
+            />
 
-                <div className="flex items-center gap-3">
-                    {(farm?.owner || farm?.myRole?.toLowerCase() === 'owner') && (
-                        <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => setIsEditModalOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 font-black text-xs uppercase tracking-wider hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm"
-                            >
-                                <Edit2 size={14} />
-                                Chỉnh sửa
-                            </button>
-                            <button 
-                                onClick={() => setIsDeleteModalOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-white border border-rose-100 rounded-xl text-rose-500 font-black text-xs uppercase tracking-wider hover:bg-rose-50 hover:border-rose-300 transition-all shadow-sm"
-                            >
-                                <Trash2 size={14} />
-                                Xóa
-                            </button>
-                        </div>
-                    )}
-                    
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Hệ thống sẵn sàng</span>
-                    </div>
+            <div className="px-8 py-8 space-y-8 max-w-7xl mx-auto">
+                {/* Welcome Section */}
+                <WelcomeSection farmName={farmName} />
 
-                </div>
+                {/* Compact Stats Grid */}
+                <QuickStats
+                    plotsCount={plots.length}
+                    cropsCount={crops.length}
+                    plansCount={plans.length}
+                    planProgress={planProgress}
+                    loading={loadingPlots || loadingCrops || loadingPlans}
+                />
+
+                {/* Info & Team Section */}
+                <FarmInfoSection
+                    farmName={farm?.farmName || farm?.name || 'Trang Trại'}
+                    description={farm?.description || 'Chưa có mô tả cho trang trại này.'}
+                />
             </div>
 
-            {/* Profile Strip */}
-            <div className="bg-white rounded-[32px] border border-slate-200 p-6 mb-10 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-5 flex-1">
-                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-                        <Home size={32} />
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-2xl font-black text-slate-900 tracking-tight">{farm?.farmName}</h1>
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wider">
-                                {farm?.myRole}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-slate-400 text-xs font-bold">
-                            <div className="flex items-center gap-1.5">
-                                <Users size={14} />
-                                <span>{farm?.ownerFullName}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl">
-                    <button className="flex items-center gap-2 px-6 py-2 bg-white rounded-[14px] text-slate-800 text-sm font-black shadow-sm">
-                        <Clock size={16} className="text-emerald-600" />
-                        Tổng quan
-                    </button>
-                </div>
-            </div>
-
-            {/* Welcome Message Section */}
-            <div className="flex flex-col items-center justify-center py-20 px-4 bg-slate-50/50 rounded-[48px] border border-dashed border-slate-200 mb-12 transition-all hover:bg-white hover:border-slate-300">
-                <div className="w-24 h-24 rounded-[32px] bg-white shadow-sm border border-slate-100 flex items-center justify-center text-emerald-500 mb-8 transition-transform hover:scale-110 duration-500">
-                    <Trees size={48} strokeWidth={1.5} />
-                </div>
-                
-                <h2 className="text-3xl font-black text-slate-900 text-center mb-4 tracking-tight">
-                    Chào mừng bạn đến với <span className="text-emerald-600">{farm?.farmName}</span>
-                </h2>
-                
-                <p className="text-slate-500 font-bold text-center max-w-lg leading-relaxed text-sm">
-                    Hãy bắt đầu với các tính năng quản lý của bạn ở thanh menu bên trái để khám phá và điều hành trang trại hiệu quả nhé.
-                </p>
-
-                <div className="mt-10 flex items-center gap-3 px-6 py-2.5 bg-white rounded-full shadow-sm border border-slate-100">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[2px]">
-                        Sử dụng thanh công cụ để bắt đầu
-                    </span>
-                </div>
-            </div>
-
-            {/* Bottom Section - 2 Columns */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="flex flex-col gap-6">
-                    <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[2px]">
-                        <Info size={14} className="text-emerald-500" />
-                        GIỚI THIỆU TRANG TRẠI
-                    </h4>
-                    <div className="bg-slate-50 rounded-[32px] p-8 border border-slate-100 min-h-[200px]">
-                        <p className="text-slate-600 leading-relaxed text-sm font-bold">
-                            {farm?.description || 'Chưa cung cấp mô tả cho trang trại này.'}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex flex-col gap-6">
-                    <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[2px]">
-                        <Users size={14} className="text-sky-500" />
-                        THÀNH VIÊN
-                    </h4>
-                    <MemberCondensedList />
-                </div>
-            </div>
-
-            <EditFarmModal 
+            <EditFarmModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
                 farm={farm}
                 onSuccess={() => fetchFarmsSummary()}
             />
 
-            <ConfirmModal 
+            <ConfirmModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={handleDelete}
                 title="Xóa trang trại"
-                message={`Bạn có chắc chắn muốn xóa trang trại "${farm?.farmName}"? Hành động này không thể hoàn tác và toàn bộ dữ liệu liên quan sẽ bị mất.`}
+                message={`Bạn có chắc chắn muốn xóa trang trại "${farmName}"? Hành động này không thể hoàn tác và toàn bộ dữ liệu liên quan sẽ bị mất.`}
                 confirmLabel="Vâng, hãy xóa nó"
                 cancelLabel="Quay lại"
                 loading={isDeleting}

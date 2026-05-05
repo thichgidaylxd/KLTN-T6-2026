@@ -17,7 +17,7 @@ export const useSkus = () => {
   const skusQuery = useQuery({
     queryKey: farmId ? SKU_KEYS.byFarm(farmId) : ['skus', 'inactive'],
     queryFn: async (): Promise<Sku[]> => skuService.getSkus(farmId as string),
-    enabled: false,
+    enabled: !!farmId,
   });
 
   const createSkuMutation = useMutation({

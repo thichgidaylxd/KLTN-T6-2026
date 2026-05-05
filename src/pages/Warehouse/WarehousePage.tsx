@@ -53,9 +53,11 @@ export function WarehousePage() {
 
     setDeletingId(warehouseToDelete.id)
     try {
-      await deleteWarehouse(currentFarmId, warehouseToDelete.id).unwrap()
+      // Truyền version ngầm xuống API để Backend thực hiện xóa thực sự
+      const version = warehouseToDelete.version ?? 0;
+      await deleteWarehouse(currentFarmId, warehouseToDelete.id, version).unwrap()
       toast.success('Đã xóa kho hàng thành công')
-      fetchWarehouses(currentFarmId)
+      // Loại bỏ fetchWarehouses(currentFarmId) để tránh request GET dư thừa và ghi đè cache
       setIsDeleteModalOpen(false)
     } catch (err: any) {
       toast.error(typeof err === 'string' ? err : 'Không thể xóa kho hàng')

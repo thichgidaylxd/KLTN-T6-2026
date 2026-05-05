@@ -23,7 +23,8 @@ export const useFarms = () => {
       const response = await farmService.getMyFarms();
       return response.data ?? [];
     },
-    enabled: false,
+    enabled: true,
+    staleTime: 1000 * 60 * 5,
   });
 
   const farmSummaryQuery = useQuery({
@@ -32,7 +33,8 @@ export const useFarms = () => {
       const response = await farmService.getFarmSummary();
       return response.data ?? [];
     },
-    enabled: false,
+    enabled: true,
+    staleTime: 1000 * 60 * 5,
   });
 
   const createFarmMutation = useMutation({

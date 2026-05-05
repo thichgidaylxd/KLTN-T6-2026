@@ -26,34 +26,8 @@ export const useWarehouseItems = (farmId?: string | null, warehouseId?: string |
         return warehouseItemService.getWarehouseItems(farmId, warehouseId);
       }
       
-      // Nếu không có warehouseId, lấy tất cả kho và cộng dồn tồn kho
-      try {
-        const warehouses = await warehouseItemService.getFarmWarehouses(farmId);
-        if (warehouses.length === 0) return [];
-
-        const itemsPromises = warehouses.map((wh: any) =>
-          warehouseItemService.getWarehouseItems(farmId, wh.id)
-            .catch(() => [])
-        );
-
-        const allResults = await Promise.all(itemsPromises);
-        const flatItems: WarehouseItem[] = allResults.flat();
-
-        const aggregated = flatItems.reduce((acc: Record<string, WarehouseItem>, item) => {
-          const key = item.id;
-          if (!acc[key]) {
-            acc[key] = { ...item };
-          } else {
-            acc[key].stock += (item.stock || 0);
-          }
-          return acc;
-        }, {});
-
-        return Object.values(aggregated);
-      } catch (err) {
-        console.error("Lỗi cộng dồn tồn kho:", err);
-        return warehouseItemService.getFarmWarehouseItems(farmId);
-      }
+      // Nếu không có warehouseId, lấy tất cả vật tư của farm thông qua API chuyên dụng
+      return warehouseItemService.getFarmWarehouseItems(farmId);
     },
     enabled: !!farmId,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -77,11 +51,72 @@ export const useWarehouseItems = (farmId?: string | null, warehouseId?: string |
     },
   });
 
-  const error = useMemo(() => itemsQuery.error ?? createItemMutation.error ?? null, [itemsQuery.error, createItemMutation.error]);
+  const updateItemMutation = useMutation({
+    mutationFn: async ({
+      fId,
+      wId,
+      itemId,
+      itemData,
+    }: {
+      fId: string;
+      wId: string;
+      itemId: string;
+      itemData: any;
+    }) => {
+      return warehouseItemService.updateWarehouseItem(fId, wId, itemId, itemData);
+    },
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ITEM_KEYS.byWarehouse(variables.fId, variables.wId) });
+      void queryClient.invalidateQueries({ queryKey: ITEM_KEYS.allByFarm(variables.fId) });
+    },
+  });
+
+  const deleteItemMutation = useMutation({
+    mutationFn: async ({
+      fId,
+      wId,
+      itemId,
+    }: {
+      fId: string;
+      wId: string;
+      itemId: string;
+    }) => {
+      return warehouseItemService.deleteWarehouseItem(fId, wId, itemId);
+    },
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ITEM_KEYS.byWarehouse(variables.fId, variables.wId) });
+      void queryClient.invalidateQueries({ queryKey: ITEM_KEYS.allByFarm(variables.fId) });
+    },
+  });
+
+  const deleteItemFromFarmMutation = useMutation({
+    mutationFn: async ({
+      fId,
+      itemId,
+    }: {
+      fId: string;
+      itemId: string;
+    }) => {
+      return warehouseItemService.deleteItemFromFarm(fId, itemId);
+    },
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ITEM_KEYS.allByFarm(variables.fId) });
+    },
+  });
+
+  const error = useMemo(() => 
+    itemsQuery.error ?? 
+    createItemMutation.error ?? 
+    updateItemMutation.error ?? 
+    deleteItemMutation.error ?? 
+    deleteItemFromFarmMutation.error ?? 
+    null, 
+    [itemsQuery.error, createItemMutation.error, updateItemMutation.error, deleteItemMutation.error, deleteItemFromFarmMutation.error]
+  );
 
   return {
     items: itemsQuery.data ?? [],
-    loading: itemsQuery.isLoading || itemsQuery.isFetching || createItemMutation.isPending,
+    loading: itemsQuery.isLoading || itemsQuery.isFetching || createItemMutation.isPending || updateItemMutation.isPending || deleteItemMutation.isPending || deleteItemFromFarmMutation.isPending,
     error,
     fetchItems: useCallback(
       (fId: string, wId: string): Promise<WarehouseItem[]> => {
@@ -113,6 +148,21 @@ export const useWarehouseItems = (farmId?: string | null, warehouseId?: string |
       (fId: string, wId: string, itemData: CreateWarehouseItemDto) =>
         withUnwrap(createItemMutation.mutateAsync({ fId, wId, itemData })),
       [createItemMutation],
+    ),
+    updateItem: useCallback(
+      (fId: string, wId: string, itemId: string, itemData: any) =>
+        withUnwrap(updateItemMutation.mutateAsync({ fId, wId, itemId, itemData })),
+      [updateItemMutation],
+    ),
+    deleteItem: useCallback(
+      (fId: string, wId: string, itemId: string) =>
+        withUnwrap(deleteItemMutation.mutateAsync({ fId, wId, itemId })),
+      [deleteItemMutation],
+    ),
+    deleteItemFromFarm: useCallback(
+      (fId: string, itemId: string) =>
+        withUnwrap(deleteItemFromFarmMutation.mutateAsync({ fId, itemId })),
+      [deleteItemFromFarmMutation],
     ),
   };
 };

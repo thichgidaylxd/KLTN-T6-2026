@@ -132,8 +132,7 @@ export const syncPlanDatesWithPhases = (plan: SeasonPlan): SeasonPlan => {
 
 /**
  * Kiểm tra quyền thao tác dựa trên Role (PB11)
- * Chủ trang trại (Owner/Admin) -> Toàn quyền
- * Quản lý (Manager) -> Chỉ xem
+ * Owner/Admin: được chỉnh sửa kế hoạch; Manager/Employee: chỉ xem
  */
 export const canEditPlan = (role: string | undefined | null, token?: string | null): boolean => {
   // 1. Kiểm tra dựa trên Role đã qua xử lý (từ parseRole)

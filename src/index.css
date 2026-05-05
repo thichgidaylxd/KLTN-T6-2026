@@ -3,6 +3,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Geist+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 
 /* --- MANAGED FONT IMPORTS END --- */
 
@@ -145,3 +146,42 @@ body,
 }
 
 /* ======================================================= */
+
+.plot-label-shadow {
+  text-shadow: 
+    -1px -1px 0 #000,  
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000,
+     0px  2px 4px rgba(0,0,0,0.5);
+  pointer-events: none;
+}
+
+/* Hide Google Maps InfoWindow close button */
+.gm-ui-hover-effect {
+  display: none !important;
+}
+
+/* Clean up InfoWindow container */
+.gm-style-iw-d {
+  overflow: hidden !important;
+}
+
+.gm-style-iw-c {
+  padding: 0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+}
+
+.gm-style-iw-tc {
+  display: none !important;
+}
+
+.plot-label-shadow {
+  text-shadow: 
+    -1px -1px 0 #000,  
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000,
+     0px  0px 4px rgba(0,0,0,0.8);
+}

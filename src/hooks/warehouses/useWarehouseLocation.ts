@@ -78,14 +78,35 @@ export const useWarehouseLocations = (farmId?: string | null, warehouseId?: stri
         },
     });
 
+    const deleteLocationMutation = useMutation({
+        mutationFn: async ({
+            fId,
+            wId,
+            lId,
+        }: {
+            fId: string;
+            wId: string;
+            lId: string;
+        }) => {
+            await axiosInstance.delete(
+                `/api/v1/farms/${fId}/warehouses/${wId}/locations/${lId}`,
+            );
+        },
+        onSuccess: (_, variables) => {
+            void queryClient.invalidateQueries({
+                queryKey: LOCATION_KEYS.byWarehouse(variables.fId, variables.wId),
+            });
+        },
+    });
+
     const error = useMemo(
-        () => locationsQuery.error ?? createLocationMutation.error ?? null,
-        [locationsQuery.error, createLocationMutation.error],
+        () => locationsQuery.error ?? createLocationMutation.error ?? deleteLocationMutation.error ?? null,
+        [locationsQuery.error, createLocationMutation.error, deleteLocationMutation.error],
     );
 
     return {
         locations: locationsQuery.data ?? [],
-        loading: locationsQuery.isLoading || locationsQuery.isFetching,
+        loading: locationsQuery.isLoading || locationsQuery.isFetching || deleteLocationMutation.isPending,
         submitting: createLocationMutation.isPending,
         error,
         fetchLocations: useCallback(
@@ -107,6 +128,11 @@ export const useWarehouseLocations = (farmId?: string | null, warehouseId?: stri
             (fId: string, wId: string, data: CreateWarehouseLocationDto) =>
                 withUnwrap(createLocationMutation.mutateAsync({ fId, wId, data })),
             [createLocationMutation],
+        ),
+        deleteLocation: useCallback(
+            (fId: string, wId: string, lId: string) =>
+                withUnwrap(deleteLocationMutation.mutateAsync({ fId, wId, lId })),
+            [deleteLocationMutation],
         ),
         getLocationDetail: useCallback(
             (fId: string, wId: string, locationId: string) =>
