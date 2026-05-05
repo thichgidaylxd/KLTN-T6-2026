@@ -34,15 +34,7 @@ export function CreatePlanModal({
     }
   }, [isOpen, fetchCrops]);
 
-  // Auto-generate name
-  useEffect(() => {
-    if (cropId && !name) { // Only auto-fill if name is empty
-      const crop = crops.find((c) => c.id === cropId);
-      if (crop) {
-        setName(`${crop.name} - Vụ mùa ${new Date().getFullYear()}`);
-      }
-    }
-  }, [cropId, crops, name]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -160,6 +160,11 @@ export const useSeasonPlanPhases = ({ updatePlansCache }: UseSeasonPlanPhasesPro
         ),
       [updatePlansCache],
     ),
+    fetchAvailableStatuses: useCallback(
+      (planId: string, stageId: string) =>
+        withUnwrap(planStageStatusService.getAvailableStatuses(planId, stageId)),
+      [],
+    ),
   };
 };
 

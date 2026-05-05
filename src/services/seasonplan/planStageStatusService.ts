@@ -58,4 +58,11 @@ export const planStageStatusService = {
     const response = await axiosInstance.get('/api/v1/plan-stage-status-transitions');
     return getPlanStageStatusTransitionsResponseSchema.parse(response.data).data;
   },
+  
+  async getAvailableStatuses(planId: string, stageId: string): Promise<StatusObject[]> {
+    const response = await axiosInstance.get(
+      `/api/v1/plans/${planId}/stages/${stageId}/available-statuses`
+    );
+    return getPlanStageStatusesResponseSchema.parse(response.data).data;
+  },
 };

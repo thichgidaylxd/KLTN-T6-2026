@@ -50,5 +50,7 @@ export const useSeasonPlans = () => {
     fetchTaskStatusTransitions: taskPart.fetchTaskStatusTransitions,
     fetchTaskStatusHistories: taskPart.fetchTaskStatusHistories,
     updateTaskStatus: taskPart.updateTaskStatus,
+    fetchTaskAvailableStatuses: taskPart.fetchAvailableStatuses,
+    fetchPhaseAvailableStatuses: phasePart.fetchAvailableStatuses,
   };
 };

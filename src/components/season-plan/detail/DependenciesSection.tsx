@@ -63,7 +63,7 @@ export function DependenciesSection({
               {canEdit && (
                 <button 
                   onClick={() => onDelete(t.id)}
-                  className="p-1 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+                  className="p-1 text-slate-400 hover:text-rose-500 transition-all"
                 >
                   <Trash2 size={12} />
                 </button>

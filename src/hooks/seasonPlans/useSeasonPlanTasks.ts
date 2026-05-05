@@ -221,6 +221,11 @@ export const useSeasonPlanTasks = ({ updatePlansCache }: UseSeasonPlanTasksProps
         ),
       [updatePlansCache],
     ),
+    fetchAvailableStatuses: useCallback(
+      (planId: string, stageId: string, taskId: string) =>
+        withUnwrap(taskStatusService.getAvailableStatuses(planId, stageId, taskId)),
+      [],
+    ),
   };
 };
 

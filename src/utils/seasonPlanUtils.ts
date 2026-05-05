@@ -227,3 +227,66 @@ export const clonePlanLogic = (plan: SeasonPlan, newName: string, newStartDate: 
     phases: newPhases
   };
 };
+
+/**
+ * Tính toán tiến độ kế hoạch dựa trên số lượng Task và Giai đoạn đã COMPLETED
+ * Công thức: (Completed Tasks + Completed Phases) / (Total Tasks + Total Phases)
+ */
+export const calculatePlanProgress = (plan: SeasonPlan): number => {
+  if (!plan.phases || plan.phases.length === 0) return 0;
+
+  const completedPhasesCount = plan.phases.filter((phase) => {
+    const code = typeof phase.status === 'string' ? phase.status : phase.status?.code;
+    return code === 'COMPLETED';
+  }).length;
+
+  let totalTasksCount = 0;
+  let completedTasksCount = 0;
+
+  plan.phases.forEach(phase => {
+    if (phase.tasks && phase.tasks.length > 0) {
+      totalTasksCount += phase.tasks.length;
+      completedTasksCount += phase.tasks.filter(task => {
+        const code = typeof task.status === 'string' ? task.status : task.status?.code;
+        return code === 'COMPLETED';
+      }).length;
+    }
+  });
+
+  const totalItems = plan.phases.length + totalTasksCount;
+  const completedItems = completedPhasesCount + completedTasksCount;
+
+  return totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+};
+
+/**
+ * Lấy thông tin chi tiết về tiến độ (số lượng đã hoàn thành / tổng số)
+ */
+export const getPlanProgressDetails = (plan: SeasonPlan) => {
+  if (!plan.phases) return { completedPhases: 0, totalPhases: 0, completedTasks: 0, totalTasks: 0, percent: 0 };
+
+  const totalPhases = plan.phases.length;
+  const completedPhases = plan.phases.filter((phase) => {
+    const code = typeof phase.status === 'string' ? phase.status : phase.status?.code;
+    return code === 'COMPLETED';
+  }).length;
+
+  let totalTasks = 0;
+  let completedTasks = 0;
+
+  plan.phases.forEach(phase => {
+    if (phase.tasks) {
+      totalTasks += phase.tasks.length;
+      completedTasks += phase.tasks.filter(task => {
+        const code = typeof task.status === 'string' ? task.status : task.status?.code;
+        return code === 'COMPLETED';
+      }).length;
+    }
+  });
+
+  const totalItems = totalPhases + totalTasks;
+  const completedItems = completedPhases + completedTasks;
+  const percent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
+  return { completedPhases, totalPhases, completedTasks, totalTasks, percent };
+};

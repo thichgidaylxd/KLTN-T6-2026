@@ -38,6 +38,7 @@ import { CreatePlanModal } from '@/components/season-plan/CreatePlanModal';
 import { ClonePlanModal } from '@/components/season-plan/ClonePlanModal';
 import { PlanDetailPanel } from '@/components/season-plan/PlanDetailPanel';
 import { CreatePhaseModal } from '@/components/season-plan/CreatePhaseModal';
+import { AttendanceManagement } from '@/components/work-log/AttendanceManagement';
 import { extractErrorMessage, extractDeleteTaskErrorMessage, extractDeletePhaseErrorMessage } from '@/utils/errorUtils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -96,7 +97,7 @@ export function SeasonPlanPage() {
     updateTask: updateSeasonTask, updateTaskTime, updateTaskStatus, deleteTask: removeSeasonTask,
     fetchTaskStatuses, fetchTaskStatusTransitions, taskStatuses, taskStatusTransitions,
     addPlotsToPlan, optimisticallyUpdatePhaseTime, optimisticallyUpdateTaskTime,
-    addPlanToState
+    addPlanToState, fetchTaskAvailableStatuses, fetchPhaseAvailableStatuses
   } = useSeasonPlans();
 
   const { user, accessToken } = useAuth();
@@ -798,6 +799,8 @@ export function SeasonPlanPage() {
               onAddTask={handleAddTask}
               onUpdateTask={handleUpdateTask}
               onDeleteTask={handleDeleteTask}
+              fetchTaskAvailableStatuses={fetchTaskAvailableStatuses}
+              fetchPhaseAvailableStatuses={fetchPhaseAvailableStatuses}
               onSelectPhase={(_id, phaseId) =>
                 setSelectedItem({ type: 'PHASE', id: phaseId, planId: _id })}
               onSelectTask={(_pid, stageId, taskId) =>
@@ -814,8 +817,16 @@ export function SeasonPlanPage() {
           </>
         )}
 
+        {/* ── Tab: Backlog (WorkLog History) ── */}
+        {activeTab === 'backlog' && currentPlan && (
+          <AttendanceManagement 
+            farmId={farmId || ''} 
+            plan={currentPlan} 
+          />
+        )}
+
         {/* ── Other tabs: placeholder ── */}
-        {activeTab !== 'timeline' && (
+        {activeTab !== 'timeline' && activeTab !== 'backlog' && (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-slate-50/50">
             <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
               {(() => {

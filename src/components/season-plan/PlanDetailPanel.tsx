@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   Users,
-  BarChart2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SeasonPlan, Phase, Task } from '@/types/seasonPlan';
@@ -59,6 +58,8 @@ interface PlanDetailPanelProps {
   phaseStatusTransitions?: import('@/services/seasonplan/planStageStatusService').PlanStageStatusTransition[];
   taskStatusOptions?: { code: string; label: string }[];
   taskStatusTransitions?: any[];
+  fetchTaskAvailableStatuses?: (planId: string, stageId: string, taskId: string) => Promise<any[]>;
+  fetchPhaseAvailableStatuses?: (planId: string, stageId: string) => Promise<any[]>;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -82,6 +83,8 @@ export function PlanDetailPanel({
   phaseStatusTransitions = [],
   taskStatusOptions = [],
   taskStatusTransitions = [],
+  fetchTaskAvailableStatuses,
+  fetchPhaseAvailableStatuses,
 }: PlanDetailPanelProps) {
   const { currentFarmId } = useAuth();
   const { selectedFarmId } = useSelector((state: RootState) => state.farm);
@@ -135,9 +138,46 @@ export function PlanDetailPanel({
     isOpen && activeTab === 'INFO' && activeSelection?.type === 'TASK'
   );
 
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
+  const [isAvailableStatusesLoading, setIsAvailableStatusesLoading] = useState(false);
+
+  // Fetch available statuses when selection changes
+  useEffect(() => {
+    if (!isOpen || !activeSelection) return;
+
+    const fetchStatuses = async () => {
+      setAvailableStatuses([]);
+      setIsAvailableStatusesLoading(true);
+      try {
+        if (activeSelection.type === 'TASK' && fetchTaskAvailableStatuses) {
+          const statuses = await fetchTaskAvailableStatuses(
+            activeSelection.plan.id,
+            activeSelection.phase.id,
+            activeSelection.task.id
+          );
+          setAvailableStatuses(statuses);
+        } else if (activeSelection.type === 'PHASE' && fetchPhaseAvailableStatuses) {
+          const statuses = await fetchPhaseAvailableStatuses(
+            activeSelection.plan.id,
+            activeSelection.phase.id
+          );
+          setAvailableStatuses(statuses);
+        }
+      } catch (error) {
+        console.error('Failed to fetch available statuses:', error);
+      } finally {
+        setIsAvailableStatusesLoading(false);
+      }
+    };
+
+    fetchStatuses();
+  }, [isOpen, activeSelection, fetchTaskAvailableStatuses, fetchPhaseAvailableStatuses]);
+
   const [tempPlan, setTempPlan] = useState<SeasonPlan | null>(null);
   const [tempPhase, setTempPhase] = useState<Phase | null>(null);
   const [tempTask, setTempTask] = useState<Task | null>(null);
@@ -374,7 +414,7 @@ export function PlanDetailPanel({
               <button
                 onClick={() => setActiveTab('INFO')}
                 className={cn(
-                  "px-3 py-3 text-[11px] font-bold uppercase tracking-wider transition-all border-b-2",
+                  "flex-1 px-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap",
                   activeTab === 'INFO' ? "text-indigo-600 border-indigo-600" : "text-slate-400 border-transparent hover:text-slate-600"
                 )}
               >
@@ -384,7 +424,7 @@ export function PlanDetailPanel({
                 <button
                   onClick={() => setActiveTab('MATERIALS')}
                   className={cn(
-                    "px-3 py-3 text-[11px] font-bold uppercase tracking-wider transition-all border-b-2",
+                    "flex-1 px-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap",
                     activeTab === 'MATERIALS' ? "text-indigo-600 border-indigo-600" : "text-slate-400 border-transparent hover:text-slate-600"
                   )}
                 >
@@ -394,7 +434,7 @@ export function PlanDetailPanel({
               <button
                 onClick={() => setActiveTab('MEMBERS')}
                 className={cn(
-                  "px-3 py-3 text-[11px] font-bold uppercase tracking-wider transition-all border-b-2",
+                  "flex-1 px-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap",
                   activeTab === 'MEMBERS' ? "text-indigo-600 border-indigo-600" : "text-slate-400 border-transparent hover:text-slate-600"
                 )}
               >
@@ -425,68 +465,38 @@ export function PlanDetailPanel({
                     phaseStatusTransitions={phaseStatusTransitions}
                     taskStatusOptions={taskStatusOptions}
                     taskStatusTransitions={taskStatusTransitions}
+                    availableStatuses={availableStatuses}
+                    isAvailableStatusesLoading={isAvailableStatusesLoading}
                   />
 
                   {sel.type === 'PLAN' && (
-                    <PlotManager
-                      plan={plan}
-                      plots={plots}
-                      loading={plotsLoading}
-                      showAddPlot={showAddPlot}
-                      setShowAddPlot={setShowAddPlot}
-                      selectedPlotIds={selectedPlotIds}
-                      setSelectedPlotIds={setSelectedPlotIds}
-                      loadingAddPlot={loadingAddPlot}
-                      onAddPlots={handleAddPlotsSubmit}
-                    />
+                    <>
+                      <PlotManager
+                        plan={plan}
+                        plots={plots}
+                        loading={plotsLoading}
+                        showAddPlot={showAddPlot}
+                        setShowAddPlot={setShowAddPlot}
+                        selectedPlotIds={selectedPlotIds}
+                        setSelectedPlotIds={setSelectedPlotIds}
+                        loadingAddPlot={loadingAddPlot}
+                        onAddPlots={handleAddPlotsSubmit}
+                      />
+                    </>
                   )}
 
                   {sel.type === 'TASK' && (
-                    <>
-                      <div className="px-4 py-3 border-t border-slate-100">
-                        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                          <BarChart2 size={11} /> Tiến độ
-                        </p>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <motion.div
-                              className="h-full bg-indigo-500 rounded-full"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${sel.task.progressPercent ?? 0}%` }}
-                              transition={{ duration: .4, ease: 'easeOut' }}
-                            />
-                          </div>
-                          <span className="text-[11px] font-bold text-slate-600 w-8 text-right tabular-nums">
-                            {sel.task.progressPercent ?? 0}%
-                          </span>
-                        </div>
-                        {canEdit && (
-                          <input
-                            type="range" min="0" max="100"
-                            value={sel.task.progressPercent ?? 0}
-                            onChange={e => onUpdateTask(plan.id, sel.phase.id, { 
-                              ...sel.task, 
-                              progressPercent: +e.target.value,
-                              statusCode: statusCodeOf(sel.task.status)
-                            } as any)}
-                            disabled={['COMPLETED', 'CANCELLED'].includes(statusCodeOf(sel.task.status))}
-                            className="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                          />
-                        )}
-                      </div>
-
-                      <DependenciesSection
-                        taskId={sel.task.id}
-                        phase={sel.phase}
-                        dependencies={dependencies}
-                        loading={isDependenciesLoading}
-                        adding={isAddingDependency}
-                        canEdit={canEdit}
-                        onAdd={addDependency}
-                        onDelete={deleteDependency}
-                        onSelectTask={(tid) => onSelectTask(plan.id, sel.phase.id, tid)}
-                      />
-                    </>
+                    <DependenciesSection
+                      taskId={sel.task.id}
+                      phase={sel.phase}
+                      dependencies={dependencies}
+                      loading={isDependenciesLoading}
+                      adding={isAddingDependency}
+                      canEdit={canEdit}
+                      onAdd={addDependency}
+                      onDelete={deleteDependency}
+                      onSelectTask={(tid) => onSelectTask(plan.id, sel.phase.id, tid)}
+                    />
                   )}
 
                   {sel.type === 'PHASE' && (
@@ -610,6 +620,8 @@ export function PlanDetailPanel({
               ? "Hành động này sẽ xóa vĩnh viễn giai đoạn này và tất cả các công việc liên quan. Bạn có chắc chắn muốn tiếp tục?"
               : "Hành động này sẽ xóa vĩnh viễn công việc này. Bạn có chắc chắn muốn tiếp tục?"}
           />
+
+
         </motion.div>
       )}
     </AnimatePresence>

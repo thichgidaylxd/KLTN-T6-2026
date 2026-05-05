@@ -5,6 +5,7 @@ import { usePlots } from '@/hooks/plots/usePlots';
 import { useCrops } from '@/hooks/crops/useCrops';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useSeasonPlans } from '@/hooks/seasonPlans/useSeasonPlans';
+import { calculatePlanProgress } from '@/utils/seasonPlanUtils';
 import { EditFarmModal } from '../../components/farm/EditFarmModal';
 import { toast } from 'sonner';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
@@ -56,34 +57,11 @@ const FarmActionsPage: React.FC = () => {
         }
     }, [farms.length, fetchFarms]);
 
-    // Calculate plan progress average based on API data (Phases/Stages)
+    // Calculate plan progress average using unified utility
     const planProgress = plans.length > 0
-        ? Math.round(plans.reduce((acc, plan) => {
-            const phases = plan.phases || [];
-            if (phases.length === 0) {
-                // Fallback mapping nếu phases chưa kịp load
-                const status = typeof plan.status === 'string' ? plan.status : plan.status.code;
-                if (status === 'COMPLETED') return acc + 100;
-                if (status === 'HARVESTING') return acc + 90;
-                if (status === 'ACTIVE') return acc + 40;
-                return acc;
-            }
-            
-            const totalPhases = phases.length;
-            const completedCount = phases.filter(ph => {
-                const code = typeof ph.status === 'string' ? ph.status : ph.status?.code;
-                return code === 'COMPLETED';
-            }).length;
-            const activeCount = phases.filter(ph => {
-                const code = typeof ph.status === 'string' ? ph.status : ph.status?.code;
-                return code === 'ACTIVE' || code === 'IN_PROGRESS';
-            }).length;
-
-            // Tính toán tiến độ dựa trên tỷ lệ các giai đoạn (Real-time logic)
-            const ratio = (completedCount + (activeCount * 0.4)) / totalPhases;
-            return acc + (ratio * 100);
-        }, 0) / plans.length)
+        ? Math.round(plans.reduce((acc, plan) => acc + calculatePlanProgress(plan), 0) / plans.length)
         : 0;
+
 
     // Ưu tiên tìm trong list 'farms' (full detail) để có description
     const farm = farms.find((f: any) => f.id === farmId) ||

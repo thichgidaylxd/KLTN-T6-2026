@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/auth/useAuth';
 import { useSeasonPlans } from '../../hooks/seasonPlans/useSeasonPlans';
 import { useCrops } from '../../hooks/crops/useCrops';
 import { SeasonPlan } from '../../types/seasonPlan';
-import { canEditPlan } from '../../utils/seasonPlanUtils';
+import { calculatePlanProgress, canEditPlan } from '../../utils/seasonPlanUtils';
 import { Search, Calendar, Loader2, Info, CheckCircle2, AlertCircle, Trash2, ArrowLeft } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { cn } from '../../utils/cn';
@@ -18,7 +18,7 @@ import { getStatusColor } from '@/components/season-plan/detail/DetailCommon';
 export function SeasonPlanListPage() {
   const navigate = useNavigate();
   const { currentFarmId, user, accessToken } = useAuth();
-  const { plans, loading, error, fetchPlans, createPlan, deletePlan: removePlan, fetchStages } = useSeasonPlans();
+  const { plans, loading, error, fetchPlans, createPlan, deletePlan: removePlan, fetchStages, fetchTasks } = useSeasonPlans();
   const { fetchCrops, crops } = useCrops();
 
   // Kiểm tra quyền
@@ -36,16 +36,24 @@ export function SeasonPlanListPage() {
           fetchCrops();
           const fetchedPlans = await fetchPlans();
           if (fetchedPlans && Array.isArray(fetchedPlans)) {
-            // Fetch stages for each plan in parallel to populate phase info in cards
-            await Promise.allSettled(fetchedPlans.map(plan => fetchStages(plan.id)));
+            // Fetch stages for each plan
+            await Promise.allSettled(fetchedPlans.map(async (plan) => {
+              const stagesResult = await fetchStages(plan.id);
+              if (stagesResult && stagesResult.phases) {
+                // Fetch tasks for each phase to calculate accurate progress
+                await Promise.allSettled(
+                  stagesResult.phases.map(phase => fetchTasks(plan.id, phase.id))
+                );
+              }
+            }));
           }
         } catch (err) {
-          console.error('[SeasonPlanListPage] Failed to load plans or stages:', err);
+          console.error('[SeasonPlanListPage] Failed to load plans, stages or tasks:', err);
         }
       }
     };
     loadData();
-  }, [fetchPlans, fetchStages, fetchCrops, accessToken]);
+  }, [fetchPlans, fetchStages, fetchTasks, fetchCrops, accessToken]);
 
   const farmPlans = plans.filter((p: SeasonPlan) => p.farmId === currentFarmId || p.farmId === '');
 
@@ -239,11 +247,9 @@ export function SeasonPlanListPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredPlans.map((plan) => (
               (() => {
-                const activePhaseCount = plan.phases.filter((phase) => {
-                  const code = typeof phase.status === 'string' ? phase.status : phase.status?.code;
-                  return code === 'ACTIVE' || code === 'IN_PROGRESS';
-                }).length;
+                const progressPercent = calculatePlanProgress(plan);
                 const cropName = crops.find(c => c.id === plan.cropId)?.name || (plan as any).cropName;
+
 
                 return (
               <div
@@ -283,13 +289,13 @@ export function SeasonPlanListPage() {
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-[11px] font-bold">
                       <span className="text-slate-400 uppercase tracking-widest">Tiến độ</span>
-                      <span className="text-indigo-600">
-                        {activePhaseCount > 0 ? `${activePhaseCount}/${plan.phases.length} đang chạy` : `${plan.phases.length} giai đoạn`}
+                      <span className="text-indigo-600 font-black">
+                        {progressPercent}%
                       </span>
                     </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                      <div className="h-full bg-indigo-500 rounded-full transition-all duration-500"
-                        style={{ width: `${(activePhaseCount / Math.max(plan.phases.length, 1)) * 100}%` }} />
+                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
+                      <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-700 ease-out"
+                        style={{ width: `${progressPercent}%` }} />
                     </div>
                   </div>
                 </div>

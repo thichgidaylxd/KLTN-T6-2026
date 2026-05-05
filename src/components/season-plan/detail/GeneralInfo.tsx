@@ -25,6 +25,8 @@ interface GeneralInfoProps {
   phaseStatusTransitions?: PlanStageStatusTransition[];
   taskStatusOptions?: { code: string; label: string }[];
   taskStatusTransitions?: any[]; // use any or import TaskStatusTransition
+  availableStatuses?: any[];
+  isAvailableStatusesLoading?: boolean;
 }
 
 export function GeneralInfo({
@@ -41,6 +43,8 @@ export function GeneralInfo({
   phaseStatusTransitions,
   taskStatusOptions,
   taskStatusTransitions,
+  availableStatuses = [],
+  isAvailableStatusesLoading = false,
 }: GeneralInfoProps) {
   const { plan, type } = selection;
 
@@ -49,6 +53,13 @@ export function GeneralInfo({
   // Filter phase options to only show valid transitions from current status
   const currentPhaseStatusCode = statusCodeOf(tempPhase?.status ?? selection.phase?.status);
   const validPhaseOptions = (() => {
+    // If we have availableStatuses from backend, use them (they already represent valid "To" states)
+    if (type === 'PHASE' && availableStatuses.length > 0) {
+      const validCodes = new Set(availableStatuses.map(s => s.code));
+      validCodes.add(currentPhaseStatusCode);
+      return resolvedPhaseStatusOptions.filter(o => validCodes.has(o.code));
+    }
+
     if (!phaseStatusTransitions || phaseStatusTransitions.length === 0) {
       return resolvedPhaseStatusOptions;
     }
@@ -66,6 +77,13 @@ export function GeneralInfo({
   const currentTaskStatusCode = statusCodeOf(tempTask?.status ?? selection.task?.status);
   
   const validTaskOptions = (() => {
+    // If we have availableStatuses from backend, use them
+    if (type === 'TASK' && availableStatuses.length > 0) {
+      const validCodes = new Set(availableStatuses.map(s => s.code));
+      validCodes.add(currentTaskStatusCode);
+      return resolvedTaskStatusOptions.filter(o => validCodes.has(o.code));
+    }
+
     if (!taskStatusTransitions || taskStatusTransitions.length === 0) {
       return resolvedTaskStatusOptions;
     }
@@ -110,7 +128,7 @@ export function GeneralInfo({
               value={statusCodeOf(tempPhase?.status ?? selection.phase?.status)}
               options={validPhaseOptions}
               onChange={s => tempPhase && setTempPhase({ ...tempPhase, status: { ...tempPhase.status, code: s } })}
-              canEdit={isEditing && validPhaseOptions.length > 0}
+              canEdit={isEditing && validPhaseOptions.length > 0 && !isAvailableStatusesLoading}
             />
           )}
           {type === 'TASK' && (
@@ -118,7 +136,7 @@ export function GeneralInfo({
               value={statusCodeOf(tempTask?.status ?? selection.task?.status)}
               options={validTaskOptions}
               onChange={s => tempTask && setTempTask({ ...tempTask, status: { ...tempTask.status, code: s } })}
-              canEdit={isEditing}
+              canEdit={isEditing && !isAvailableStatusesLoading}
             />
           )}
         </div>

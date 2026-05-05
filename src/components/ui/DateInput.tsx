@@ -8,6 +8,8 @@ interface DateInputProps {
   label?: string;
   className?: string;
   disabled?: boolean;
+  min?: string;
+  max?: string;
 }
 
 export function DateInput({
@@ -16,6 +18,8 @@ export function DateInput({
   label,
   className,
   disabled,
+  min,
+  max,
   onStatusChange
 }: DateInputProps & { onStatusChange?: (status: 'empty' | 'valid' | 'invalid') => void }) {
   const [displayValue, setDisplayValue] = useState('');
@@ -143,6 +147,8 @@ export function DateInput({
           ref={nativeInputRef}
           type="date"
           value={value}
+          min={min}
+          max={max}
           onChange={handleNativeChange}
           className="absolute inset-0 opacity-0 pointer-events-none z-0"
           tabIndex={-1}
