@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreatePlotInput, UpdatePlotInput, Plot } from '../../types/plot/plot';
 import { plotService } from '../../services/plots/plotService';
 import { dashboardService } from '../../services/dashboard/dashboardService';
+import { useAuth } from '../auth/useAuth';
 
 const PLOT_KEYS = {
   all: ['plots'] as const,
@@ -17,19 +18,27 @@ const EMPTY_ARRAY: any[] = [];
 
 export const usePlots = () => {
   const queryClient = useQueryClient();
-  const [activeFarmId, setActiveFarmId] = useState<string | null>(null);
+  const { currentFarmId } = useAuth();
+  const [activeFarmId, setActiveFarmId] = useState<string | null>(currentFarmId);
   const [activeHubToken, setActiveHubToken] = useState<string | null>(null);
+
+  // Sync with Redux state
+  useEffect(() => {
+    if (currentFarmId) {
+      setActiveFarmId(currentFarmId);
+    }
+  }, [currentFarmId]);
 
   const plotsQuery = useQuery({
     queryKey: activeFarmId ? PLOT_KEYS.byFarm(activeFarmId) : ['plots', 'inactive'],
     queryFn: async () => plotService.getPlots(),
-    enabled: false,
+    enabled: !!activeFarmId,
   });
 
   const aggregateQuery = useQuery({
     queryKey: activeHubToken ? PLOT_KEYS.aggregate(activeHubToken) : ['plots', 'aggregate', 'inactive'],
     queryFn: async () => dashboardService.fetchAggregateStats(activeHubToken as string),
-    enabled: false,
+    enabled: !!activeHubToken,
   });
 
   const createPlotMutation = useMutation({

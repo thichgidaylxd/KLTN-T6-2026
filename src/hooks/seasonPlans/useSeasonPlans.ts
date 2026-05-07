@@ -2,8 +2,8 @@ import { useSeasonPlanPlans } from './useSeasonPlanPlans';
 import { useSeasonPlanPhases } from './useSeasonPlanPhases';
 import { useSeasonPlanTasks } from './useSeasonPlanTasks';
 
-export const useSeasonPlans = () => {
-  const plansPart = useSeasonPlanPlans();
+export const useSeasonPlans = (farmId?: string) => {
+  const plansPart = useSeasonPlanPlans(farmId);
   const phasePart = useSeasonPlanPhases({ updatePlansCache: plansPart.updatePlansCache });
   const taskPart = useSeasonPlanTasks({ updatePlansCache: plansPart.updatePlansCache });
 

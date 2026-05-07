@@ -31,6 +31,9 @@ import { PlotManager } from './detail/PlotManager';
 import { DependenciesSection } from './detail/DependenciesSection';
 import { statusCodeOf } from './detail/DetailCommon';
 import { useTaskDependencies } from '@/hooks/seasonPlans/useTaskDependencies';
+import { useWorkLogs } from '@/hooks/workLog/useWorkLogs';
+import { WorkLogsSection } from './detail/WorkLogsSection';
+import { WorkLogDetailModal } from '../work-log/WorkLogDetailModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -95,7 +98,7 @@ export function PlanDetailPanel({
   const { items: warehouseItems } = useWarehouseItems(targetFarmId, selectedWarehouseId || null);
   const { members, fetchMembers, loadingMembers } = useMembers();
 
-  const [activeTab, setActiveTab] = useState<'INFO' | 'MEMBERS' | 'MATERIALS'>('INFO');
+  const [activeTab, setActiveTab] = useState<'INFO' | 'MEMBERS' | 'MATERIALS' | 'LOGS'>('INFO');
   const [activeSelection, setActiveSelection] = useState(selection);
 
   // Use dedicated hook for materials management
@@ -138,6 +141,13 @@ export function PlanDetailPanel({
     isOpen && activeTab === 'INFO' && activeSelection?.type === 'TASK'
   );
 
+  const {
+    workLogs,
+    loading: isWorkLogsLoading,
+    deleteWorkLog
+  } = useWorkLogs(
+    activeSelection?.type === 'TASK' && activeTab === 'LOGS' ? activeSelection.task.id : undefined
+  );
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isAddingTask, setIsAddingTask] = useState(false);
@@ -181,12 +191,15 @@ export function PlanDetailPanel({
   const [tempPlan, setTempPlan] = useState<SeasonPlan | null>(null);
   const [tempPhase, setTempPhase] = useState<Phase | null>(null);
   const [tempTask, setTempTask] = useState<Task | null>(null);
+  const [selectedWorkLogId, setSelectedWorkLogId] = useState<string | null>(null);
+  const [isWorkLogDetailModalOpen, setIsWorkLogDetailModalOpen] = useState(false);
 
   // New task form
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskDesc, setNewTaskDesc] = useState('');
   const [newTaskStart, setNewTaskStart] = useState('');
   const [newTaskEnd, setNewTaskEnd] = useState('');
+  const [newTaskPlotId, setNewTaskPlotId] = useState('');
 
   const [showAddPlot, setShowAddPlot] = useState(false);
   const [selectedPlotIds, setSelectedPlotIds] = useState<string[]>([]);
@@ -328,7 +341,7 @@ export function PlanDetailPanel({
       description: newTaskDesc,
       startDate: newTaskStart || sel.phase.startDate,
       endDate: newTaskEnd || sel.phase.endDate,
-      plotId: sel.phase.plotId || plan.plots?.[0]?.plotId || "",
+      plotId: newTaskPlotId || sel.phase.plotId || plan.plots?.[0]?.plotId || "",
     };
 
     const validation = createTaskSchema.safeParse(payload);
@@ -340,6 +353,7 @@ export function PlanDetailPanel({
     onAddTask(plan.id, sel.phase.id, validation.data as any);
     setNewTaskName(''); setNewTaskDesc('');
     setNewTaskStart(''); setNewTaskEnd('');
+    setNewTaskPlotId('');
     setIsAddingTask(false);
   };
 
@@ -431,6 +445,17 @@ export function PlanDetailPanel({
                   Vật tư
                 </button>
               )}
+              {sel.type === 'TASK' && (
+                <button
+                  onClick={() => setActiveTab('LOGS')}
+                  className={cn(
+                    "flex-1 px-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap",
+                    activeTab === 'LOGS' ? "text-indigo-600 border-indigo-600" : "text-slate-400 border-transparent hover:text-slate-600"
+                  )}
+                >
+                  Nhật ký
+                </button>
+              )}
               <button
                 onClick={() => setActiveTab('MEMBERS')}
                 className={cn(
@@ -514,6 +539,8 @@ export function PlanDetailPanel({
                       setNewTaskStart={setNewTaskStart}
                       newTaskEnd={newTaskEnd}
                       setNewTaskEnd={setNewTaskEnd}
+                      newTaskPlotId={newTaskPlotId}
+                      setNewTaskPlotId={setNewTaskPlotId}
                       onAddTask={handleAddTaskSubmit}
                       onSelectTask={(taskId) => onSelectTask(plan.id, sel.phase.id, taskId)}
                     />
@@ -547,6 +574,31 @@ export function PlanDetailPanel({
                       deleteMaterial(id)
                         .then(() => toast.success('Xóa vật tư thành công'))
                         .catch((err) => toast.error(extractErrorMessage(err)));
+                    }}
+                  />
+                </motion.div>
+              )}
+
+              {activeTab === 'LOGS' && sel.type === 'TASK' && (
+                <motion.div
+                  key="worklogs"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <WorkLogsSection
+                    workLogs={workLogs}
+                    loading={isWorkLogsLoading}
+                    canEdit={canEdit}
+                    onDelete={(logId) => {
+                      deleteWorkLog(sel.task.id, logId)
+                        .then(() => toast.success('Xóa nhật ký thành công'))
+                        .catch((err) => toast.error(extractErrorMessage(err)));
+                    }}
+                    onViewDetail={(logId) => {
+                      setSelectedWorkLogId(logId);
+                      setIsWorkLogDetailModalOpen(true);
                     }}
                   />
                 </motion.div>
@@ -621,6 +673,14 @@ export function PlanDetailPanel({
               : "Hành động này sẽ xóa vĩnh viễn công việc này. Bạn có chắc chắn muốn tiếp tục?"}
           />
 
+          {sel.type === 'TASK' && selectedWorkLogId && (
+            <WorkLogDetailModal
+              isOpen={isWorkLogDetailModalOpen}
+              onClose={() => setIsWorkLogDetailModalOpen(false)}
+              taskId={sel.task.id}
+              workLogId={selectedWorkLogId}
+            />
+          )}
 
         </motion.div>
       )}

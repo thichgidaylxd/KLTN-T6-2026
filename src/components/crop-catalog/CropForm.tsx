@@ -9,7 +9,6 @@ import { QuickAddCropTypeModal } from './QuickAddCropTypeModal';
 import { toast } from 'sonner';
 
 interface CropFormProps {
-  initialData?: Crop;
   onSave: (data: any) => void;
   onCancel: () => void;
   existingCrops: Crop[];
@@ -18,7 +17,6 @@ interface CropFormProps {
 type TabType = 'basic' | 'stages' | 'soil' | 'diseases';
 
 export const CropForm: React.FC<CropFormProps> = ({
-  initialData,
   onSave,
   onCancel,
   existingCrops,
@@ -44,15 +42,7 @@ export const CropForm: React.FC<CropFormProps> = ({
     formState: { errors },
   } = useForm<CreateCropFormInput>({
     resolver: zodResolver(createCropSchema),
-    defaultValues: initialData ? {
-      name: initialData.name,
-      cropTypeId: initialData.cropType.id,
-      description: initialData.description || '',
-      imageUrl: initialData.imageUrl || '',
-      stages: initialData.stages || [{ name: '', durationDays: 1, description: '' }],
-      soil: initialData.soil || { phMin: 5.5, phMax: 7.0, nMin: 100, nMax: 200, pMin: 50, pMax: 100, kMin: 100, kMax: 200 },
-      diseases: initialData.diseases || [],
-    } : {
+    defaultValues: {
       name: '',
       cropTypeId: '',
       description: '',
@@ -79,8 +69,7 @@ export const CropForm: React.FC<CropFormProps> = ({
     // Kiểm tra trùng tên (không cho phép trùng)
     const isDuplicate = existingCrops.some(
       (crop) =>
-        crop.name.toLowerCase().trim() === data.name.toLowerCase().trim() &&
-        crop.id !== initialData?.id
+        crop.name.toLowerCase().trim() === data.name.toLowerCase().trim()
     );
 
     if (isDuplicate) {
@@ -130,7 +119,7 @@ export const CropForm: React.FC<CropFormProps> = ({
           </button>
           <div>
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
-              {initialData ? 'Cập nhật cây trồng' : 'Thêm mới danh mục'}
+              Thêm mới danh mục
             </h1>
             <p className="text-sm text-slate-500 font-medium">Cấu hình dữ liệu sinh trưởng cho AI tư vấn.</p>
           </div>

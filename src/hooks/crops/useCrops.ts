@@ -1,27 +1,47 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateCropRequest, CreateCropTypeRequest } from '../../types/crop';
 import { cropService } from '../../services/crop/cropService';
+import { useAuth } from '../auth/useAuth';
 
 const CROP_KEYS = {
   all: ['crops'] as const,
   crops: ['crops', 'list'] as const,
+  farmCrops: (farmId: string) => ['crops', 'farm', farmId] as const,
   cropTypes: ['crops', 'types'] as const,
 };
 
 const withUnwrap = <T,>(promise: Promise<T>) =>
   Object.assign(promise, { unwrap: () => promise });
 
-export const useCrops = () => {
+export const useCrops = (farmId?: string) => {
   const queryClient = useQueryClient();
+  const { currentFarmId } = useAuth();
+  const [activeFarmId, setActiveFarmId] = useState<string | null>(farmId || currentFarmId);
+
+  useEffect(() => {
+    if (currentFarmId && !farmId) {
+      setActiveFarmId(currentFarmId);
+    }
+  }, [currentFarmId, farmId]);
 
   const cropsQuery = useQuery({
+    queryKey: activeFarmId ? CROP_KEYS.farmCrops(activeFarmId) : CROP_KEYS.crops,
+    queryFn: async () => {
+      const response = activeFarmId 
+        ? await cropService.getFarmCrops(activeFarmId)
+        : await cropService.getCrops();
+      return response.data ?? [];
+    },
+    enabled: !!activeFarmId || !farmId,
+  });
+
+  const systemCropsQuery = useQuery({
     queryKey: CROP_KEYS.crops,
     queryFn: async () => {
       const response = await cropService.getCrops();
       return response.data ?? [];
     },
-    enabled: false,
   });
 
   const cropTypesQuery = useQuery({
@@ -84,12 +104,29 @@ export const useCrops = () => {
 
   return {
     crops: cropsQuery.data ?? [],
+    systemCrops: systemCropsQuery.data ?? [],
     cropTypes: cropTypesQuery.data ?? [],
     loading,
+    systemCropsLoading: systemCropsQuery.isLoading || systemCropsQuery.isFetching,
     cropTypesLoading,
     error,
     fetchCrops: useCallback(
-      () => withUnwrap(queryClient.fetchQuery({ queryKey: CROP_KEYS.crops, queryFn: async () => (await cropService.getCrops()).data ?? [] })),
+      () => {
+        setActiveFarmId(null);
+        return withUnwrap(queryClient.fetchQuery({ queryKey: CROP_KEYS.crops, queryFn: async () => (await cropService.getCrops()).data ?? [] }));
+      },
+      [queryClient],
+    ),
+    fetchFarmCrops: useCallback(
+      (id: string) => {
+        setActiveFarmId(id);
+        return withUnwrap(
+          queryClient.fetchQuery({
+            queryKey: CROP_KEYS.farmCrops(id),
+            queryFn: async () => (await cropService.getFarmCrops(id)).data ?? [],
+          }),
+        );
+      },
       [queryClient],
     ),
     fetchCropTypes: useCallback(

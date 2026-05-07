@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { usePlots } from '@/hooks/plots/usePlots';
@@ -34,9 +34,7 @@ export function LandPlotsPage() {
   const [editingPlot, setEditingPlot] = useState<Plot | null>(null);
   const [deletingPlot, setDeletingPlot] = useState<Plot | null>(null);
 
-  useEffect(() => {
-    fetchPlots(currentFarmId);
-  }, [fetchPlots, currentFarmId]);
+  // Fetch data handled automatically by usePlots hook reacting to currentFarmId
 
   // Xử lý lọc dữ liệu
   const filteredPlots = useMemo(() => {

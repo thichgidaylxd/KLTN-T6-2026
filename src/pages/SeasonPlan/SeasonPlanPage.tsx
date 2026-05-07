@@ -105,6 +105,7 @@ export function SeasonPlanPage() {
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<NavTab>('timeline');
+  const [hasVisitedBacklog, setHasVisitedBacklog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // ── Modal state ───────────────────────────────────────────────────────────
@@ -672,7 +673,10 @@ export function SeasonPlanPage() {
           return (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                if (tab.key === 'backlog') setHasVisitedBacklog(true);
+                setActiveTab(tab.key);
+              }}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-medium border-b-2 whitespace-nowrap transition-all',
                 isActive
@@ -818,11 +822,14 @@ export function SeasonPlanPage() {
         )}
 
         {/* ── Tab: Backlog (WorkLog History) ── */}
-        {activeTab === 'backlog' && currentPlan && (
-          <AttendanceManagement 
-            farmId={farmId || ''} 
-            plan={currentPlan} 
-          />
+        {/* Lazy mount: chỉ render khi đã click tab ít nhất 1 lần, sau đó giữ hidden thay vì unmount */}
+        {hasVisitedBacklog && currentPlan && (
+          <div className={activeTab === 'backlog' ? 'flex-1 flex flex-col min-h-0 overflow-hidden' : 'hidden'}>
+            <AttendanceManagement 
+              farmId={farmId || ''} 
+              plan={currentPlan} 
+            />
+          </div>
         )}
 
         {/* ── Other tabs: placeholder ── */}

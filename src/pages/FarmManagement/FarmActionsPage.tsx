@@ -9,6 +9,13 @@ import { calculatePlanProgress } from '@/utils/seasonPlanUtils';
 import { EditFarmModal } from '../../components/farm/EditFarmModal';
 import { toast } from 'sonner';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { 
+  Map, 
+  Grid3X3, 
+  Zap, 
+  Warehouse, 
+  ArrowRight
+} from 'lucide-react';
 import { extractErrorMessage } from '../../utils/errorUtils';
 
 // New Components
@@ -22,23 +29,15 @@ const FarmActionsPage: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { farmSummary, farms, fetchFarms, fetchFarmsSummary, deleteFarm, loading: loadingFarms } = useFarms();
-    const { plots, fetchPlots, loading: loadingPlots } = usePlots();
-    const { crops, fetchCrops, loading: loadingCrops } = useCrops();
-    const { plans, fetchPlans, fetchStages, loading: loadingPlans } = useSeasonPlans();
+    const { plots, loading: loadingPlots } = usePlots();
+    const { systemCrops, systemCropsLoading } = useCrops(farmId);
+    const { plans, fetchStages, loading: loadingPlans } = useSeasonPlans(farmId);
 
     useEffect(() => {
         if (farmId === 'null' || !farmId) {
             navigate('/farms', { replace: true });
         }
     }, [farmId, navigate]);
-
-    useEffect(() => {
-        if (farmId && farmId !== 'null') {
-            fetchPlots(farmId);
-            fetchCrops();
-            fetchPlans();
-        }
-    }, [farmId, fetchFarmsSummary, fetchPlots, fetchCrops, fetchPlans]);
 
     // Tự động fetch stages cho tất cả plans để có dữ liệu tiến trình thực tế
     useEffect(() => {
@@ -66,7 +65,7 @@ const FarmActionsPage: React.FC = () => {
     // Ưu tiên tìm trong list 'farms' (full detail) để có description
     const farm = farms.find((f: any) => f.id === farmId) ||
         farmSummary.find((f: any) => f.farmId === farmId);
-    
+
     const farmName = farm?.farmName || farm?.name || 'Trang Trại';
     const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
@@ -136,11 +135,50 @@ const FarmActionsPage: React.FC = () => {
                 {/* Compact Stats Grid */}
                 <QuickStats
                     plotsCount={plots.length}
-                    cropsCount={crops.length}
+                    cropsCount={systemCrops.length}
                     plansCount={plans.length}
                     planProgress={planProgress}
-                    loading={loadingPlots || loadingCrops || loadingPlans}
+                    loading={loadingPlots || systemCropsLoading || loadingPlans}
                 />
+
+                {/* Quick Actions Grid */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3 px-2">
+                        <div className="w-1 h-5 bg-emerald-600 rounded-full"></div>
+                        <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Thao tác nhanh</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                        {[
+                            { title: 'Bản đồ nông trại', icon: Map, color: 'text-blue-600', bgColor: 'bg-blue-50', path: 'map', desc: 'Xem không gian canh tác trực quan' },
+                            { title: 'Lô đất & Cây trồng', icon: Grid3X3, color: 'text-emerald-600', bgColor: 'bg-emerald-50', path: 'land-plots', desc: 'Quản lý các khu vực sản xuất' },
+                            { title: 'Kế hoạch mùa vụ', icon: Zap, color: 'text-amber-600', bgColor: 'bg-amber-50', path: 'season-plans', desc: 'Lập lịch trình và theo dõi tiến độ' },
+                            { title: 'Kho hàng', icon: Warehouse, color: 'text-indigo-600', bgColor: 'bg-indigo-50', path: 'warehouses', desc: 'Quản lý vật tư và tồn kho' },
+                        ].map((card, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => navigate(`/farms/${farmId}/${card.path}`)}
+                                className="flex flex-col items-start p-6 bg-white border border-slate-100 rounded-[28px] shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 group text-left relative overflow-hidden"
+                            >
+                                <div className={`w-12 h-12 ${card.bgColor} rounded-2xl flex items-center justify-center ${card.color} mb-5 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
+                                    <card.icon size={24} />
+                                </div>
+                                <h3 className="text-[15px] font-black text-slate-800 mb-1.5 group-hover:text-emerald-600 transition-colors">{card.title}</h3>
+                                <p className="text-[11px] text-slate-400 font-medium leading-relaxed pr-6">{card.desc}</p>
+                                
+                                {/* Hover Indicator */}
+                                <div className="absolute bottom-6 right-6 translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300">
+                                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
+                                        <ArrowRight size={14} className="text-emerald-600" />
+                                    </div>
+                                </div>
+
+                                {/* Subtle Gradient background on hover */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-emerald-50/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
                 {/* Info & Team Section */}
                 <FarmInfoSection

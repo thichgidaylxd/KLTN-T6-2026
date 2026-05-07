@@ -1,17 +1,27 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateSeasonPlanRequest, SeasonPlan } from '../../types/seasonPlan';
 import { seasonPlanService } from '../../services/seasonplan/seasonPlanService';
 import { createUpdatePlansCache, PLAN_KEYS, withUnwrap } from './seasonPlanShared';
+import { useAuth } from '../auth/useAuth';
 
-export const useSeasonPlanPlans = () => {
+export const useSeasonPlanPlans = (farmId?: string) => {
   const queryClient = useQueryClient();
-  const updatePlansCache = useMemo(() => createUpdatePlansCache(queryClient), [queryClient]);
+  const { currentFarmId } = useAuth();
+  const [activeFarmId, setActiveFarmId] = useState<string | null>(farmId || currentFarmId);
+  
+  useEffect(() => {
+    if (currentFarmId && !farmId) {
+      setActiveFarmId(currentFarmId);
+    }
+  }, [currentFarmId, farmId]);
+
+  const updatePlansCache = useMemo(() => createUpdatePlansCache(queryClient, activeFarmId), [queryClient, activeFarmId]);
 
   const plansQuery = useQuery({
-    queryKey: PLAN_KEYS.list,
+    queryKey: activeFarmId ? PLAN_KEYS.byFarm(activeFarmId) : PLAN_KEYS.list,
     queryFn: () => seasonPlanService.getPlans(),
-    enabled: false,
+    enabled: !!activeFarmId || !farmId,
   });
 
   const createPlanMutation = useMutation({
@@ -52,8 +62,12 @@ export const useSeasonPlanPlans = () => {
     updatePlanTimeError: updatePlanTimeMutation.error,
     updatePlansCache,
     fetchPlans: useCallback(
-      () => withUnwrap(queryClient.fetchQuery({ queryKey: PLAN_KEYS.list, queryFn: () => seasonPlanService.getPlans() })),
-      [queryClient],
+      (id?: string) => {
+        if (id) setActiveFarmId(id);
+        const key = id ? PLAN_KEYS.byFarm(id) : (activeFarmId ? PLAN_KEYS.byFarm(activeFarmId) : PLAN_KEYS.list);
+        return withUnwrap(queryClient.fetchQuery({ queryKey: key, queryFn: () => seasonPlanService.getPlans() }));
+      },
+      [queryClient, activeFarmId],
     ),
     createPlan: useCallback((data: CreateSeasonPlanRequest) => withUnwrap(createPlanMutation.mutateAsync(data)), [createPlanMutation]),
     updatePlan: useCallback(

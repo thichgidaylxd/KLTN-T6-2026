@@ -65,7 +65,7 @@ export default function DashboardLayout() {
     if (p.includes("/activity")) return "activity";
     if (p.includes("/metrics")) return "metrics";
     if (p.includes("/wallet")) return "wallet";
-    if (p.includes("/tasks") || p === "/task") return "task";
+    if (p.includes("/task")) return "task";
     if (p.includes("/gemini")) return "gemini";
     if (p.includes("/crop-catalog")) return "crop-catalog";
     if (p.includes("/season-plans")) return "season-plans";
@@ -177,14 +177,13 @@ export default function DashboardLayout() {
         // Navigate to farm-specific route
         // Map 'task' key to 'tasks' route
         let routePart = key;
-        if (key === "task") routePart = "tasks";
         if (key === "subscription") routePart = "subscription/history";
         
         navigate(`/farms/${currentFarmId}/${routePart}`);
       } else {
         // Navigate to global route if no farm selected
         let routePart = key;
-        if (key === "task") routePart = "task";
+        if (key === "task") routePart = "tasks";
         if (key === "subscription") routePart = "subscription/history";
         
         navigate(`/${routePart}`);

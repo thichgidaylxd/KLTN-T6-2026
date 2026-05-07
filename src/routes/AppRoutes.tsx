@@ -40,6 +40,7 @@ const WarehousePage = lazy(() => import('../pages/Warehouse/WarehousePage').then
 const WarehouseDetailPage = lazy(() => import('../pages/Warehouse/WarehouseDetailPage').then(module => ({ default: module.WarehouseDetailPage })));
 const SupplierListPage = lazy(() => import('../pages/Supplier/SupplierListPage').then(module => ({ default: module.SupplierListPage })));
 const SKUListPage = lazy(() => import('../pages/SKU/SKUListPage').then(module => ({ default: module.SKUListPage })));
+const UserManagementPage = lazy(() => import('../pages/Admin/UserManagementPage'));
 
 // Layouts
 const DashboardLayout = lazy(() => import('../layouts/DashboardLayout'));
@@ -106,6 +107,7 @@ export const AppRoutes: React.FC = () => {
         <Route element={<ProtectedRoute requiredRole="ROLE_ADMIN"><Suspense fallback={<LoadingPage />}><AdminLayout /></Suspense></ProtectedRoute>}>
           <Route path="/admin/dashboard" element={<Suspense fallback={<LoadingPage />}><AdminDashboardPage /></Suspense>} />
           <Route path="/admin/crop-catalog" element={<Suspense fallback={<LoadingPage />}><CropCatalogPage /></Suspense>} />
+          <Route path="/admin/users" element={<Suspense fallback={<LoadingPage />}><UserManagementPage /></Suspense>} />
         </Route>
 
         {/* Standalone payment result page */}

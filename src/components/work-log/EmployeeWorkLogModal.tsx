@@ -1,9 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, Package, Trash2, Loader2, BookOpen } from 'lucide-react';
-import { useWorkLogs, useEmployeeWorkLogs } from '@/hooks/workLog/useWorkLogs';
+import { X, Calendar, Loader2, BookOpen, Briefcase, User, Clock, MapPin, StickyNote, ChevronRight } from 'lucide-react';
+import { useEmployeeWorkLogs } from '@/hooks/workLog/useWorkLogs';
 import { formatDate } from '@/utils/format';
 import { cn } from '@/utils/cn';
-import { toast } from 'sonner';
 
 interface EmployeeWorkLogModalProps {
   isOpen: boolean;
@@ -16,21 +15,12 @@ interface EmployeeWorkLogModalProps {
 
 export function EmployeeWorkLogModal({ isOpen, onClose, employeeId, employeeName, from, to }: EmployeeWorkLogModalProps) {
   const { data: logs = [], isLoading } = useEmployeeWorkLogs(employeeId, from, to);
-  const { deleteWorkLog } = useWorkLogs();
-
-  const handleDelete = async (taskId: string, logId: string) => {
-    try {
-      await deleteWorkLog(taskId, logId);
-      toast.success('Xóa nhật ký thành công');
-    } catch (err) {
-      toast.error('Không thể xóa nhật ký');
-    }
-  };
 
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-end">
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -38,92 +28,195 @@ export function EmployeeWorkLogModal({ isOpen, onClose, employeeId, employeeName
             onClick={onClose}
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
+
+          {/* Drawer */}
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="relative w-full max-w-2xl h-full bg-white shadow-2xl flex flex-col"
+            className="relative w-full max-w-xl h-full bg-white shadow-2xl flex flex-col"
           >
             {/* Header */}
-            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-                    <BookOpen size={20} />
+            <div className="relative bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 text-white overflow-hidden shrink-0">
+              <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/5" />
+              <div className="absolute -bottom-6 left-6 w-32 h-32 rounded-full bg-white/5" />
+              <div className="relative flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2.5 mb-1">
+                    <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center">
+                      <BookOpen size={16} />
+                    </div>
+                    <h3 className="text-[16px] font-black tracking-tight">Lịch sử công việc</h3>
                   </div>
-                  <h3 className="text-[18px] font-black text-slate-900 tracking-tight">Lịch sử cá nhân</h3>
+                  <div className="flex items-center gap-1.5 ml-[42px]">
+                    <User size={11} className="text-white/60" />
+                    <p className="text-[11px] text-white/70 font-medium">
+                      {employeeName}
+                    </p>
+                  </div>
+                  {(from || to) && (
+                    <div className="flex items-center gap-1.5 ml-[42px] mt-0.5">
+                      <Calendar size={11} className="text-white/60" />
+                      <p className="text-[10.5px] text-white/60 font-medium">
+                        {from && formatDate(from)} {from && to && '→'} {to && formatDate(to)}
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <p className="text-[13px] text-slate-500 font-medium ml-[52px]">
-                  Nhân viên: <span className="text-indigo-600 font-bold">{employeeName}</span>
-                </p>
+                <button
+                  onClick={onClose}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-all text-white/70 hover:text-white mt-0.5 shrink-0"
+                >
+                  <X size={15} />
+                </button>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2.5 hover:bg-white rounded-2xl text-slate-400 hover:text-slate-900 transition-all border border-transparent hover:border-slate-200"
-              >
-                <X size={20} />
-              </button>
+
+              {/* Summary badge */}
+              {!isLoading && logs.length > 0 && (
+                <div className="relative mt-3 inline-flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-3 py-1">
+                  <span className="text-[10.5px] font-bold text-white/90">
+                    {logs.length} nhật ký
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-8 space-y-4 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
               {isLoading ? (
-                <div className="h-full flex flex-col items-center justify-center py-20">
-                  <Loader2 className="animate-spin text-indigo-600 mb-4" size={40} />
-                  <p className="text-[14px] font-bold text-slate-500">Đang truy xuất dữ liệu...</p>
+                <div className="h-full flex flex-col items-center justify-center py-20 gap-3">
+                  <Loader2 className="animate-spin text-indigo-600" size={32} />
+                  <p className="text-[13px] font-semibold text-slate-500">Đang tải dữ liệu...</p>
                 </div>
               ) : logs.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center py-20 text-slate-400">
-                  <Calendar size={48} className="mb-4 opacity-20" />
-                  <p className="text-[15px] font-bold">Không tìm thấy nhật ký làm việc</p>
-                  <p className="text-[13px] font-medium">Nhân viên này chưa có ghi nhận công trong khoảng thời gian này.</p>
+                <div className="h-full flex flex-col items-center justify-center py-20 text-slate-400 text-center">
+                  <Calendar size={44} className="mb-4 opacity-20" />
+                  <p className="text-[14px] font-bold text-slate-600">Không có nhật ký</p>
+                  <p className="text-[12px] text-slate-400 mt-1">Không tìm thấy bản ghi nào trong khoảng thời gian này</p>
                 </div>
               ) : (
                 logs.map((log) => (
                   <div
                     key={log.id}
-                    className="group bg-white border border-slate-200 rounded-[24px] p-5 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5 transition-all"
+                    className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-indigo-200 hover:shadow-md transition-all"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className="px-3 py-1 bg-slate-900 text-white rounded-xl text-[11px] font-black">
-                            {formatDate(log.workDate)}
-                          </span>
-                          <span className={cn(
-                            "px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border",
-                            log.type === 'OVERTIME' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-indigo-50 text-indigo-600 border-indigo-100"
-                          )}>
-                            {log.type === 'OVERTIME' ? 'Tăng ca' : 'Chính thức'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-[13px] font-bold text-slate-900 mb-2">
-                          <Package size={14} className="text-indigo-500" />
-                          {log.taskName || 'Công việc không xác định'}
-                        </div>
-                        <p className="text-[13px] text-slate-600 leading-relaxed font-medium">
-                          {log.notes || 'Không có ghi chú'}
-                        </p>
+                    {/* Card header — ngày + loại công */}
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={12} className="text-indigo-500" />
+                        <span className="text-[12px] font-bold text-indigo-600">
+                          {formatDate(log.workDate)}
+                        </span>
                       </div>
-                      <button
-                        onClick={() => handleDelete(log.taskId || log.task?.id || '', log.id)}
-                        className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <span className={cn(
+                        'px-2 py-0.5 rounded-full text-[10px] font-bold',
+                        log.type === 'OVERTIME'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-blue-100 text-blue-700',
+                      )}>
+                        {log.type === 'OVERTIME' ? 'Tăng ca' : 'Chính thức'}
+                      </span>
                     </div>
+
+                    {/* Card body — các fields */}
+                    <div className="px-4 py-3 space-y-2">
+
+                      {/* Công việc (task) */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Briefcase size={11} className="text-slate-400" />
+                          <span className="text-[10.5px] font-semibold text-slate-400">Công việc</span>
+                        </div>
+                        <span className="text-[12.5px] font-semibold text-slate-800 text-right truncate max-w-[200px]">
+                          {log.task?.name || log.taskName ||
+                            <span className="text-slate-400 italic font-normal">Chưa gắn công việc</span>
+                          }
+                        </span>
+                      </div>
+
+                      {/* Người thực hiện */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <User size={11} className="text-slate-400" />
+                          <span className="text-[10.5px] font-semibold text-slate-400">Nhân viên</span>
+                        </div>
+                        <span className="text-[12.5px] font-semibold text-slate-800 text-right">
+                          {log.employee?.fullName || log.employeeName ||
+                            <span className="text-slate-400 italic font-normal">Chưa xác định</span>
+                          }
+                        </span>
+                      </div>
+
+                      {/* Tăng ca */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Clock size={11} className="text-slate-400" />
+                          <span className="text-[10.5px] font-semibold text-slate-400">Tăng ca</span>
+                        </div>
+                        <span className={cn(
+                          'text-[12px] font-bold',
+                          log.isOverTime ? 'text-amber-600' : 'text-slate-500',
+                        )}>
+                          {log.isOverTime ? 'Có' : 'Không'}
+                        </span>
+                      </div>
+
+                      {/* Nông trại */}
+                      {log.farm?.farmName && (
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <MapPin size={11} className="text-slate-400" />
+                            <span className="text-[10.5px] font-semibold text-slate-400">Nông trại</span>
+                          </div>
+                          <span className="text-[12.5px] font-semibold text-slate-800 text-right truncate max-w-[180px]">
+                            {log.farm.farmName}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Ghi chú */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <StickyNote size={11} className="text-slate-400" />
+                          <span className="text-[10.5px] font-semibold text-slate-400">Ghi chú</span>
+                        </div>
+                        <span className={cn(
+                          'text-[12.5px] text-right max-w-[200px]',
+                          log.notes ? 'font-semibold text-slate-700' : 'italic text-slate-400 font-normal',
+                        )}>
+                          {log.notes || 'Không có'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tiến độ task nếu có */}
+                    {log.task?.progressPercent != null && (
+                      <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/50">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-semibold text-slate-400">Tiến độ công việc</span>
+                          <span className="text-[10px] font-bold text-indigo-600">{log.task.progressPercent}%</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-indigo-500 rounded-full transition-all"
+                            style={{ width: `${log.task.progressPercent}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
             </div>
 
             {/* Footer */}
-            <div className="p-8 border-t border-slate-100 bg-slate-50/50">
+            <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 shrink-0">
               <button
                 onClick={onClose}
-                className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[14px] font-black hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 hover:shadow-indigo-200"
+                className="w-full py-3 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl text-[13px] font-bold transition-all flex items-center justify-center gap-2"
               >
+                <ChevronRight size={16} />
                 Đóng lịch sử
               </button>
             </div>

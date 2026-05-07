@@ -67,7 +67,7 @@ export function WorkLogsSection({
                   </div>
                 </div>
                 {canEdit && (
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onDelete(log.id);

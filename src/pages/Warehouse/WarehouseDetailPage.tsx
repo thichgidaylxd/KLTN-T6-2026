@@ -6,8 +6,12 @@ import {
   ChevronRight, Building,
   MapPin, Grid3X3, List, X,
   TrendingDown, Boxes, Warehouse,
-  CheckCircle2, Clock, Tag, ArrowLeft
+  CheckCircle2, Clock, Tag, ArrowLeft,
+  ArrowDownCircle, ArrowUpCircle, History,
+  ChevronLeft, ChevronRight as ChevronRightIcon
 } from 'lucide-react'
+import { useTransactionsByWarehouse } from '../../hooks/warehouseTransactions/useWarehouseTransactions'
+import type { WarehouseTransaction, TransactionType } from '../../types/warehouseTransaction/warehouseTransaction'
 import { toast } from 'sonner'
 import { useAuth } from '../../hooks/auth/useAuth'
 import { useWarehouseItems } from '../../hooks/warehouseItems/useWarehouseItems'
@@ -27,7 +31,7 @@ import { useWarehouseLocations, WarehouseLocation } from '@/hooks/warehouses/use
 import { cn } from '../../utils/cn'
 import { EditWarehouseModal, EditWarehouseItemModal, DeleteWarehouseItemModal, DeleteLocationModal } from '../../components/warehouse'
 
-type ActiveTab = 'items' | 'locations'
+type ActiveTab = 'items' | 'locations' | 'transactions'
 
 const LOCATION_COLORS = [
   { dot: 'bg-violet-500', light: 'bg-violet-50 text-violet-700', badge: 'bg-violet-100 text-violet-600' },
@@ -74,6 +78,25 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
 const inputCls = "w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
 const selectCls = "w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
 
+function TransactionTypeBadge({ type }: { type: TransactionType }) {
+  const configs: Record<TransactionType, { label: string; className: string }> = {
+    IMPORT_MANUAL: { label: 'Nhập thủ công', className: 'bg-emerald-100 text-emerald-700' },
+    EXPORT_MANUAL: { label: 'Xuất thủ công', className: 'bg-rose-100 text-rose-700' },
+    TRANSFER_IN: { label: 'Chuyển đến', className: 'bg-blue-100 text-blue-700' },
+    TRANSFER_OUT: { label: 'Chuyển đi', className: 'bg-amber-100 text-amber-700' },
+    ADJUST_INCREASE: { label: 'Điều chỉnh tăng', className: 'bg-teal-100 text-teal-700' },
+    ADJUST_DECREASE: { label: 'Điều chỉnh giảm', className: 'bg-orange-100 text-orange-700' },
+    HARVEST_IN: { label: 'Thu hoạch', className: 'bg-indigo-100 text-indigo-700' },
+    WORKLOG_OUT: { label: 'Sử dụng (WorkLog)', className: 'bg-slate-100 text-slate-700' },
+  }
+  const config = configs[type] || { label: type, className: 'bg-slate-100 text-slate-600' }
+  return (
+    <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap', config.className)}>
+      {config.label}
+    </span>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function WarehouseDetailPage() {
@@ -81,6 +104,12 @@ export function WarehouseDetailPage() {
   const navigate = useNavigate()
 
   const { items, loading, fetchItems, createItem, deleteItem } = useWarehouseItems(farmId, warehouseId)
+  const {
+    transactions,
+    loading: txLoading,
+    data: txData,
+    goToPage: txGoToPage,
+  } = useTransactionsByWarehouse(farmId, warehouseId)
   const { locations, loading: locLoading, submitting: locSubmitting, fetchLocations, createLocation, deleteLocation } = useWarehouseLocations(farmId, warehouseId)
   const { suppliers, fetchSuppliers } = useSuppliers()
   const { skus, fetchSkus } = useSkus()
@@ -339,6 +368,7 @@ export function WarehouseDetailPage() {
         {([
           { key: 'items', label: 'Vật tư tồn kho', count: items.length },
           { key: 'locations', label: 'Vị trí kho', count: locations.length },
+          { key: 'transactions', label: 'Lịch sử giao dịch', count: txData?.totalElements ?? 0 },
         ] as const).map(tab => (
           <button
             key={tab.key}
@@ -654,6 +684,162 @@ export function WarehouseDetailPage() {
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══ TRANSACTIONS tab ══ */}
+        {activeTab === 'transactions' && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <p className="text-[13px] text-slate-600">
+                <span className="font-bold text-slate-900">{txData?.totalElements ?? 0}</span> giao dịch
+                {txData && txData.totalPages > 1 && (
+                  <span className="text-slate-400 ml-2">· Trang {(txData.pageNumber ?? 0) + 1}/{txData.totalPages}</span>
+                )}
+              </p>
+            </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              {txLoading ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Loader2 size={28} className="animate-spin text-emerald-500" />
+                  <p className="text-[12px] text-slate-400">Đang tải giao dịch...</p>
+                </div>
+              ) : transactions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                  <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center">
+                    <History size={24} className="text-slate-300" />
+                  </div>
+                  <div>
+                    <p className="text-[14px] font-semibold text-slate-700">Chưa có giao dịch nào</p>
+                    <p className="text-[12px] text-slate-400 mt-1">Giao dịch sẽ xuất hiện khi nhập/xuất vật tư</p>
+                  </div>
+                </div>
+              ) : (
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100">
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Loại</th>
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vật tư</th>
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">SL thay đổi</th>
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Từ vị trí</th>
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đến vị trí</th>
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Người thực hiện</th>
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Thời gian</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {transactions.map((tx: WarehouseTransaction) => {
+                      const isImport = tx.qtyChange > 0
+                      return (
+                        <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="px-4 py-3">
+                            <TransactionTypeBadge type={tx.type} />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div>
+                              <p className="text-[13px] font-semibold text-slate-800 leading-tight">{tx.warehouseItem.name}</p>
+                              {tx.warehouseItem.sku && (
+                                <p className="text-[11px] text-emerald-600 font-mono mt-0.5">{tx.warehouseItem.sku.sku}</p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {isImport
+                                ? <ArrowDownCircle size={13} className="text-emerald-500" />
+                                : <ArrowUpCircle size={13} className="text-rose-500" />
+                              }
+                              <span className={cn('text-[13px] font-bold', isImport ? 'text-emerald-700' : 'text-rose-600')}>
+                                {isImport ? '+' : ''}{tx.qtyChange.toLocaleString('vi-VN')}
+                              </span>
+                              <span className="text-[11px] text-slate-400">{tx.warehouseItem.unit.code}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {tx.fromLocation ? (
+                              <span className="text-[12px] font-mono font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                                {tx.fromLocation.code}
+                              </span>
+                            ) : <span className="text-slate-300">—</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            {tx.toLocation ? (
+                              <span className="text-[12px] font-mono font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                                {tx.toLocation.code}
+                              </span>
+                            ) : <span className="text-slate-300">—</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-[12px] text-slate-600">{tx.performedBy?.fullName ?? '—'}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-[11px] text-slate-400">
+                              {new Date(tx.createdAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {txData && txData.totalPages > 1 && (
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-[12px] text-slate-500">
+                  Hiển thị {transactions.length} / {txData.totalElements} giao dịch
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => txGoToPage((txData.pageNumber ?? 0) - 1)}
+                    disabled={txData.first}
+                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronLeft size={15} />
+                  </button>
+                  {Array.from({ length: Math.min(txData.totalPages, 5) }, (_, i) => {
+                    const currentPage = txData.pageNumber ?? 0
+                    const total = txData.totalPages
+                    let pageNum: number
+                    if (total <= 5) {
+                      pageNum = i
+                    } else if (currentPage < 3) {
+                      pageNum = i
+                    } else if (currentPage >= total - 2) {
+                      pageNum = total - 5 + i
+                    } else {
+                      pageNum = currentPage - 2 + i
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => txGoToPage(pageNum)}
+                        className={cn(
+                          'w-7 h-7 text-[12px] font-semibold rounded-lg transition-all',
+                          currentPage === pageNum
+                            ? 'bg-emerald-600 text-white'
+                            : 'text-slate-600 hover:bg-slate-100',
+                        )}
+                      >
+                        {pageNum + 1}
+                      </button>
+                    )
+                  })}
+                  <button
+                    onClick={() => txGoToPage((txData.pageNumber ?? 0) + 1)}
+                    disabled={txData.last}
+                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronRightIcon size={15} />
+                  </button>
+                </div>
               </div>
             )}
           </div>

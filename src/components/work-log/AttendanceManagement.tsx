@@ -21,6 +21,7 @@ import { formatDate, formatCurrency } from '@/utils/format';
 import { SeasonPlan } from '@/types/seasonPlan';
 import { cn } from '@/utils/cn';
 import { toast } from 'sonner';
+import { extractErrorMessage } from '@/utils/errorUtils';
 import { WorkLogDetailModal } from './WorkLogDetailModal';
 import { EmployeeWorkLogModal } from './EmployeeWorkLogModal';
 
@@ -39,49 +40,69 @@ export function AttendanceManagement({ farmId, plan }: AttendanceManagementProps
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
+
   
-  const [dateRange] = useState({
-    from: plan.startDate,
-    to: plan.endDate
-  });
+  // Sử dụng useMemo thay vì useState để dateRange luôn cập nhật khi plan thay đổi
+  const dateRange = useMemo(() => ({
+    from: plan.startDate?.split('T')[0] || '',
+    to: plan.endDate?.split('T')[0] || ''
+  }), [plan.startDate, plan.endDate]);
 
   const { deleteWorkLog } = useWorkLogs();
-  const { data: workLogs = [], isLoading: historyLoading } = useFarmWorkLogs(farmId, dateRange.from, dateRange.to);
-  const { data: summary = [], isLoading: summaryLoading } = useWorkLogSummary(dateRange.from, dateRange.to);
+  // Chỉ fetch khi người dùng mở đúng tab tương ứng
+  const { data: workLogs = [], isLoading: historyLoading } = useFarmWorkLogs(
+    farmId, dateRange.from, dateRange.to,
+    viewMode === 'HISTORY'
+  );
+  const { data: summary = [], isLoading: summaryLoading, isError: summaryError, error: summaryErrorInfo } = useWorkLogSummary(
+    dateRange.from, dateRange.to,
+    viewMode === 'SUMMARY'
+  );
 
   const filteredLogs = useMemo((): WorkLog[] => {
-    if (!workLogs || !plan.phases) return [];
+    if (!workLogs) return [];
     
+    // 1. Xác định tập hợp Task IDs thuộc kế hoạch này
     const planTaskIds = new Set<string>();
-    plan.phases.forEach(phase => {
-      phase.tasks.forEach(task => planTaskIds.add(task.id));
-    });
+    if (plan.phases) {
+      plan.phases.forEach(phase => {
+        if (phase.tasks) {
+          phase.tasks.forEach(task => planTaskIds.add(task.id));
+        }
+      });
+    }
 
-    const logs = (workLogs as WorkLog[]).filter(log => {
-      const tId = log.task?.id || log.taskId;
-      return tId && planTaskIds.has(tId);
-    });
+    // 2. Lọc theo Kế hoạch (nếu đã có thông tin Task, nếu chưa thì lấy hết của farm)
+    let logs = (workLogs as WorkLog[]);
+    if (planTaskIds.size > 0) {
+      logs = logs.filter(log => {
+        const tId = log.task?.id || log.taskId;
+        return !tId || planTaskIds.has(tId);
+      });
+    }
 
+    // 3. Lọc theo Search Term
     if (!searchTerm) return logs;
 
+    const q = searchTerm.toLowerCase();
     return logs.filter(log => 
-      log.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.taskName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+      (log.employee?.fullName || log.employeeName || '').toLowerCase().includes(q) ||
+      (log.task?.name || log.taskName || '').toLowerCase().includes(q) ||
+      (log.notes || '').toLowerCase().includes(q)
     );
-  }, [workLogs, plan, searchTerm]);
+  }, [workLogs, plan.phases, searchTerm]);
 
   const handleDelete = async (taskId: string, logId: string) => {
     try {
       await deleteWorkLog(taskId, logId);
       toast.success('Xóa nhật ký thành công');
     } catch (err: any) {
-      toast.error('Không thể xóa nhật ký');
+      toast.error(extractErrorMessage(err));
     }
   };
 
-  const handleShowDetail = (taskId: string, logId: string) => {
-    setSelectedTaskId(taskId);
+  const handleShowDetail = (taskId: string | null | undefined, logId: string) => {
+    setSelectedTaskId(taskId ?? null);
     setSelectedLogId(logId);
     setIsDetailModalOpen(true);
   };
@@ -131,7 +152,7 @@ export function AttendanceManagement({ farmId, plan }: AttendanceManagementProps
             </div>
           </div>
 
-          {/* Elegant Tab Navigation */}
+          {/* Tab Navigation */}
           <div className="flex items-center gap-8">
             <button
               onClick={() => setViewMode('SUMMARY')}
@@ -140,16 +161,8 @@ export function AttendanceManagement({ farmId, plan }: AttendanceManagementProps
                 viewMode === 'SUMMARY' ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
               )}
             >
-              <div className="flex items-center gap-2">
-                <TrendingUp size={18} />
-                Tổng hợp công
-              </div>
-              {viewMode === 'SUMMARY' && (
-                <motion.div 
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full" 
-                />
-              )}
+              <div className="flex items-center gap-2"><TrendingUp size={18} />Tổng hợp công</div>
+              {viewMode === 'SUMMARY' && <motion.div layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full" />}
             </button>
             <button
               onClick={() => setViewMode('HISTORY')}
@@ -158,16 +171,8 @@ export function AttendanceManagement({ farmId, plan }: AttendanceManagementProps
                 viewMode === 'HISTORY' ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
               )}
             >
-              <div className="flex items-center gap-2">
-                <BookOpen size={18} />
-                Lịch sử nhật ký
-              </div>
-              {viewMode === 'HISTORY' && (
-                <motion.div 
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full" 
-                />
-              )}
+              <div className="flex items-center gap-2"><BookOpen size={18} />Lịch sử nhật ký</div>
+              {viewMode === 'HISTORY' && <motion.div layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full" />}
             </button>
           </div>
         </div>
@@ -256,6 +261,14 @@ export function AttendanceManagement({ farmId, plan }: AttendanceManagementProps
                       <Loader2 className="animate-spin text-indigo-500 mb-4" size={40} />
                       <p className="text-[14px] font-bold text-slate-500">Đang đồng bộ dữ liệu...</p>
                     </div>
+                  ) : summaryError ? (
+                    <div className="py-24 flex flex-col items-center justify-center text-red-500">
+                      <div className="w-20 h-20 bg-red-50 rounded-[28px] flex items-center justify-center mb-6">
+                        <Filter size={32} />
+                      </div>
+                      <p className="text-[15px] font-bold">Lỗi khi tải bảng tổng hợp công</p>
+                      <p className="text-[12px] opacity-70 mt-2">{extractErrorMessage(summaryErrorInfo)}</p>
+                    </div>
                   ) : summary.length === 0 ? (
                     <div className="py-24 flex flex-col items-center justify-center text-slate-400">
                       <div className="w-20 h-20 bg-slate-50 rounded-[28px] flex items-center justify-center mb-6">
@@ -281,17 +294,17 @@ export function AttendanceManagement({ farmId, plan }: AttendanceManagementProps
                               key={emp.employeeId} 
                               className="hover:bg-slate-50/40 transition-colors group cursor-pointer"
                               onClick={() => {
-                                setSelectedEmployee({ id: emp.employeeId, name: emp.employeeName });
+                                setSelectedEmployee({ id: emp.employeeId, name: emp.employeeName || emp.fullName || 'N/A' });
                                 setIsEmployeeModalOpen(true);
                               }}
                             >
                               <td className="px-8 py-5">
                                 <div className="flex items-center gap-4">
                                   <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-50 to-white flex items-center justify-center text-indigo-600 font-black text-sm border border-indigo-100 shadow-sm">
-                                    {emp.employeeName.charAt(0)}
+                                    {(emp.employeeName || emp.fullName || 'N').charAt(0)}
                                   </div>
                                   <div>
-                                    <div className="text-[14px] font-black text-slate-900 mb-0.5 group-hover:text-indigo-600 transition-colors">{emp.employeeName}</div>
+                                    <div className="text-[14px] font-black text-slate-900 mb-0.5 group-hover:text-indigo-600 transition-colors">{emp.employeeName || emp.fullName || 'N/A'}</div>
                                     <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">ID: {emp.employeeId.slice(0, 8)}</div>
                                   </div>
                                 </div>
@@ -398,7 +411,7 @@ export function AttendanceManagement({ farmId, plan }: AttendanceManagementProps
                             <Trash2 size={18} />
                           </button>
                           <button 
-                            onClick={() => handleShowDetail(log.task?.id || log.taskId || '', log.id)}
+                            onClick={() => handleShowDetail(log.task?.id || log.taskId || null, log.id)}
                             className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-900 text-white hover:bg-indigo-600 rounded-2xl transition-all shadow-lg shadow-slate-200 hover:shadow-indigo-200"
                           >
                             <span className="text-[12px] font-black">Chi tiết</span>
@@ -415,11 +428,11 @@ export function AttendanceManagement({ farmId, plan }: AttendanceManagementProps
         </div>
       </div>
 
-      {selectedLogId && selectedTaskId && (
+      {selectedLogId && (
         <WorkLogDetailModal
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
-          taskId={selectedTaskId}
+          taskId={selectedTaskId}  // có thể null — hook sẽ dùng endpoint khác
           workLogId={selectedLogId}
         />
       )}

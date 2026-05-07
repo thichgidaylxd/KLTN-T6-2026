@@ -61,7 +61,8 @@ export interface WorkLogDetail extends WorkLog {
 
 export interface WorkLogSummary {
   employeeId: string;
-  employeeName: string;
+  employeeName?: string; // Có thể null nếu backend trả về fullName
+  fullName?: string;     // Alias nếu backend trả về trường này
   totalWorkDays: number;
   totalOvertimeDays: number;
   totalWage: number;

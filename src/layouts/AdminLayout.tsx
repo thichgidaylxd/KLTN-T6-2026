@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Sprout, LayoutDashboard, LogOut, ChevronLeft, Settings, Key } from "lucide-react";
+import { Sprout, LayoutDashboard, LogOut, ChevronLeft, Settings, Key, UserCog } from "lucide-react";
 import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function AdminLayout() {
@@ -30,15 +30,28 @@ export default function AdminLayout() {
       path: "/admin/crop-catalog",
       icon: Sprout,
     },
+
+    {
+      name: "Quản lý người dùng",
+      path: "/admin/users",
+      icon: UserCog,
+    }
   ];
 
   return (
     <div className="w-full h-screen bg-[#F8FAFC] flex overflow-hidden">
       {/* Admin Sidebar - Light Emerald Gradient Theme */}
-      <aside className="w-72 bg-gradient-to-br from-slate-50 via-white to-emerald-100/80 flex flex-col shadow-sm border-r border-slate-200/60 transition-all duration-300">
-        <div className="p-8 pb-4 flex flex-col">
-          <span className="font-black text-2xl text-slate-900 leading-tight tracking-tight">Quản trị</span>
-          <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-[2px] mt-1">Hệ thống</span>
+      <aside className="w-72 bg-white flex flex-col shadow-sm border-r border-slate-200/60 transition-all duration-300">
+        <div className="p-6 pb-2 border-b border-slate-100/50">
+          <div className="flex items-center p-2 rounded-2xl bg-slate-50/50 border border-slate-100">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black text-sm shadow-inner shrink-0">
+              <span>AD</span>
+            </div>
+            <div className="flex flex-col ml-3 overflow-hidden">
+              <span className="text-sm font-black text-slate-900 leading-none mb-1 truncate">Administrator</span>
+              <span className="text-[10px] uppercase font-bold text-emerald-600 tracking-wide truncate">Quản trị toàn cục</span>
+            </div>
+          </div>
         </div>
 
         <nav className="flex-1 px-4 space-y-1.5 mt-6">
@@ -121,16 +134,7 @@ export default function AdminLayout() {
             </div>
 
             {/* User Profile Pill */}
-            <div className="flex items-center p-1.5 pr-5 bg-white border border-slate-200 rounded-full shadow-sm">
-              <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-black text-sm shadow-inner mr-3 group overflow-hidden relative">
-                <span className="relative z-10">AD</span>
-                <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-black text-slate-900 leading-none mb-0.5">Administrator</span>
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wide">Hệ quản trị toàn cục</span>
-              </div>
-            </div>
+            {/* System Status removed per user request */}
           </header>
         )}
 

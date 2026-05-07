@@ -1,14 +1,18 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   ArrowRight,
   PlusCircle,
-  Settings2,
-  ListTree
+  ListTree,
+  Users,
+  ShieldAlert,
+  Activity
 } from 'lucide-react';
+import { useUsers } from '../../hooks/users/useUsers';
 
 const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { users, usersNeedVerification, loadingUsers } = useUsers();
 
   const adminActions = [
     {
@@ -28,12 +32,12 @@ const AdminDashboardPage: React.FC = () => {
       bgColor: 'bg-blue-50',
     },
     {
-      title: 'Cài đặt hệ thống',
-      description: 'Quản lý các tham số kỹ thuật và quy tắc phân loại cây trồng mặc định.',
-      icon: Settings2,
-      path: '/admin/crop-catalog',
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-50',
+      title: 'Quản lý người dùng',
+      description: 'Theo dõi danh sách người dùng toàn hệ thống, quản lý xác thực và quyền truy cập.',
+      icon: Users,
+      path: '/admin/users',
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-50',
     }
   ];
 
@@ -52,13 +56,59 @@ const AdminDashboardPage: React.FC = () => {
           </div>
 
           <div className="flex-shrink-0">
-            <div className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-              <div className="flex flex-col">
-                <span className="text-slate-800 text-[10px] font-bold leading-none mb-0.5 tracking-tight">Hệ thống ổn định</span>
-                <span className="text-[7px] text-green-600 font-bold uppercase tracking-widest">Hoạt động bình thường</span>
-              </div>
-            </div>
+            {/* Status info removed */}
+          </div>
+        </div>
+      </div>
+
+      {/* System Statistics Section */}
+      <div className="flex items-center gap-3 px-2">
+        <div className="w-1 h-5 bg-indigo-600 rounded-full"></div>
+        <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Tổng quan hệ thống</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex items-center gap-4 group hover:border-indigo-100 transition-all">
+          <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+            <Users size={20} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Người dùng</p>
+            <p className="text-xl font-black text-slate-800 leading-none">
+              {loadingUsers ? '...' : users.length}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex items-center gap-4 group hover:border-amber-100 transition-all">
+          <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+            <ShieldAlert size={20} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Chờ xác thực</p>
+            <p className="text-xl font-black text-slate-800 leading-none">
+              {loadingUsers ? '...' : usersNeedVerification.length}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex items-center gap-4 group hover:border-green-100 transition-all">
+          <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
+            <Activity size={20} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Hoạt động (24h)</p>
+            <p className="text-xl font-black text-slate-800 leading-none">--</p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex items-center gap-4 group hover:border-blue-100 transition-all">
+          <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+            <PlusCircle size={20} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Đăng ký mới</p>
+            <p className="text-xl font-black text-slate-800 leading-none">--</p>
           </div>
         </div>
       </div>
@@ -80,7 +130,7 @@ const AdminDashboardPage: React.FC = () => {
             <div className={`w-8 h-8 ${action.bgColor} rounded-lg flex items-center justify-center mb-3`}>
               <action.icon className={`w-4 h-4 ${action.color}`} />
             </div>
-            
+
             <h3 className="text-base font-extrabold text-slate-900 mb-1 tracking-tight">
               {action.title}
             </h3>
@@ -103,22 +153,10 @@ const AdminDashboardPage: React.FC = () => {
       {/* System Status Footer Card - Compact */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-6 px-2">
         <div className="flex items-center gap-5">
-          <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]"></div>
-          <div className="flex flex-col">
-            <h2 className="text-base font-black text-slate-900 tracking-tight leading-none mb-1">Hệ thống ổn định</h2>
-            <p className="text-slate-400 text-xs font-light">
-              Mọi dịch vụ đang hoạt động bình thường.
-            </p>
-          </div>
+          {/* Status info removed */}
         </div>
-        
-        <button 
-          onClick={() => navigate('/admin/crop-catalog')}
-          className="px-8 py-3.5 bg-white border border-slate-200 text-slate-900 rounded-xl text-xs font-bold shadow-sm flex items-center gap-3 active:scale-95"
-        >
-          <ListTree className="w-4 h-4 text-slate-400" />
-          Tiếp tục quản lý
-        </button>
+
+        {/* Footer button removed per user request */}
       </div>
     </div>
   );

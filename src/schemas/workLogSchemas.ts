@@ -72,10 +72,11 @@ export const workLogDetailSchema = workLogSchema.extend({
 
 export const workLogSummarySchema = z.object({
   employeeId: z.string().uuid(),
-  employeeName: z.string(),
-  totalWorkDays: z.number(),
-  totalOvertimeDays: z.number(),
-  totalWage: z.number(),
+  employeeName: z.string().optional(),
+  fullName: z.string().optional(), // Hỗ trợ cả fullName nếu backend trả về
+  totalWorkDays: z.number().default(0),
+  totalOvertimeDays: z.number().default(0),
+  totalWage: z.number().default(0),
 });
 
 export const getWorkLogsResponseSchema = apiResponseSchema(z.array(workLogSchema));

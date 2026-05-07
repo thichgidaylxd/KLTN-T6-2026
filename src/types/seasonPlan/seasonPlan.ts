@@ -34,6 +34,8 @@ export interface Task {
   description: string;
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
+  actualStartDate?: string | null; // YYYY-MM-DD — thực tế bắt đầu
+  actualEndDate?: string | null;   // YYYY-MM-DD — thực tế kết thúc
   status: TaskStatusObject;
   progressPercent: number;
   acceptedAt?: string;
@@ -55,6 +57,8 @@ export interface Phase {
   orderIndex: number;
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
+  actualStartDate?: string | null; // YYYY-MM-DD — thực tế bắt đầu
+  actualEndDate?: string | null;   // YYYY-MM-DD — thực tế kết thúc
   aiSuggestionCache?: string;
   status: StatusObject;
   duration: number; // in days, added for utility compatibility

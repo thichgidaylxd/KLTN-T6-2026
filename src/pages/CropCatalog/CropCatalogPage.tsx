@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useCrops } from '@/hooks/crops/useCrops';
-import { Crop, CreateCropRequest } from '../../types/crop';
+import { CreateCropRequest } from '../../types/crop';
 import { getRolesFromToken } from '../../utils/jwt';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Navigate } from 'react-router-dom';
+
 import { CropList } from '@/components/crop-catalog/CropList';
 import { CropForm } from '@/components/crop-catalog/CropForm';
 import { QuickAddCropTypeModal } from '@/components/crop-catalog/QuickAddCropTypeModal';
 import { CreateCropTypeRequest } from '../../types/crop';
 
 export const CropCatalogPage: React.FC = () => {
-  const navigate = useNavigate();
   const { currentFarmId, accessToken } = useAuth();
   const { 
     crops, 
@@ -37,7 +36,6 @@ export const CropCatalogPage: React.FC = () => {
   
   const [view, setView] = useState<'list' | 'form'>('list');
   const [activeTab, setActiveTab] = useState<'crops' | 'types'>('crops');
-  const [editingCrop, setEditingCrop] = useState<Crop | undefined>(undefined);
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
 
   useEffect(() => {
@@ -56,7 +54,8 @@ export const CropCatalogPage: React.FC = () => {
 
   useEffect(() => {
     if (error) {
-      toast.error(error);
+      const err = error as any;
+      toast.error(err.message || String(error));
     }
   }, [error]);
 
@@ -65,12 +64,6 @@ export const CropCatalogPage: React.FC = () => {
       setIsTypeModalOpen(true);
       return;
     }
-    setEditingCrop(undefined);
-    setView('form');
-  };
-
-  const handleEdit = (crop: Crop) => {
-    setEditingCrop(crop);
     setView('form');
   };
 
@@ -87,9 +80,6 @@ export const CropCatalogPage: React.FC = () => {
         // Tải lại cả cây trồng vì có thể ảnh hưởng đến danh mục
         fetchCrops();
         fetchCropTypes();
-      } else {
-        // [LƯU Ý] Tài liệu Backend hiện tại chưa cung cấp DELETE /api/v1/crops
-        toast.error('API xóa cây trồng hiện chưa được hỗ trợ');
       }
     } catch (err: any) {
       toast.error(err.message || 'Thao tác thất bại');
@@ -98,15 +88,10 @@ export const CropCatalogPage: React.FC = () => {
 
   const handleSave = async (data: any) => {
     try {
-      if (editingCrop) {
-        // [ĐANG CHỜ API]
-        toast.error('API cập nhật hiện chưa sẵn sàng');
-      } else {
-        await createCrop(data as CreateCropRequest).unwrap();
-        toast.success('Thêm cây trồng mới thành công');
-        // Tải lại để lấy thông tin đầy đủ từ Backend (bao gồm các object liên quan)
-        fetchCrops();
-      }
+      await createCrop(data as CreateCropRequest).unwrap();
+      toast.success('Thêm cây trồng mới thành công');
+      // Tải lại để lấy thông tin đầy đủ từ Backend (bao gồm các object liên quan)
+      fetchCrops();
       setView('list');
     } catch (err: any) {
       toast.error(err.message || 'Thao tác thất bại');
@@ -147,7 +132,6 @@ export const CropCatalogPage: React.FC = () => {
               mode={activeTab}
               onTabChange={setActiveTab}
               onAdd={handleAdd}
-              onEdit={handleEdit}
               onDelete={handleDelete}
               loading={loading}
               isAdmin={isAdmin}
@@ -163,7 +147,6 @@ export const CropCatalogPage: React.FC = () => {
             transition={{ duration: 0.2 }}
           >
             <CropForm
-              initialData={editingCrop}
               onSave={handleSave}
               onCancel={handleCancel}
               existingCrops={crops}

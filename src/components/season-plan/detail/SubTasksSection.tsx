@@ -19,6 +19,8 @@ interface SubTasksSectionProps {
   setNewTaskStart: (v: string) => void;
   newTaskEnd: string;
   setNewTaskEnd: (v: string) => void;
+  newTaskPlotId: string;
+  setNewTaskPlotId: (v: string) => void;
   onAddTask: () => void;
   onSelectTask: (taskId: string) => void;
 }
@@ -37,6 +39,8 @@ export function SubTasksSection({
   setNewTaskStart,
   newTaskEnd,
   setNewTaskEnd,
+  newTaskPlotId,
+  setNewTaskPlotId,
   onAddTask,
   onSelectTask
 }: SubTasksSectionProps) {
@@ -90,6 +94,19 @@ export function SubTasksSection({
                   <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">Kết thúc</span>
                   <DateInput value={newTaskEnd} onChange={setNewTaskEnd} />
                 </div>
+              </div>
+              <div className="space-y-1 pt-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">Lô đất</span>
+                <select
+                  value={newTaskPlotId}
+                  onChange={e => setNewTaskPlotId(e.target.value)}
+                  className="w-full text-[12px] bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 transition-all font-medium"
+                >
+                  <option value="">Chọn lô đất</option>
+                  {plan.plots?.map(p => (
+                    <option key={p.plotId} value={p.plotId}>{p.plotName}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex gap-2 pt-1">
                 <button

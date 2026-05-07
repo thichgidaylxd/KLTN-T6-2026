@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Filter, Loader2, Sprout, ChevronDown, Check, ArrowLeft } from 'lucide-react';
+import { Search, Plus, Trash2, Filter, Loader2, Sprout, ChevronDown, Check, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth/useAuth';
@@ -11,7 +11,6 @@ interface CropListProps {
   mode?: 'crops' | 'types';
   onTabChange?: (tab: 'crops' | 'types') => void;
   onAdd: () => void;
-  onEdit: (crop: any) => void;
   onDelete: (id: string) => void;
   loading: boolean;
   isAdmin: boolean;
@@ -22,7 +21,6 @@ export const CropList: React.FC<CropListProps> = ({
   mode = 'crops', 
   onTabChange,
   onAdd, 
-  onEdit, 
   onDelete, 
   loading, 
   isAdmin 
@@ -67,9 +65,6 @@ export const CropList: React.FC<CropListProps> = ({
   });
 
   const handleDeleteClick = (item: any) => {
-    if (mode === 'crops' && (item as Crop).inUse) {
-      return;
-    }
     setDeleteConfirmId(item.id);
   };
 
@@ -258,7 +253,7 @@ export const CropList: React.FC<CropListProps> = ({
                 <th className="px-8 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">
                   {mode === 'crops' ? 'Phân loại' : 'Mô tả'}
                 </th>
-                {isAdmin && <th className="px-8 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-widest">Thao tác</th>}
+                {(isAdmin && mode === 'types') && <th className="px-8 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-widest">Thao tác</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -301,30 +296,16 @@ export const CropList: React.FC<CropListProps> = ({
                       <div className="text-xs text-slate-500">{item.description || 'Không có mô tả'}</div>
                     )}
                   </td>
-                  {isAdmin && (
+                  {(isAdmin && mode === 'types') && (
                     <td className="px-8 py-5 text-right">
                       <div className="flex items-center justify-end gap-2 transition-opacity">
-                        {mode === 'crops' && (
-                          <button
-                            onClick={() => onEdit(item)}
-                            className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 hover:scale-110 transition-all shadow-sm border border-blue-100"
-                            title="Chỉnh sửa thông tin chi tiết"
-                          >
-                            <Edit2 className="w-5 h-5" />
-                          </button>
-                        )}
-                         <button
-                           onClick={() => handleDeleteClick(item)}
-                           disabled={mode === 'crops' && item.inUse}
-                           className={`p-2.5 rounded-xl transition-all shadow-sm border ${
-                              mode === 'crops' && item.inUse 
-                               ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed' 
-                               : 'bg-red-50 text-red-500 border-red-100 hover:bg-red-500 hover:text-white hover:scale-110'
-                           }`}
-                           title={mode === 'crops' && item.inUse ? "Cây trồng đang được sử dụng trong kế hoạch" : "Xóa khỏi danh mục"}
-                         >
-                           <Trash2 className="w-5 h-5" />
-                         </button>
+                        <button
+                          onClick={() => handleDeleteClick(item)}
+                          className="p-2.5 rounded-xl transition-all shadow-sm border bg-red-50 text-red-500 border-red-100 hover:bg-red-500 hover:text-white hover:scale-110"
+                          title="Xóa loại cây trồng"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
                       </div>
                     </td>
                   )}
@@ -356,9 +337,7 @@ export const CropList: React.FC<CropListProps> = ({
             </div>
             <h3 className="text-2xl font-bold text-slate-800 mb-2">Xác nhận xóa?</h3>
             <p className="text-slate-500 mb-8 leading-relaxed">
-              {mode === 'crops' 
-                ? 'Bạn đang chuẩn bị xóa cây trồng này khỏi hệ thống. Hành động này sẽ không thể hoàn tác.' 
-                : 'Bạn đang chuẩn bị xóa loại cây trồng này. Các cây trồng thuộc loại này có thể bị ảnh hưởng.'}
+              Bạn đang chuẩn bị xóa loại cây trồng này. Các cây trồng thuộc loại này có thể bị ảnh hưởng.
             </p>
             <div className="flex gap-3">
               <button
