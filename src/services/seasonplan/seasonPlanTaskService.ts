@@ -1,8 +1,16 @@
 import { axiosInstance } from '../../config/axios';
 import { Task } from '../../types/seasonPlan';
+import type { TaskDependencyCreateResponse, TaskDependenciesResponse, TaskAssignee, TaskAssigneeWithTask } from '../../types/seasonPlan/seasonPlan';
+import { PagedData, PageableParams } from '../../types/common';
 import {
   getTasksResponseSchema,
   createTaskResponseSchema,
+  createTaskDependencyResponseSchema,
+  getTaskDependenciesResponseSchema,
+  deleteTaskDependencyResponseSchema,
+  getTaskAssigneesResponseSchema,
+  createTaskAssigneeResponseSchema,
+  removeTaskAssigneeResponseSchema,
 } from '../../schemas/seasonPlanSchemas';
 
 export interface CreateTaskRequest {
@@ -76,8 +84,10 @@ async function fetchTaskDependencyIds(taskId: string): Promise<string[]> {
   }
 }
 
-async function deleteTaskDependencyEdge(taskId: string, dependsOnTaskId: string): Promise<void> {
-  await axiosInstance.delete(`/api/v1/tasks/${taskId}/dependencies/${dependsOnTaskId}`);
+async function deleteTaskDependencyEdge(taskId: string, dependsOnTaskId: string): Promise<string> {
+  const response = await axiosInstance.delete(`/api/v1/tasks/${taskId}/dependencies/${dependsOnTaskId}`);
+  const validated = deleteTaskDependencyResponseSchema.parse(response.data);
+  return validated.data;
 }
 
 export const seasonPlanTaskService = {
@@ -105,7 +115,7 @@ export const seasonPlanTaskService = {
     return mapToTask(validated.data);
   },
 
-  async updateTaskTime(planId: string, stageId: string, taskId: string, data: { startDate: string; endDate: string; version?: number }): Promise<Task> {
+  async updateTaskTime(planId: string, stageId: string, taskId: string, data: { startDate: string; endDate: string; version: number }): Promise<Task> {
     const response = await axiosInstance.put(`/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/time`, data);
     const validated = createTaskResponseSchema.parse(response.data);
     return mapToTask(validated.data);
@@ -142,20 +152,81 @@ export const seasonPlanTaskService = {
     await axiosInstance.delete(`/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}`);
   },
 
-  /** Lấy danh sách ID các công việc mà taskId phụ thuộc vào */
-  async getTaskDependencies(taskId: string): Promise<string[]> {
-    return fetchTaskDependencyIds(taskId);
-  },
-
   /** Thiết lập quan hệ phụ thuộc: taskId phụ thuộc vào dependsOnTaskId */
-  async addTaskDependency(planId: string, stageId: string, taskId: string, dependsOnTaskId: string): Promise<void> {
-    await axiosInstance.post(`/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/dependencies`, {
+  async addTaskDependency(planId: string, stageId: string, taskId: string, dependsOnTaskId: string): Promise<TaskDependencyCreateResponse> {
+    const response = await axiosInstance.post(`/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/dependencies`, {
       dependsOnTaskId
     });
+    const validated = createTaskDependencyResponseSchema.parse(response.data);
+    return validated.data;
   },
 
   /** Xóa quan hệ phụ thuộc giữa hai công việc */
-  async deleteTaskDependency(taskId: string, dependsOnTaskId: string): Promise<void> {
+  async deleteTaskDependency(taskId: string, dependsOnTaskId: string): Promise<string> {
     return deleteTaskDependencyEdge(taskId, dependsOnTaskId);
+  },
+
+  /** Lấy danh sách dependency của một Task (full objects) */
+  async getTaskDependencies(taskId: string): Promise<TaskDependenciesResponse> {
+    const response = await axiosInstance.get(`/api/v1/tasks/${taskId}/dependencies`);
+    const validated = getTaskDependenciesResponseSchema.parse(response.data);
+    return validated.data;
+  },
+
+  async getAssignedTasks(userId: string, params?: PageableParams): Promise<PagedData<Task>> {
+    const response = await axiosInstance.get('/api/v1/tasks/assigned', { 
+      params: { ...params, userId } 
+    });
+    return response.data.data;
+  },
+
+  async getTodayTasks(userId: string): Promise<Task[]> {
+    const response = await axiosInstance.get('/api/v1/tasks/assigned/today', { 
+      params: { userId } 
+    });
+    return response.data.data;
+  },
+
+  async getTasksByDate(userId: string, date: string, params?: PageableParams): Promise<PagedData<Task>> {
+    const response = await axiosInstance.get('/api/v1/tasks/assigned/by-date', {
+      params: { ...params, userId, date },
+    });
+    return response.data.data;
+  },
+
+  // ── Task Assignee ──
+  async getTaskAssignees(planId: string, stageId: string, taskId: string): Promise<TaskAssignee[]> {
+    const response = await axiosInstance.get(`/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/assignees`);
+    const validated = getTaskAssigneesResponseSchema.parse(response.data);
+    return validated.data;
+  },
+
+  async assignTask(
+    planId: string,
+    stageId: string,
+    taskId: string,
+    data: { userId: string }
+  ): Promise<TaskAssigneeWithTask> {
+    const response = await axiosInstance.post(
+      `/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/assignees`,
+      data
+    );
+    const validated = createTaskAssigneeResponseSchema.parse(response.data);
+    return validated.data;
+  },
+
+  async unassignTask(
+    planId: string,
+    stageId: string,
+    taskId: string,
+    assigneeId: string,
+    data?: { removalReason?: string }
+  ): Promise<TaskAssignee> {
+    const response = await axiosInstance.delete(
+      `/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/assignees/${assigneeId}`,
+      { data }
+    );
+    const validated = removeTaskAssigneeResponseSchema.parse(response.data);
+    return validated.data;
   },
 };

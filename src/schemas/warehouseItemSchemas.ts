@@ -68,4 +68,11 @@ export const createWarehouseItemSchema = z.object({
   toLocationId: z.string().min(1, 'Vui lòng chọn vị trí kho'),
 });
 
+export const updateWarehouseItemSchema = createWarehouseItemSchema.omit({
+  stock: true,
+}).extend({
+  version: z.number().int().min(0, 'Version không hợp lệ'),
+});
+
 export type CreateWarehouseItemInput = z.infer<typeof createWarehouseItemSchema>;
+export type UpdateWarehouseItemInput = z.infer<typeof updateWarehouseItemSchema>;

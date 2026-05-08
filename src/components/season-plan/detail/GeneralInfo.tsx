@@ -99,6 +99,12 @@ export function GeneralInfo({
     return resolvedTaskStatusOptions.filter(o => validToCodes.has(o.code));
   })();
 
+  const updateTemp = (field: string, val: any) => {
+    if (type === 'PLAN' && tempPlan) setTempPlan({ ...tempPlan, [field]: val });
+    if (type === 'PHASE' && tempPhase) setTempPhase({ ...tempPhase, [field]: val });
+    if (type === 'TASK' && tempTask) setTempTask({ ...tempTask, [field]: val });
+  };
+
   return (
     <>
       {/* Title section */}
@@ -121,35 +127,41 @@ export function GeneralInfo({
                   }}
                 />
               </div>
-              
-              {!isEditing && onScrollToDate && (
-                <div className="flex items-center gap-0.5 flex-shrink-0">
-                  {((type === 'PLAN' && plan.startDate) || (type === 'PHASE' && selection.phase?.startDate) || (type === 'TASK' && selection.task?.startDate)) && (
+
+              {/* Persistent Navigation Buttons */}
+              {onScrollToDate && (() => {
+                const startD = type === 'PLAN' ? plan.startDate : type === 'PHASE' ? selection.phase?.startDate : selection.task?.startDate;
+                const endD = type === 'PLAN' ? plan.endDate : type === 'PHASE' ? selection.phase?.endDate : selection.task?.endDate;
+
+                if (!startD && !endD) return null;
+
+                return (
+                  <div className="flex bg-white shadow-sm rounded-lg overflow-hidden border border-slate-200 ml-auto shrink-0 self-center">
                     <button
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                      onClick={() => {
-                        const d = type === 'PLAN' ? plan.startDate : type === 'PHASE' ? selection.phase?.startDate : selection.task?.startDate;
-                        if (d) onScrollToDate(d);
-                      }}
+                      onClick={() => startD && onScrollToDate(startD)}
+                      className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-indigo-50 text-indigo-500 transition-all group"
                       title="Đi đến ngày bắt đầu"
                     >
-                      <ArrowLeftToLine size={13} />
+                      <ArrowLeftToLine size={14} className="opacity-70 group-hover:opacity-100" />
+                      <span className="text-[11px] font-bold text-slate-700 tabular-nums">
+                        {startD ? fmtDate(startD) : '--/--/----'}
+                      </span>
                     </button>
-                  )}
-                  {((type === 'PLAN' && plan.endDate) || (type === 'PHASE' && selection.phase?.endDate) || (type === 'TASK' && selection.task?.endDate)) && (
+                    {/* Thick separator line */}
+                    <div className="w-[2px] bg-slate-200 self-stretch" />
                     <button
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                      onClick={() => {
-                        const d = type === 'PLAN' ? plan.endDate : type === 'PHASE' ? selection.phase?.endDate : selection.task?.endDate;
-                        if (d) onScrollToDate(d);
-                      }}
+                      onClick={() => endD && onScrollToDate(endD)}
+                      className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-emerald-50 text-emerald-500 transition-all group"
                       title="Đi đến ngày kết thúc"
                     >
-                      <ArrowRightToLine size={13} />
+                      <span className="text-[11px] font-bold text-slate-700 tabular-nums">
+                        {endD ? fmtDate(endD) : '--/--/----'}
+                      </span>
+                      <ArrowRightToLine size={14} className="opacity-70 group-hover:opacity-100" />
                     </button>
-                  )}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -182,20 +194,18 @@ export function GeneralInfo({
         {type === 'PLAN' && (
           <>
             <DetailRow icon={Calendar} label="Ngày bắt đầu">
-              <div className="flex-1">
-                {isEditing ? (
-                  <DateInput value={tempPlan?.startDate ?? ''}
-                    onChange={(v: string) => tempPlan && setTempPlan({ ...tempPlan, startDate: v })} />
-                ) : <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempPlan?.startDate ?? plan.startDate)}</span>}
-              </div>
+              {isEditing ? (
+                <DateInput value={tempPlan?.startDate ?? plan.startDate ?? ''} onChange={val => updateTemp('startDate', val)} />
+              ) : (
+                <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempPlan?.startDate ?? plan.startDate)}</span>
+              )}
             </DetailRow>
             <DetailRow icon={Calendar} label="Ngày kết thúc">
-              <div className="flex-1">
-                {isEditing ? (
-                  <DateInput value={tempPlan?.endDate ?? ''}
-                    onChange={(v: string) => tempPlan && setTempPlan({ ...tempPlan, endDate: v })} />
-                ) : <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempPlan?.endDate ?? plan.endDate)}</span>}
-              </div>
+              {isEditing ? (
+                <DateInput value={tempPlan?.endDate ?? plan.endDate ?? ''} onChange={val => updateTemp('endDate', val)} />
+              ) : (
+                <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempPlan?.endDate ?? plan.endDate)}</span>
+              )}
             </DetailRow>
             <DetailRow icon={Package} label="Lô đất">
               {(tempPlan?.plots ?? plan.plots ?? []).length > 0
@@ -218,20 +228,18 @@ export function GeneralInfo({
         {type === 'PHASE' && selection.phase && (
           <>
             <DetailRow icon={Calendar} label="Ngày bắt đầu">
-              <div className="flex-1">
-                {isEditing ? (
-                  <DateInput value={tempPhase?.startDate ?? ''}
-                    onChange={(v: string) => tempPhase && setTempPhase({ ...tempPhase, startDate: v })} />
-                ) : <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempPhase?.startDate ?? selection.phase.startDate)}</span>}
-              </div>
+              {isEditing ? (
+                <DateInput value={tempPhase?.startDate ?? selection.phase!.startDate} onChange={val => updateTemp('startDate', val)} />
+              ) : (
+                <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempPhase?.startDate ?? selection.phase!.startDate)}</span>
+              )}
             </DetailRow>
             <DetailRow icon={Calendar} label="Ngày kết thúc">
-              <div className="flex-1">
-                {isEditing ? (
-                  <DateInput value={tempPhase?.endDate ?? ''}
-                    onChange={(v: string) => tempPhase && setTempPhase({ ...tempPhase, endDate: v })} />
-                ) : <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempPhase?.endDate ?? selection.phase.endDate)}</span>}
-              </div>
+              {isEditing ? (
+                <DateInput value={tempPhase?.endDate ?? selection.phase!.endDate} onChange={val => updateTemp('endDate', val)} />
+              ) : (
+                <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempPhase?.endDate ?? selection.phase!.endDate)}</span>
+              )}
             </DetailRow>
             <DetailRow icon={CheckSquare} label="Công việc">
               <span className="text-[12px] text-slate-700 font-medium">{(tempPhase?.tasks ?? selection.phase.tasks)?.length ?? 0} công việc</span>
@@ -245,20 +253,18 @@ export function GeneralInfo({
         {type === 'TASK' && selection.task && selection.phase && (
           <>
             <DetailRow icon={Calendar} label="Ngày bắt đầu">
-              <div className="flex-1">
-                {isEditing ? (
-                  <DateInput value={tempTask?.startDate ?? ''}
-                    onChange={(v: string) => tempTask && setTempTask({ ...tempTask, startDate: v })} />
-                ) : <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempTask?.startDate ?? selection.task.startDate)}</span>}
-              </div>
+              {isEditing ? (
+                <DateInput value={tempTask?.startDate ?? selection.task!.startDate} onChange={val => updateTemp('startDate', val)} />
+              ) : (
+                <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempTask?.startDate ?? selection.task!.startDate)}</span>
+              )}
             </DetailRow>
             <DetailRow icon={Calendar} label="Ngày kết thúc">
-              <div className="flex-1">
-                {isEditing ? (
-                  <DateInput value={tempTask?.endDate ?? ''}
-                    onChange={(v: string) => tempTask && setTempTask({ ...tempTask, endDate: v })} />
-                ) : <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempTask?.endDate ?? selection.task.endDate)}</span>}
-              </div>
+              {isEditing ? (
+                <DateInput value={tempTask?.endDate ?? selection.task!.endDate} onChange={val => updateTemp('endDate', val)} />
+              ) : (
+                <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempTask?.endDate ?? selection.task!.endDate)}</span>
+              )}
             </DetailRow>
             <DetailRow icon={Zap} label="Giai đoạn">
               <button

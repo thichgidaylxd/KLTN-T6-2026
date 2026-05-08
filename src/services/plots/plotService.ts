@@ -1,44 +1,59 @@
 import { axiosInstance } from '../../config/axios';
-import { Plot, CreatePlotInput, UpdatePlotInput } from '../../types/plot/plot';
-import {
-  getPlotsResponseSchema,
-  createPlotResponseSchema,
-  updatePlotResponseSchema
-} from '../../schemas/plotSchemas';
+import { ApiResponse } from '../../types/auth';
+import type { Plot, CreatePlotRequest, UpdatePlotRequest } from '../../types/plot/plot';
 
 /**
  * Service Quản lý lô đất (Plot)
- * Đồng bộ theo API Backend: /api/v1/plots
+ * Đồng bộ với API spec
  */
 export const plotService = {
   /**
-   * Lấy danh sách lô đất của farm hiện tại
+   * Lấy danh sách lô đất của farm
+   * GET /api/v1/plots
+   * [PUBLIC] — Trả về tất cả plots thuộc farm hiện tại (từ token)
    */
-  async getPlots(): Promise<Plot[]> {
-    const response = await axiosInstance.get('/api/v1/plots');
-    return getPlotsResponseSchema.parse(response.data).data;
+  async getPlots(): Promise<ApiResponse<Plot[]>> {
+    const response = await axiosInstance.get<ApiResponse<Plot[]>>('/api/v1/plots');
+    return response.data;
   },
 
   /**
    * Tạo lô đất mới
+   * POST /api/v1/plots
+   * Request body: CreatePlotRequest
+   * Response: ApiResponse<Plot> (full plot với id, version, areaHa, status=ACTIVE)
    */
-  async createPlot(data: CreatePlotInput): Promise<Plot> {
-    const response = await axiosInstance.post('/api/v1/plots', data);
-    return createPlotResponseSchema.parse(response.data).data;
+  async createPlot(data: CreatePlotRequest): Promise<ApiResponse<Plot>> {
+    const response = await axiosInstance.post<ApiResponse<Plot>>('/api/v1/plots', data);
+    return response.data;
   },
 
   /**
-   * Cập nhật thông tin lô đất
+   * Cập nhật lô đất
+   * PATCH /api/v1/plots/{plotId}
+   * Request body: UpdatePlotRequest (version + optional fields + clear flags)
+   * Response: ApiResponse<Plot> (updated plot)
    */
-  async updatePlot(plotId: string, data: UpdatePlotInput): Promise<Plot> {
-    const response = await axiosInstance.patch(`/api/v1/plots/${plotId}`, data);
-    return updatePlotResponseSchema.parse(response.data).data;
+  async updatePlot(
+    plotId: string,
+    data: UpdatePlotRequest,
+  ): Promise<ApiResponse<Plot>> {
+    const response = await axiosInstance.patch<ApiResponse<Plot>>(
+      `/api/v1/plots/${plotId}`,
+      data,
+    );
+    return response.data;
   },
 
   /**
-   * Xóa lô đất
+   * Xóa lô đất (soft delete)
+   * DELETE /api/v1/plots/{plotId}
+   * Response: ApiResponse<string> (message)
    */
-  async deletePlot(plotId: string): Promise<void> {
-    await axiosInstance.delete(`/api/v1/plots/${plotId}`);
-  }
+  async deletePlot(plotId: string): Promise<ApiResponse<string>> {
+    const response = await axiosInstance.delete<ApiResponse<string>>(
+      `/api/v1/plots/${plotId}`,
+    );
+    return response.data;
+  },
 };

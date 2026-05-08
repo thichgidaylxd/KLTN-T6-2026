@@ -2,14 +2,12 @@ import { Edit, Trash2, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface DashboardHeaderProps {
-  farmName: string;
   onEdit?: () => void;
   onDelete?: () => void;
   showActions?: boolean;
 }
 
 export default function DashboardHeader({
-  farmName,
   onEdit,
   onDelete,
   showActions = true,
@@ -20,7 +18,7 @@ export default function DashboardHeader({
     <header className="bg-white border-b border-slate-100 sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/80">
       <div className="flex items-center justify-between px-8 py-4">
         {/* Left Section */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center">
           <button 
             onClick={() => navigate('/farms')}
             className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100 rounded-xl transition-all group"
@@ -28,8 +26,6 @@ export default function DashboardHeader({
             <ChevronLeft size={20} className="text-slate-500 group-hover:text-emerald-600 transition-colors" />
             <span className="text-sm font-bold text-slate-600 group-hover:text-emerald-600 transition-colors">Quay lại</span>
           </button>
-          <div className="h-8 w-px bg-slate-100"></div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">{farmName}</h1>
         </div>
 
         {/* Right Section */}

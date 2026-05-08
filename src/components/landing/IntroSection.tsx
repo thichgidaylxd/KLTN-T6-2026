@@ -5,9 +5,7 @@ import { useReveal } from "@/hooks/reveal/useReveal";
 import { Button } from "@/components/ui/button";
 import CornIntro from "@/assets/Corn-intro.png";
 
-interface IntroSectionProps {}
-
-const IntroSection = forwardRef<HTMLDivElement, IntroSectionProps>((_, ref) => {
+const IntroSection = forwardRef<HTMLDivElement, {}>((_, ref) => {
   const navigate = useNavigate();
   const { ref: revealRef, visible } = useReveal<HTMLDivElement>();
 

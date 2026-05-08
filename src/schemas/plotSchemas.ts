@@ -1,54 +1,48 @@
 import { z } from 'zod';
 
-// Schema cho GeoJSON Geometry
-export const geometrySchema = z.object({
-  type: z.string().default('Polygon'),
-  coordinates: z.array(z.array(z.array(z.number()))),
+/**
+ * Zod schemas cho Plot API
+ * Đồng bộ với API request/response schemas
+ */
+
+// Geometry: GeoJSON format
+const geometrySchema = z.object({
+  type: z.string().min(1, 'Loại geometry không hợp lệ'),
+  coordinates: z.array(z.array(z.array(z.number()))).min(1, 'Coordinates không hợp lệ'),
 });
 
-// Schema cho một Plot đơn lẻ
+// Plot status enum
+export const plotStatusSchema = z.enum(['ACTIVE', 'INACTIVE']);
 
-// có thê vẽ or không
-export const plotSchema = z.object({
-  id: z.string().uuid(),
-  version: z.number().optional(),
-  name: z.string(),
-  areaHa: z.number().nullish().transform(v => v ?? 0),
-  status: z.enum(['ACTIVE', 'INACTIVE']),
-  description: z.string().nullish().transform(v => v ?? undefined),
-  geometry: geometrySchema.nullish().transform(v => v ?? undefined),
-});
-
-// Schema cho Payload tạo Plot mới — geometry KHÔNG bắt buộc
+// Schema cho tạo plot mới
 export const createPlotSchema = z.object({
-  name: z.string().trim().min(1, 'Vui lòng nhập tên lô đất'),
-  geometry: geometrySchema.optional().nullable(),
-  description: z.string().optional().nullable(),
+  plotName: z.string().min(1, 'Tên lô đất không được để trống').max(200, 'Tên quá dài'),
+  geometry: geometrySchema,
+  description: z.string().optional(),
 });
 
-// Base Response Schema
-export const apiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
-  z.object({
-    success: z.boolean(),
-    code: z.number(),
-    message: z.string(),
-    data: dataSchema,
-    timestamp: z.string(),
-  });
-
-// Specific Response Schemas
-export const getPlotsResponseSchema = apiResponseSchema(z.array(plotSchema));
-export const createPlotResponseSchema = apiResponseSchema(plotSchema);
-
-// Schema cho Payload cập nhật Plot
+// Schema cho cập nhật plot
 export const updatePlotSchema = z.object({
-  name: z.string().trim().min(1, 'Vui lòng nhập tên lô đất').optional(),
-  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
-  description: z.string().optional().nullable(),
+  version: z.number().int().min(0, 'Version không hợp lệ'),
+  name: z.string().min(1, 'Tên lô đất không được để trống').max(200, 'Tên quá dài').optional(),
+  status: plotStatusSchema.optional(),
   geometry: geometrySchema.optional(),
-  version: z.number(), // Bắt buộc truyền version để Optimistic Locking
+  description: z.string().optional(),
   isClearDescription: z.boolean().optional(),
   isClearGeometry: z.boolean().optional(),
-});
+}).refine(
+  (data) => !(data.isClearDescription && data.description !== undefined),
+  {
+    message: 'Không thể gửi isClearDescription cùng với description',
+    path: ['isClearDescription'],
+  },
+).refine(
+  (data) => !(data.isClearGeometry && data.geometry !== undefined),
+  {
+    message: 'Không thể gửi isClearGeometry cùng với geometry',
+    path: ['isClearGeometry'],
+  },
+);
 
-export const updatePlotResponseSchema = apiResponseSchema(plotSchema);
+export type CreatePlotInput = z.infer<typeof createPlotSchema>;
+export type UpdatePlotInput = z.infer<typeof updatePlotSchema>;

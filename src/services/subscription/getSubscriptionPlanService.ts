@@ -17,6 +17,11 @@ class GetSubscriptionPlansService {
         const response = await axiosInstance.get('/api/v1/subscriptions/current');
         return response.data;
     }
+
+    async createSubscription(data: { subscriptionPlanId: string; farmId: string }): Promise<ApiResponse<any>> {
+        const response = await axiosInstance.put('/api/v1/subscriptions', data);
+        return response.data;
+    }
 }
 
 export const getSubscriptionPlansService = new GetSubscriptionPlansService();

@@ -61,7 +61,7 @@ export interface JwtPayload {
   farmId?: string;   // Farm ID trong farmToken
 }
 
-export interface LoginInput extends LoginRequest {}
+export type LoginInput = LoginRequest;
 export interface RegisterInput extends RegisterRequest {
   confirmPassword?: string;
 }

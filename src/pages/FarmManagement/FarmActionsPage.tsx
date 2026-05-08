@@ -122,10 +122,8 @@ const FarmActionsPage: React.FC = () => {
     return (
         <div className="min-h-full bg-[#F8FAFC] pb-20 overflow-y-auto no-scrollbar">
             <DashboardHeader
-                farmName={farmName}
-                onEdit={() => setIsEditModalOpen(true)}
-                onDelete={() => setIsDeleteModalOpen(true)}
-                showActions={canManage}
+              onEdit={() => setIsEditModalOpen(true)}
+              onDelete={() => setIsDeleteModalOpen(true)}
             />
 
             <div className="px-8 py-8 space-y-8 max-w-7xl mx-auto">

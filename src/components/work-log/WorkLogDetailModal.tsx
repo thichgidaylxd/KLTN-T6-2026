@@ -12,7 +12,6 @@ import { WorkLogMaterial } from '@/types/workLog/workLog';
 interface WorkLogDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  taskId: string | null | undefined;
   workLogId: string;
 }
 
@@ -48,8 +47,8 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function WorkLogDetailModal({ isOpen, onClose, taskId, workLogId }: WorkLogDetailModalProps) {
-  const { data: detail, isLoading: loading, error } = useWorkLogDetail(taskId, workLogId);
+export function WorkLogDetailModal({ isOpen, onClose, workLogId }: WorkLogDetailModalProps) {
+  const { data: detail, isLoading: loading, error } = useWorkLogDetail(workLogId);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -304,7 +303,6 @@ export function WorkLogDetailModal({ isOpen, onClose, taskId, workLogId }: WorkL
             </div>
           ) : null}
         </div>
-c
       </div>
     </Modal>
   );

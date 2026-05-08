@@ -144,7 +144,37 @@ export const useCrops = (farmId?: string) => {
       (data: CreateCropTypeRequest) => withUnwrap(createCropTypeMutation.mutateAsync(data)),
       [createCropTypeMutation],
     ),
-    deleteCropType: useCallback((id: string) => withUnwrap(deleteCropTypeMutation.mutateAsync(id)), [deleteCropTypeMutation]),
-    clearError: useCallback(() => undefined, []),
-  };
+     deleteCropType: useCallback((id: string) => withUnwrap(deleteCropTypeMutation.mutateAsync(id)), [deleteCropTypeMutation]),
+     getCropById: useCallback(
+       (cropId: string) =>
+         withUnwrap(
+           queryClient.fetchQuery({
+             queryKey: ['crops', 'detail', cropId],
+             queryFn: async () => (await cropService.getCropById(cropId)).data ?? null,
+           }),
+         ),
+       [queryClient],
+     ),
+     getFarmCropById: useCallback(
+       (farmId: string, cropId: string) =>
+         withUnwrap(
+           queryClient.fetchQuery({
+             queryKey: ['crops', 'farm', farmId, 'detail', cropId],
+             queryFn: async () => (await cropService.getFarmCropById(farmId, cropId)).data ?? null,
+           }),
+         ),
+       [queryClient],
+     ),
+     getCropTypeById: useCallback(
+       (cropTypeId: string) =>
+         withUnwrap(
+           queryClient.fetchQuery({
+             queryKey: ['crop-types', 'detail', cropTypeId],
+             queryFn: async () => (await cropService.getCropTypeById(cropTypeId)).data ?? null,
+           }),
+         ),
+       [queryClient],
+     ),
+     clearError: useCallback(() => undefined, []),
+   };
 };

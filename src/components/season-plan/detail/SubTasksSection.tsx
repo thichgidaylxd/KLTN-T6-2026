@@ -70,58 +70,63 @@ export function SubTasksSection({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mb-4"
           >
-            <div className="p-3 bg-slate-50 rounded-xl border border-indigo-100 space-y-3">
+            <div className="p-2.5 bg-slate-50/50 rounded-xl border border-indigo-100 space-y-2">
               <input
                 autoFocus
                 placeholder="Tên công việc..."
-                className="w-full text-[12px] bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 transition-all font-medium"
+                className="w-full text-[12px] bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-indigo-400 transition-all font-bold text-slate-700"
                 value={newTaskName}
                 onChange={e => setNewTaskName(e.target.value)}
               />
               <textarea
-                placeholder="Mô tả ngắn..."
-                rows={2}
-                className="w-full text-[12px] bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 transition-all resize-none"
+                placeholder="Mô tả công việc (không bắt buộc)..."
+                rows={1}
+                className="w-full text-[11px] bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-indigo-400 transition-all resize-none text-slate-600"
                 value={newTaskDesc}
                 onChange={e => setNewTaskDesc(e.target.value)}
               />
+              
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">Bắt đầu</span>
-                  <DateInput value={newTaskStart} onChange={setNewTaskStart} />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">Kết thúc</span>
-                  <DateInput value={newTaskEnd} onChange={setNewTaskEnd} />
-                </div>
+                <DateInput 
+                  value={newTaskStart} 
+                  onChange={setNewTaskStart} 
+                  className="h-8"
+                />
+                <DateInput 
+                  value={newTaskEnd} 
+                  onChange={setNewTaskEnd}
+                  className="h-8" 
+                />
               </div>
-              <div className="space-y-1 pt-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">Lô đất</span>
-                <select
-                  value={newTaskPlotId}
-                  onChange={e => setNewTaskPlotId(e.target.value)}
-                  className="w-full text-[12px] bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 transition-all font-medium"
-                >
-                  <option value="">Chọn lô đất</option>
-                  {plan.plots?.map(p => (
-                    <option key={p.plotId} value={p.plotId}>{p.plotName}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={onAddTask}
-                  disabled={!newTaskName}
-                  className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-[12px] font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all"
-                >
-                  Tạo công việc
-                </button>
-                <button
-                  onClick={() => setIsAddingTask(false)}
-                  className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-[12px] font-bold hover:bg-slate-50 transition-all"
-                >
-                  Hủy
-                </button>
+
+              <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <select
+                    value={newTaskPlotId}
+                    onChange={e => setNewTaskPlotId(e.target.value)}
+                    className="w-full text-[11px] bg-white border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-indigo-400 transition-all font-bold text-emerald-700"
+                  >
+                    <option value="">Chọn lô đất</option>
+                    {plan.plots?.map(p => (
+                      <option key={p.plotId} value={p.plotId}>{p.plotName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setIsAddingTask(false)}
+                    className="px-3 py-1.5 bg-white border border-slate-200 text-slate-500 rounded-lg text-[11px] font-bold hover:bg-slate-100 transition-all"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={onAddTask}
+                    disabled={!newTaskName}
+                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[11px] font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-sm shadow-indigo-200"
+                  >
+                    Tạo
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -136,29 +141,32 @@ export function SubTasksSection({
             onClick={() => onSelectTask(t.id)}
             className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition-all group text-left"
           >
-            <div 
+            <div
               className="w-2.5 h-2.5 rounded-full shrink-0"
-              style={{ backgroundColor: getStatusColor(t.status) }} 
+              style={{ backgroundColor: getStatusColor(t.status) }}
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="text-[12px] font-bold text-slate-700 truncate group-hover:text-indigo-600 transition-colors">
                   {t.name}
                 </span>
-                <span 
+                <span
                   className={cn(
                     "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
                   )}
-                  style={{ 
-                    backgroundColor: getStatusColor(t.status) + '15', 
-                    color: getStatusColor(t.status) 
+                  style={{
+                    backgroundColor: getStatusColor(t.status) + '15',
+                    color: getStatusColor(t.status)
                   }}
                 >
                   {statusLabel(t.status)}
                 </span>
               </div>
               <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-400">
-                <span className="flex items-center gap-1"><Calendar size={10} /> {fmtDate(t.startDate)}</span>
+                <span className="flex items-center gap-1">
+                  <Calendar size={10} />
+                  {fmtDate(t.startDate)}
+                </span>
                 {t.plotId && plan.plots && (
                   <span className="flex items-center gap-1 text-emerald-600 font-medium">
                     <Package size={10} /> {plan.plots.find(p => p.plotId === t.plotId)?.plotName || 'Lô đất'}

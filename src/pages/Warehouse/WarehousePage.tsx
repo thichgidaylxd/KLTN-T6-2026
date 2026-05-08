@@ -33,7 +33,7 @@ export function WarehousePage() {
     const myFarmRole = currentFarm
       ? (currentFarm.myRole?.toLowerCase() === 'worker' ? 'employee' : currentFarm.myRole?.toLowerCase())
       : user?.role
-    
+
     return myFarmRole === 'owner' || myFarmRole === 'manager' || myFarmRole === 'admin'
   }, [farmSummary, currentFarmId, user?.role])
 
@@ -83,7 +83,7 @@ export function WarehousePage() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 bg-white p-6 transition-all duration-300">
         <div className="flex items-center gap-6 w-full text-left">
-          <button 
+          <button
             onClick={() => navigate(`/farms/${currentFarmId}/actions`)}
             className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all font-bold text-xs shrink-0"
           >
@@ -92,7 +92,7 @@ export function WarehousePage() {
             </div>
             Quay lại
           </button>
-          
+
           <div className="h-10 w-px bg-slate-200 mx-1 hidden sm:block" />
 
           <div className="flex items-center gap-4 flex-1">
@@ -135,8 +135,8 @@ export function WarehousePage() {
             </div>
             <h3 className="text-xl font-bold text-slate-800">Chưa có dữ liệu kho hàng</h3>
             <p className="text-sm text-slate-400 mt-2 max-w-xs mx-auto font-medium">
-              {canManage 
-                ? 'Hãy thêm kho hàng đầu tiên để bắt đầu quản lý vị trí lưu trữ nông sản của bạn.' 
+              {canManage
+                ? 'Hãy thêm kho hàng đầu tiên để bắt đầu quản lý vị trí lưu trữ nông sản của bạn.'
                 : 'Hiện tại chưa có kho hàng nào được đăng ký trong hệ thống.'}
             </p>
           </div>
@@ -187,17 +187,17 @@ export function WarehousePage() {
                   </div>
 
                   <div className="flex items-center justify-between mt-auto pt-2">
-                     <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Sẵn sàng</span>
-                     </div>
-                     <div 
-                       onClick={(e) => { e.stopPropagation(); handleViewMap(wh); }}
-                       className="flex items-center gap-2 text-blue-600 font-bold text-[11px] bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all cursor-pointer"
-                     >
-                        <MapIcon size={12} />
-                        Xem trên bản đồ
-                     </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Sẵn sàng</span>
+                    </div>
+                    <div
+                      onClick={(e) => { e.stopPropagation(); handleViewMap(wh); }}
+                      className="flex items-center gap-2 text-blue-600 font-bold text-[11px] bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all cursor-pointer"
+                    >
+                      <MapIcon size={12} />
+                      Xem trên bản đồ
+                    </div>
                   </div>
                 </div>
               </div>

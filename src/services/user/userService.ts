@@ -29,4 +29,10 @@ export const userService = {
     const response = await axiosInstance.delete(`/api/v1/users/${userId}`);
     return response.data;
   },
+
+
+  async getUserSummary(): Promise<ApiResponse<any>> {
+    const response = await axiosInstance.get('/api/v1/users/summary');
+    return response.data;
+  },
 };

@@ -9,10 +9,93 @@ export interface StatusObject {
   isTerminal?: boolean;
 }
 
+/** User object trong status history */
+export interface UserObject {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  status: string;
+  isLocked: boolean;
+  createdAt: string;
+}
+
+/** Farm Role object */
+export interface FarmRoleObject {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+/** Lịch sử thay đổi trạng thái của Plan Stage */
+export interface PlanStageStatusHistory {
+  fromStatus: StatusObject;
+  toStatus: StatusObject;
+  changedBy: UserObject;
+  changedAt: string;
+}
+
+/** Transition giữa các trạng thái (có farmRole filter) */
+export interface PlanStageStatusTransition {
+  id: string;
+  fromStatus: StatusObject;
+  toStatus: StatusObject;
+  farmRole: FarmRoleObject;
+  createdAt: string;
+}
+
+/** Lịch sử thay đổi trạng thái của Plan Stage */
+export interface PlanStageStatusHistory {
+  fromStatus: StatusObject;
+  toStatus: StatusObject;
+  changedBy: UserObject;
+  changedAt: string;
+}
+
+/** Farm Role object — phải khai báo trước khi dùng trong Transition */
+export interface FarmRoleObject {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+/** Transition giữa các trạng thái (có farmRole filter) */
+export interface PlanStageStatusTransition {
+  id: string;
+  fromStatus: StatusObject;
+  toStatus: StatusObject;
+  farmRole: FarmRoleObject;
+  createdAt: string;
+}
+
 /** Trạng thái công việc (Task Status) — có thêm cờ isInitial / isTerminal từ API */
 export interface TaskStatusObject extends StatusObject {
   isInitial?: boolean;
   isTerminal?: boolean;
+}
+
+/** Lịch sử thay đổi trạng thái của Task */
+export interface TaskStatusHistory {
+  fromStatus: StatusObject;
+  toStatus: StatusObject;
+  changedBy: UserObject;
+  changedAt: string;
+}
+
+/** Farm object (simplified) */
+export interface FarmObject {
+  id: string;
+  name: string;
+}
+
+/** Transition giữa các trạng thái Task (theo farm) */
+export interface TaskStatusTransition {
+  id: string;
+  farm: FarmObject;
+  fromStatus: StatusObject;
+  toStatus: StatusObject;
+  farmRole: FarmRoleObject;
+  createdAt: string;
 }
 
 export type PlanStatus = 'DRAFT' | 'ACTIVE' | 'READY_TO_HARVEST' | 'HARVESTING' | 'COMPLETED' | 'CANCELLED' | 'UNASSIGNED' | 'ASSIGNED' | 'OVERDUE';
@@ -29,6 +112,7 @@ export interface Task {
   version?: number;
   planStageId: string;
   farmId?: string;
+  farmName?: string;
   plotId: string | null;
   name: string;
   description: string;
@@ -64,7 +148,7 @@ export interface Phase {
   duration: number; // in days, added for utility compatibility
   color?: string; // UI color
   description?: string; // Not in API snippet but useful
-  tasks: Task[]; // Usually fetched separately but managed together in UI
+  tasks?: Task[]; // Optional — tasks fetched separately
 }
 
 
@@ -110,5 +194,62 @@ export interface UpdateSeasonPlanRequest {
   endDate?: string;
   note?: string;
   status?: PlanStatus;
+}
+
+// Task Dependency responses
+export interface TaskDependencyCreateResponse {
+  task: Task;
+  dependsOnTask: Task;
+}
+
+export interface TaskDependenciesResponse {
+  task: Task;
+  dependsOnTasks: Task[];
+}
+
+// Task Assignee
+export interface TaskAssignee {
+  id: string;
+  user: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    status: string;
+    isLocked: boolean;
+    createdAt: string;
+  };
+  assigneeBy: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    status: string;
+    isLocked: boolean;
+    createdAt: string;
+  };
+  assigneeAt: string;
+  removedBy?: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    status: string;
+    isLocked: boolean;
+    createdAt: string;
+  };
+  removedAt?: string;
+}
+
+export interface CreateTaskAssigneeRequest {
+  userId: string;
+}
+
+export interface RemoveTaskAssigneeRequest {
+  removalReason?: string;
+}
+
+export interface TaskAssigneeWithTask extends TaskAssignee {
+  task: Task;
 }
 

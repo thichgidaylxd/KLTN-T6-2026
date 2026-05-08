@@ -1,86 +1,111 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'sonner';
+import type { TaskMaterial, AddTaskMaterialRequest } from '../../types/taskMaterial/taskMaterial';
 import { taskMaterialService } from '../../services/taskMaterial/taskMaterialService';
-import { AddTaskMaterialRequest } from '../../types/taskMaterial';
-import { AppDispatch, RootState } from '../../store';
-import { setTaskMaterialsSnapshot } from '../../store/taskMaterialSlice';
+import { extractErrorMessage } from '../../utils/errorUtils';
 
-const MATERIAL_KEYS = {
-  all: ['task-materials'] as const,
-  task: (planId: string, stageId: string, taskId: string) => [...MATERIAL_KEYS.all, planId, stageId, taskId] as const,
+const TASK_MATERIAL_KEYS = {
+  list: (planId: string, stageId: string, taskId: string) =>
+    ['taskMaterials', planId, stageId, taskId] as const,
 };
 
 const withUnwrap = <T,>(promise: Promise<T>) =>
   Object.assign(promise, { unwrap: () => promise });
 
-/**
- * Hook quản lý vật tư công việc (Task Materials)
- */
-export const useTaskMaterials = (planId?: string, stageId?: string, taskId?: string, enabled: boolean = true) => {
-  const dispatch = useDispatch<AppDispatch>();
-  const taskMaterialBridge = useSelector((state: RootState) => state.taskMaterial);
+// ── Hook: Danh sách vật tư của Task ──
+export function useTaskMaterials(planId: string | undefined, stageId: string | undefined, taskId: string | undefined) {
   const queryClient = useQueryClient();
-  const taskKey = planId && stageId && taskId ? `${planId}:${stageId}:${taskId}` : null;
 
-  // Query lấy danh sách vật tư
-  const materialsQuery = useQuery({
-    queryKey: planId && stageId && taskId ? MATERIAL_KEYS.task(planId, stageId, taskId) : ['task-materials', 'empty'],
-    queryFn: () => {
-      if (!planId || !stageId || !taskId) return Promise.resolve([]);
-      return taskMaterialService.getTaskMaterials(planId, stageId, taskId);
-    },
-    enabled: enabled && !!planId && !!stageId && !!taskId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+  const enabled = !!planId && !!stageId && !!taskId;
 
-  // Mutation thêm vật tư
-  const addMaterialMutation = useMutation({
-    mutationFn: (data: AddTaskMaterialRequest) => {
+  const taskMaterialsQuery = useQuery<TaskMaterial[]>({
+    queryKey: enabled
+      ? TASK_MATERIAL_KEYS.list(planId as string, stageId as string, taskId as string)
+      : ['taskMaterials', 'none'],
+    queryFn: async () => {
       if (!planId || !stageId || !taskId) throw new Error('Missing IDs');
-      return taskMaterialService.addTaskMaterial(planId, stageId, taskId, data);
+      const response = await taskMaterialService.getTaskMaterials(planId, stageId, taskId);
+      return response.data ?? [];
     },
-    onSuccess: () => {
-      if (planId && stageId && taskId) {
-        queryClient.invalidateQueries({ queryKey: MATERIAL_KEYS.task(planId, stageId, taskId) });
-      }
+    enabled,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const addTaskMaterialMutation = useMutation({
+    mutationFn: async ({ data, planId, stageId, taskId }: { data: AddTaskMaterialRequest; planId: string; stageId: string; taskId: string }) => {
+      const response = await taskMaterialService.addTaskMaterial(planId, stageId, taskId, data);
+      return response.data;
+    },
+    onSuccess: (_, { planId, stageId, taskId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: TASK_MATERIAL_KEYS.list(planId, stageId, taskId),
+      });
+      toast.success('Thêm vật tư thành công');
+    },
+    onError: (err: unknown) => {
+      toast.error(extractErrorMessage(err));
     },
   });
 
-  const error = useMemo(
-    () => materialsQuery.error ?? addMaterialMutation.error ?? null,
-    [materialsQuery.error, addMaterialMutation.error]
-  );
-
-  useEffect(() => {
-    if (taskKey && materialsQuery.data) {
-      dispatch(setTaskMaterialsSnapshot({ taskKey, materials: materialsQuery.data }));
-    }
-  }, [dispatch, materialsQuery.data, taskKey]);
+  const deleteTaskMaterialMutation = useMutation({
+    mutationFn: async ({ materialId, planId, stageId, taskId }: { materialId: string; planId: string; stageId: string; taskId: string }) => {
+      const response = await taskMaterialService.deleteTaskMaterial(planId, stageId, taskId, materialId);
+      return response.data;
+    },
+    onSuccess: (__, { materialId: _, planId, stageId, taskId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: TASK_MATERIAL_KEYS.list(planId, stageId, taskId),
+      });
+      toast.success('Xóa vật tư khỏi task thành công');
+    },
+    onError: (err: unknown) => {
+      toast.error(extractErrorMessage(err));
+    },
+  });
 
   return {
-    materials: materialsQuery.data ?? (taskKey ? taskMaterialBridge.materialsByTaskSnapshot[taskKey] ?? [] : []),
-    loading: materialsQuery.isLoading || materialsQuery.isFetching,
-    adding: addMaterialMutation.isPending,
-    error,
-    
-    fetchMaterials: useCallback(() => {
-      if (!planId || !stageId || !taskId) return Promise.resolve([]);
-      return withUnwrap(queryClient.fetchQuery({
-        queryKey: MATERIAL_KEYS.task(planId, stageId, taskId),
-        queryFn: () => taskMaterialService.getTaskMaterials(planId, stageId, taskId),
-      }));
-    }, [planId, stageId, taskId, queryClient]),
-
-    addMaterial: useCallback((data: AddTaskMaterialRequest) => {
-      return withUnwrap(addMaterialMutation.mutateAsync(data));
-    }, [addMaterialMutation]),
-
-    deleteMaterial: useCallback((materialId: string) => {
-      if (!planId || !stageId || !taskId) return Promise.reject(new Error('Missing IDs'));
-      return withUnwrap(taskMaterialService.deleteTaskMaterial(planId, stageId, taskId, materialId).then(() => {
-        queryClient.invalidateQueries({ queryKey: MATERIAL_KEYS.task(planId, stageId, taskId) });
-      }));
-    }, [planId, stageId, taskId, queryClient]),
+    taskMaterials: taskMaterialsQuery.data ?? [],
+    taskMaterialsLoading: taskMaterialsQuery.isLoading || taskMaterialsQuery.isFetching,
+    error: taskMaterialsQuery.error,
+    addTaskMaterial: useCallback(
+      (data: AddTaskMaterialRequest) => {
+        if (!planId || !stageId || !taskId) {
+          return Promise.reject(new Error('Missing planId, stageId, or taskId'));
+        }
+        return withUnwrap(
+          addTaskMaterialMutation.mutateAsync({
+            data,
+            planId: planId as string,
+            stageId: stageId as string,
+            taskId: taskId as string,
+          }),
+        );
+      },
+      [addTaskMaterialMutation, planId, stageId, taskId],
+    ),
+    deleteTaskMaterial: useCallback(
+      (materialId: string) => {
+        if (!planId || !stageId || !taskId) {
+          return Promise.reject(new Error('Missing planId, stageId, or taskId'));
+        }
+        return withUnwrap(
+          deleteTaskMaterialMutation.mutateAsync({
+            materialId,
+            planId: planId as string,
+            stageId: stageId as string,
+            taskId: taskId as string,
+          }),
+        );
+      },
+      [deleteTaskMaterialMutation, planId, stageId, taskId],
+    ),
+    refreshTaskMaterials: useCallback(() => {
+      if (planId && stageId && taskId) {
+        void queryClient.invalidateQueries({
+          queryKey: TASK_MATERIAL_KEYS.list(planId, stageId, taskId),
+        });
+      }
+    }, [queryClient, planId, stageId, taskId]),
   };
-};
+}

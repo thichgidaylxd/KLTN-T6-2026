@@ -14,6 +14,7 @@ import {
 } from '@/utils/seasonPlanUtils';
 import { SelectionState } from '@/pages/SeasonPlan/SeasonPlanPage';
 import { getStatusColor, statusLabel } from './detail/DetailCommon';
+import { DateInput } from '../ui/DateInput';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ interface PlanTimelineProps {
   onUpdatePhaseTime?: (planId: string, phaseId: string, data: { startDate: string; endDate: string }) => Promise<void> | void;
   onUpdateTaskTime?: (planId: string, phaseId: string, taskId: string, data: { startDate: string; endDate: string }) => Promise<void> | void;
   onDeletePlan?: (planId: string) => void;
-  onAddPhase: (planId: string) => void;
+  onAddPhase: (planId: string, data: { name: string; startDate: string; endDate: string }) => Promise<void> | void;
   onExpandPhase?: (planId: string, phaseId: string) => void;
   preExpandedPlanId?: string;
   canEdit?: boolean;
@@ -451,6 +452,12 @@ export const PlanTimeline = React.forwardRef<{ scrollToDate: (dateStr: string) =
   const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set());
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set());
   const [timeScale, setTimeScale] = useState<TimeScale>('weeks');
+  const [addingPhaseToPlanId, setAddingPhaseToPlanId] = useState<string | null>(null);
+  const [newPhaseName, setNewPhaseName] = useState('');
+  const [newPhaseStart, setNewPhaseStart] = useState('');
+  const [newPhaseEnd, setNewPhaseEnd] = useState('');
+  const [isSavingNewPhase, setIsSavingNewPhase] = useState(false);
+
   const [barDrag, setBarDrag] = useState<BarDragState | null>(null);
   const [dragDeltaDays, setDragDeltaDays] = useState(0);
   const [dragTooltip, setDragTooltip] = useState<{ x: number; y: number; label: string } | null>(null);
@@ -1155,19 +1162,79 @@ export const PlanTimeline = React.forwardRef<{ scrollToDate: (dateStr: string) =
             );
           })}
 
-          {plans.map(plan =>
-            (plans.length === 1 || expandedPlans.has(plan.id)) && canEdit ? (
+          {plans.map(plan => {
+            if (!(plans.length === 1 || expandedPlans.has(plan.id)) || !canEdit) return null;
+
+            const isAdding = addingPhaseToPlanId === plan.id;
+            const pl = plans.length > 1 ? 50 : 14;
+
+            if (isAdding) {
+              return (
+                <div key={`form-${plan.id}`} className="flex flex-col border-b border-slate-100 bg-slate-50/50 p-2 gap-2">
+                  <input
+                    autoFocus
+                    placeholder="Tên giai đoạn..."
+                    className="w-full px-2 py-1 text-[11px] border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    value={newPhaseName}
+                    onChange={e => setNewPhaseName(e.target.value)}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <DateInput
+                      className="flex-1"
+                      value={newPhaseStart}
+                      onChange={setNewPhaseStart}
+                    />
+                    <DateInput
+                      className="flex-1"
+                      value={newPhaseEnd}
+                      onChange={setNewPhaseEnd}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      className="px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-slate-700"
+                      onClick={() => setAddingPhaseToPlanId(null)}
+                      disabled={isSavingNewPhase}
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      className="px-3 py-1 text-[10px] font-bold bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+                      disabled={isSavingNewPhase || !newPhaseName || !newPhaseStart || !newPhaseEnd}
+                      onClick={async () => {
+                        setIsSavingNewPhase(true);
+                        try {
+                          await onAddPhase(plan.id, { name: newPhaseName, startDate: newPhaseStart, endDate: newPhaseEnd });
+                          setAddingPhaseToPlanId(null);
+                          setNewPhaseName('');
+                        } finally {
+                          setIsSavingNewPhase(false);
+                        }
+                      }}
+                    >
+                      {isSavingNewPhase ? 'Đang lưu...' : 'Thêm'}
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
               <button
                 key={`add-${plan.id}`}
-                style={{ height: ROW_H, paddingLeft: plans.length > 1 ? 50 : 14 }}
+                style={{ height: ROW_H, paddingLeft: pl }}
                 className="flex items-center pr-4 text-[11px] font-bold text-slate-400 hover:text-indigo-600 uppercase tracking-widest transition-colors border-b border-slate-50 flex-shrink-0"
-                onClick={() => onAddPhase(plan.id)}
+                onClick={() => {
+                  setAddingPhaseToPlanId(plan.id);
+                  setNewPhaseStart(plan.startDate);
+                  setNewPhaseEnd(plan.endDate);
+                }}
               >
                 <Plus size={12} className="mr-1.5" />
                 Thêm giai đoạn
               </button>
-            ) : null
-          )}
+            );
+          })}
         </div>
 
         {/* ── Resize handle ── */}
@@ -1383,11 +1450,13 @@ export const PlanTimeline = React.forwardRef<{ scrollToDate: (dateStr: string) =
             })}
 
             {/* Add Phase placeholders for Gantt side */}
-            {plans.map(plan =>
-              (plans.length === 1 || expandedPlans.has(plan.id)) && canEdit ? (
-                <div key={`add-bg-${plan.id}`} style={{ height: ROW_H }} className="border-b border-slate-50/50" />
-              ) : null
-            )}
+            {plans.map(plan => {
+              if (!(plans.length === 1 || expandedPlans.has(plan.id)) || !canEdit) return null;
+              const isAdding = addingPhaseToPlanId === plan.id;
+              return (
+                <div key={`add-bg-${plan.id}`} style={{ height: isAdding ? 100 : ROW_H }} className="border-b border-slate-50/50" />
+              );
+            })}
           </div>
         </div>
       </div>

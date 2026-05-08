@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Tag, Plus, Trash2, Loader2, ArrowLeft, Search, Barcode } from 'lucide-react'
 import { toast } from 'sonner'
-import { extractErrorMessage } from '../../utils/errorUtils'
+import { extractSkuCreateErrorMessage, extractErrorMessage } from '../../utils/errorUtils'
 import { useAuth } from '../../hooks/auth/useAuth'
 import { useSkus } from '../../hooks/skus/useSkus'
 import { useFarms } from '../../hooks/farms/useFarms'
@@ -36,14 +36,14 @@ export function SKUListPage() {
     if (farmId) fetchSkus(farmId)
   }, [fetchSkus, farmId])
 
-  const filteredSkus = skus.filter((s: Sku) => 
+  const filteredSkus = skus.filter((s: Sku) =>
     s.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.description.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const validation = createSkuSchema.safeParse({
       sku: newSku.sku,
       description: newSku.description
@@ -55,7 +55,7 @@ export function SKUListPage() {
     }
 
     if (!farmId) return
-    
+
     setSubmitting(true)
     try {
       await createSku(farmId, { sku: newSku.sku, description: newSku.description }).unwrap()
@@ -63,7 +63,8 @@ export function SKUListPage() {
       setIsModalOpen(false)
       setNewSku({ sku: '', description: '' })
     } catch (err: any) {
-      toast.error(extractErrorMessage(err))
+      // FE tự set message chi tiết thay vì dùng backend generic
+      toast.error(extractSkuCreateErrorMessage(err, newSku.sku))
     } finally {
       setSubmitting(false)
     }
@@ -94,7 +95,7 @@ export function SKUListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 bg-white p-6 transition-all duration-300">
         <div className="flex items-center gap-6 w-full text-left">
-          <button 
+          <button
             onClick={() => navigate(`/farms/${farmId}/actions`)}
             className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all font-bold text-xs shrink-0"
           >
@@ -183,7 +184,7 @@ export function SKUListPage() {
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Mã SKU</label>
                   <input
-                    required
+                    // required  ← bỏ browser native validation
                     value={newSku.sku}
                     onChange={e => setNewSku(prev => ({ ...prev, sku: e.target.value.toUpperCase().replace(/\s+/g, '-') }))}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 font-mono"

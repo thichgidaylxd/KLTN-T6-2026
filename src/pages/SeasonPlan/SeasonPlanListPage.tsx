@@ -122,7 +122,7 @@ export function SeasonPlanListPage() {
         message: errorMsg,
         details: details.length > 0 ? details : undefined
       });
-      
+
       // Re-throw to let the modal know it failed
       throw err;
     }
@@ -170,7 +170,7 @@ export function SeasonPlanListPage() {
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col gap-4 shrink-0">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate(`/farms/${currentFarmId}/actions`)}
             className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all font-bold text-xs shrink-0"
           >
@@ -252,84 +252,84 @@ export function SeasonPlanListPage() {
 
 
                 return (
-              <div
-                key={plan.id}
-                onClick={() => navigate(`/farms/${currentFarmId}/season-plans/${plan.id}`)}
-                className="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100/50 transition-all group flex flex-col h-full"
-              >
-                <div className="flex items-start justify-between gap-3 mb-2.5">
-                  <h3 className="text-[16px] font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-2 flex-1">
-                    {plan.name}
-                  </h3>
-                  {canEdit && (
-                    <button
-                      onClick={(e) => handleDeletePlan(e, plan.id)}
-                      className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all shrink-0"
-                      title="Xóa kế hoạch"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  {/* Badge row */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {cropName && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold uppercase tracking-wider">
-                        {cropName}
-                      </span>
-                    )}
-                    <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-                      <Calendar size={10} /> {formatDate(plan.startDate)} – {formatDate(plan.endDate)}
-                    </span>
-                  </div>
-
-                  {/* Progress */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-[11px] font-bold">
-                      <span className="text-slate-400 uppercase tracking-widest">Tiến độ</span>
-                      <span className="text-indigo-600 font-black">
-                        {progressPercent}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
-                      <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-700 ease-out"
-                        style={{ width: `${progressPercent}%` }} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between mt-4">
-                  <div className="flex items-center gap-2">
-                    <div className="flex -space-x-1.5">
-                      {plan.phases.slice(0, 3).map((phase, idx) => {
-                        const color = getStatusColor(phase.status);
-                        return (
-                          <div
-                            key={phase.id}
-                            className="w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[7px] font-bold text-white shadow-sm"
-                            style={{ backgroundColor: color.startsWith('bg-') ? undefined : color }}
-                          >
-                            {idx + 1}
-                          </div>
-                        );
-                      })}
-                      {plan.phases.length > 3 && (
-                        <div className="w-5 h-5 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-600">
-                          +{plan.phases.length - 3}
-                        </div>
+                  <div
+                    key={plan.id}
+                    onClick={() => navigate(`/farms/${currentFarmId}/season-plans/${plan.id}`)}
+                    className="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100/50 transition-all group flex flex-col h-full"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2.5">
+                      <h3 className="text-[16px] font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-2 flex-1">
+                        {plan.name}
+                      </h3>
+                      {canEdit && (
+                        <button
+                          onClick={(e) => handleDeletePlan(e, plan.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all shrink-0"
+                          title="Xóa kế hoạch"
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       )}
                     </div>
+
+                    <div className="flex flex-col gap-3">
+                      {/* Badge row */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {cropName && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold uppercase tracking-wider">
+                            {cropName}
+                          </span>
+                        )}
+                        <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                          <Calendar size={10} /> {formatDate(plan.startDate)} – {formatDate(plan.endDate)}
+                        </span>
+                      </div>
+
+                      {/* Progress */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[11px] font-bold">
+                          <span className="text-slate-400 uppercase tracking-widest">Tiến độ</span>
+                          <span className="text-indigo-600 font-black">
+                            {progressPercent}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
+                          <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-700 ease-out"
+                            style={{ width: `${progressPercent}%` }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between mt-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex -space-x-1.5">
+                          {plan.phases.slice(0, 3).map((phase, idx) => {
+                            const color = getStatusColor(phase.status);
+                            return (
+                              <div
+                                key={phase.id}
+                                className="w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[7px] font-bold text-white shadow-sm"
+                                style={{ backgroundColor: color.startsWith('bg-') ? undefined : color }}
+                              >
+                                {idx + 1}
+                              </div>
+                            );
+                          })}
+                          {plan.phases.length > 3 && (
+                            <div className="w-5 h-5 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-600">
+                              +{plan.phases.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-[11px] font-black uppercase tracking-wider text-indigo-600 group-hover:text-indigo-700 flex items-center gap-0.5">
+                        Chi tiết
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[11px] font-black uppercase tracking-wider text-indigo-600 group-hover:text-indigo-700 flex items-center gap-0.5">
-                    Chi tiết
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
                 );
               })()
             ))}

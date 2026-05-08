@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux';
 import { loginSchema } from '../../schemas/authSchemas';
 import { authService } from '../../services/auth/authService';
 import { loginSuccess } from '../../store/authSlice';
-import { LoginInput } from '../../types/auth';
+import { LoginRequest as LoginInput } from '../../types/auth';
 
 export function useLogin() {
   const navigate = useNavigate();

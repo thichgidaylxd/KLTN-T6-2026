@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Package, X, Save } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Package, X, Loader2, Save } from "lucide-react";
+
 import { useWarehouseItems } from "@/hooks/warehouseItems/useWarehouseItems";
 import { useSuppliers } from "@/hooks/suppliers/useSuppliers";
 import { useSkus } from "@/hooks/skus/useSkus";
 import { useUnits } from "@/hooks/units/useUnits";
 import { WarehouseItem } from "@/types/warehouseItem/warehouseItem";
 import { extractErrorMessage } from "@/utils/errorUtils";
+import { updateWarehouseItemSchema } from "@/schemas/warehouseItemSchemas";
+import { Modal } from "@/components/ui/Modal";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   farmId: string;
@@ -56,8 +58,16 @@ export function EditWarehouseItemModal({ farmId, warehouseId, item, isOpen, onCl
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate với updateWarehouseItemSchema
+    const validation = updateWarehouseItemSchema.safeParse(form);
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
+      return;
+    }
+    
     try {
-      await updateItem(farmId, warehouseId, item.id, form).unwrap();
+      await updateItem(farmId, warehouseId, item.id, validation.data).unwrap();
       toast.success("Cập nhật vật tư thành công!");
       onClose();
       onSuccess?.();
@@ -97,28 +107,29 @@ export function EditWarehouseItemModal({ farmId, warehouseId, item, isOpen, onCl
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6 text-left overflow-y-auto max-h-[70vh] custom-scrollbar">
-          <div>
-            <label className={labelCls}>Tên vật tư <span className="text-rose-500">*</span></label>
-            <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required className="font-bold" />
-          </div>
+          <form onSubmit={handleSubmit} className="p-8 space-y-6 text-left overflow-y-auto max-h-[70vh] custom-scrollbar">
+            <div>
+              <label className={labelCls}>Tên vật tư <span className="text-rose-500">*</span></label>
+              <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="font-bold" />
+              {/* TODO: Hiển thị error nếu có từ validation */}
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>Đơn vị <span className="text-rose-500">*</span></label>
-              <select value={form.unitId} onChange={e => setForm(p => ({ ...p, unitId: e.target.value }))} required className={selectCls}>
-                <option value="">Chọn đơn vị</option>
-                {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Đơn vị <span className="text-rose-500">*</span></label>
+                <select value={form.unitId} onChange={e => setForm(p => ({ ...p, unitId: e.target.value }))} className={selectCls}>
+                  <option value="">Chọn đơn vị</option>
+                  {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Mã SKU <span className="text-rose-500">*</span></label>
+                <select value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} className={selectCls}>
+                  <option value="">Chọn SKU</option>
+                  {skus.map(s => <option key={s.sku} value={s.sku}>{s.sku}</option>)}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className={labelCls}>Mã SKU <span className="text-rose-500">*</span></label>
-              <select value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} required className={selectCls}>
-                <option value="">Chọn SKU</option>
-                {skus.map(s => <option key={s.sku} value={s.sku}>{s.sku}</option>)}
-              </select>
-            </div>
-          </div>
 
           <div>
             <label className={labelCls}>Nhà cung cấp</label>

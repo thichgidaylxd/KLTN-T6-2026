@@ -1,45 +1,44 @@
 export interface Farm {
   id: string;
-  version?: number;
   ownerId: string;
   name: string;
-  description?: string | null;
-  createdAt?: string | null;
-  updatedAt?: string | null;
+  description: string;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 export interface CreateFarmRequest {
   farmName: string;
-  description?: string;
+  description: string;
 }
 
 export interface FarmResponse {
   id: string;
   ownerId: string;
   name: string;
-  description?: string | null;
-  createdAt?: string | null;
-  updatedAt?: string | null;
+  description: string;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 export interface FarmSummary {
   farmId: string;
   farmName: string;
-  description?: string | null;
+  description: string;
   ownerId: string;
   ownerFullName: string;
-  ownerAvatarUrl?: string | null;
+  ownerAvatarUrl: string;
   myRole: string;
   owner: boolean;
 }
 
-export interface CreateFarmInput {
-  farmName: string;
-  description?: string;
+export interface UpdateFarmRequest {
+  name: string;
+  description: string;
+  version?: number;
 }
 
-export interface UpdateFarmRequest {
-  name?: string;
-  description?: string;
-  version: number; // Bắt buộc truyền version
+// Select Farm Response
+export interface SelectFarmResponseData {
+  farmToken: string;
 }

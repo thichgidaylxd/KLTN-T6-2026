@@ -12,7 +12,7 @@ export type PlotStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface Plot {
   id: string;
-  version?: number;
+  version: number;
   name: string;
   areaHa: number;
   status: PlotStatus;
@@ -21,14 +21,14 @@ export interface Plot {
   boundaries?: GeoPoint[]; // Keep for legacy/UI compatibility if needed
 }
 
-export interface CreatePlotInput {
+export interface CreatePlotRequest {
   plotName: string;
   geometry: Geometry;
   description?: string;
 }
 
-export interface UpdatePlotInput {
-  version: number; // Bắt buộc truyền version
+export interface UpdatePlotRequest {
+  version: number;
   name?: string;
   status?: PlotStatus;
   geometry?: Geometry;

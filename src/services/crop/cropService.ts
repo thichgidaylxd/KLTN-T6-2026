@@ -67,6 +67,7 @@ export const cropService = {
   /**
    * Lấy chi tiết 1 cây trồng hệ thống
    * GET /api/v1/crops/{cropId}
+   * [PUBLIC] — Yêu cầu quyền xem cây trồng
    */
   async getCropById(cropId: string): Promise<ApiResponse<Crop>> {
     const response = await axiosInstance.get<ApiResponse<Crop>>(`/api/v1/crops/${cropId}`);
@@ -74,7 +75,17 @@ export const cropService = {
   },
 
   /**
-   * Lấy danh sách cây trồng của farm
+   * Lấy chi tiết 1 loại cây trồng
+   * GET /api/v1/crop-types/{cropTypeId}
+   * [PUBLIC]
+   */
+  async getCropTypeById(cropTypeId: string): Promise<ApiResponse<CropType>> {
+    const response = await axiosInstance.get<ApiResponse<CropType>>(`/api/v1/crop-types/${cropTypeId}`);
+    return response.data;
+  },
+
+  /**
+   * Lấy danh sách cây trồng của farm (đã có ở trên)
    * GET /api/v1/farms/{farmId}/crops
    */
   async getFarmCrops(farmId: string): Promise<ApiResponse<Crop[]>> {
@@ -85,18 +96,10 @@ export const cropService = {
   /**
    * Lấy chi tiết 1 cây trồng của farm
    * GET /api/v1/farms/{farmId}/crops/{cropId}
+   * [PUBLIC] — Yêu cầu quyền xem cây trồng trong farm
    */
   async getFarmCropById(farmId: string, cropId: string): Promise<ApiResponse<Crop>> {
     const response = await axiosInstance.get<ApiResponse<Crop>>(`/api/v1/farms/${farmId}/crops/${cropId}`);
-    return response.data;
-  },
-
-  /**
-   * Lấy chi tiết 1 loại cây trồng
-   * GET /api/v1/crop-types/{cropTypeId}
-   */
-  async getCropTypeById(cropTypeId: string): Promise<ApiResponse<CropType>> {
-    const response = await axiosInstance.get<ApiResponse<CropType>>(`/api/v1/crop-types/${cropTypeId}`);
     return response.data;
   },
 };

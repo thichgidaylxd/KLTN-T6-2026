@@ -1,56 +1,61 @@
 import { axiosInstance } from '../../config/axios';
-import {
-  getTaskMaterialsResponseSchema,
-  addTaskMaterialResponseSchema,
-  deleteTaskMaterialResponseSchema,
-} from '../../schemas/taskMaterialSchemas';
-import { AddTaskMaterialRequest, TaskMaterial } from '../../types/taskMaterial';
+import { ApiResponse } from '../../types/auth';
+import type { TaskMaterial, AddTaskMaterialRequest } from '../../types/taskMaterial/taskMaterial';
 
 /**
- * Service Quản lý vật tư công việc (Task Material)
+ * Service Quản lý vật tư gắn với Task (Task Material)
+ * Đồng bộ với API spec
  */
 export const taskMaterialService = {
   /**
-   * Lấy danh sách vật tư của một công việc
+   * Lấy danh sách vật tư của Task
+   * GET /api/v1/plans/{planId}/stages/{stageId}/tasks/{taskId}/materials
+   * [PUBLIC] — Trả về danh sách TaskMaterial thuộc task
    */
-  async getTaskMaterials(planId: string, stageId: string, taskId: string): Promise<TaskMaterial[]> {
-    const response = await axiosInstance.get(
-      `/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/materials`
+  async getTaskMaterials(
+    planId: string,
+    stageId: string,
+    taskId: string,
+  ): Promise<ApiResponse<TaskMaterial[]>> {
+    const response = await axiosInstance.get<ApiResponse<TaskMaterial[]>>(
+      `/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/materials`,
     );
-    const validated = getTaskMaterialsResponseSchema.parse(response.data);
-    return validated.data;
+    return response.data;
   },
 
   /**
-   * Thêm vật tư vào công việc
+   * Thêm vật tư cho Task
+   * POST /api/v1/plans/{planId}/stages/{stageId}/tasks/{taskId}/materials
+   * Request body: AddTaskMaterialRequest { plannedQty, warehouseItemId }
+   * Response: ApiResponse<TaskMaterial> (object được tạo)
    */
   async addTaskMaterial(
     planId: string,
     stageId: string,
     taskId: string,
-    data: AddTaskMaterialRequest
-  ): Promise<TaskMaterial> {
-    const response = await axiosInstance.post(
+    data: AddTaskMaterialRequest,
+  ): Promise<ApiResponse<TaskMaterial>> {
+    const response = await axiosInstance.post<ApiResponse<TaskMaterial>>(
       `/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/materials`,
-      data
+      data,
     );
-    const validated = addTaskMaterialResponseSchema.parse(response.data);
-    return validated.data;
+    return response.data;
   },
 
   /**
-   * Xóa vật tư khỏi công việc
+   * Xóa vật tư khỏi Task
+   * DELETE /api/v1/plans/{planId}/stages/{stageId}/tasks/{taskId}/materials/{materialId}
+   * Response: ApiResponse<string> (message)
    */
   async deleteTaskMaterial(
     planId: string,
     stageId: string,
     taskId: string,
-    materialId: string
-  ): Promise<string> {
-    const response = await axiosInstance.delete(
-      `/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/materials/${materialId}`
+    materialId: string,
+  ): Promise<ApiResponse<string>> {
+    const response = await axiosInstance.delete<ApiResponse<string>>(
+      `/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/materials/${materialId}`,
     );
-    const validated = deleteTaskMaterialResponseSchema.parse(response.data);
-    return typeof validated === 'string' ? validated : validated.data;
+    return response.data;
   },
 };

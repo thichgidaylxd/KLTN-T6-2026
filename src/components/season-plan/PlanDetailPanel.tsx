@@ -28,6 +28,7 @@ import { AssigneesSection } from './detail/AssigneesSection';
 import { SubTasksSection } from './detail/SubTasksSection';
 import { DeleteConfirmModal } from './detail/DeleteConfirmModal';
 import { PlotManager } from './detail/PlotManager';
+import { PhasesSection } from './detail/PhasesSection';
 import { DependenciesSection } from './detail/DependenciesSection';
 import { statusCodeOf } from './detail/DetailCommon';
 import { useTaskDependencies } from '@/hooks/seasonPlans/useTaskDependencies';
@@ -54,6 +55,8 @@ interface PlanDetailPanelProps {
   onDeletePlan?: (planId: string) => void;
   onDeletePhase?: (planId: string, phaseId: string) => void;
   onDeleteTask?: (planId: string, phaseId: string, taskId: string) => void;
+  initialIsAddingPhase?: boolean;
+  onClearInitialIsAddingPhase?: () => void;
   onClone?: (plan: SeasonPlan) => void;
   onAddPlots?: (planId: string, plotIds: string[]) => void;
   canEdit?: boolean;
@@ -81,6 +84,8 @@ export function PlanDetailPanel({
   onDeletePlan,
   onDeletePhase,
   onDeleteTask,
+  initialIsAddingPhase,
+  onClearInitialIsAddingPhase,
   onAddPlots,
   canEdit = false,
   phaseStatusOptions = [],
@@ -145,15 +150,22 @@ export function PlanDetailPanel({
 
   const {
     workLogs,
-    loading: isWorkLogsLoading,
-    deleteWorkLog
+    loading: isWorkLogsLoading
   } = useWorkLogs(
-    activeSelection?.type === 'TASK' && activeTab === 'LOGS' ? activeSelection.task.id : undefined
+    activeSelection?.plan.id,
+    activeSelection?.type === 'TASK' ? (activeSelection as any).phase.id : undefined,
+    activeSelection?.type === 'TASK' ? (activeSelection as any).task.id : undefined
   );
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (initialIsAddingPhase) {
+      onClearInitialIsAddingPhase?.();
+    }
+  }, [initialIsAddingPhase]);
 
   const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
   const [isAvailableStatusesLoading, setIsAvailableStatusesLoading] = useState(false);
@@ -202,6 +214,16 @@ export function PlanDetailPanel({
   const [newTaskStart, setNewTaskStart] = useState('');
   const [newTaskEnd, setNewTaskEnd] = useState('');
   const [newTaskPlotId, setNewTaskPlotId] = useState('');
+  
+  useEffect(() => {
+    if (isAddingTask && activeSelection?.type === 'PHASE') {
+      const phase = activeSelection.phase;
+      const plan = activeSelection.plan;
+      setNewTaskStart(phase.startDate);
+      setNewTaskEnd(phase.endDate);
+      setNewTaskPlotId(phase.plotId || plan.plots?.[0]?.plotId || '');
+    }
+  }, [isAddingTask, activeSelection]);
 
   const [showAddPlot, setShowAddPlot] = useState(false);
   const [selectedPlotIds, setSelectedPlotIds] = useState<string[]>([]);
@@ -402,6 +424,8 @@ export function PlanDetailPanel({
     }
   };
 
+
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -420,7 +444,11 @@ export function PlanDetailPanel({
             onStartEdit={handleStartEdit}
             onSaveEdit={handleSaveEdit}
             onCancelEdit={handleCancelEdit}
-            onDelete={() => setShowDeleteConfirm(true)}
+            onDelete={() => {
+              if (sel.type === 'PLAN') onDeletePlan?.(sel.plan.id);
+              else if (sel.type === 'PHASE') onDeletePhase?.(sel.plan.id, sel.phase.id);
+              else if (sel.type === 'TASK') onDeleteTask?.(sel.plan.id, sel.phase.id, sel.task.id);
+            }}
             onSelectPhase={onSelectPhase}
           />
 
@@ -510,6 +538,12 @@ export function PlanDetailPanel({
                         loadingAddPlot={loadingAddPlot}
                         onAddPlots={handleAddPlotsSubmit}
                       />
+                      <PhasesSection
+                        plan={plan}
+                        canEdit={canEdit}
+                        onSelectPhase={onSelectPhase}
+                        onDeletePhase={(pid, phid) => onDeletePhase?.(pid, phid)}
+                      />
                     </>
                   )}
 
@@ -593,12 +627,6 @@ export function PlanDetailPanel({
                   <WorkLogsSection
                     workLogs={workLogs}
                     loading={isWorkLogsLoading}
-                    canEdit={canEdit}
-                    onDelete={(logId) => {
-                      deleteWorkLog(sel.task.id, logId)
-                        .then(() => toast.success('Xóa nhật ký thành công'))
-                        .catch((err) => toast.error(extractErrorMessage(err)));
-                    }}
                     onViewDetail={(logId) => {
                       setSelectedWorkLogId(logId);
                       setIsWorkLogDetailModalOpen(true);
@@ -676,11 +704,10 @@ export function PlanDetailPanel({
               : "Hành động này sẽ xóa vĩnh viễn công việc này. Bạn có chắc chắn muốn tiếp tục?"}
           />
 
-          {sel.type === 'TASK' && selectedWorkLogId && (
+          {selectedWorkLogId && (
             <WorkLogDetailModal
               isOpen={isWorkLogDetailModalOpen}
               onClose={() => setIsWorkLogDetailModalOpen(false)}
-              taskId={sel.task.id}
               workLogId={selectedWorkLogId}
             />
           )}

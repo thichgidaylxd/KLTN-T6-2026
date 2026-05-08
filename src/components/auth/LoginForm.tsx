@@ -7,7 +7,7 @@ import { Loader2, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { getRolesFromToken } from '@/utils/jwt';
 import { loginSchema } from '@/schemas/authSchemas';
-import { LoginInput } from '@/types/auth';
+import { LoginRequest as LoginInput } from '@/types/auth';
 
 export const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);

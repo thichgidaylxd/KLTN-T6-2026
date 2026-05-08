@@ -1,4 +1,4 @@
-import { BookOpen, Loader2, AlertCircle, Trash2 } from 'lucide-react';
+import { BookOpen, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { WorkLog } from '@/types/workLog/workLog';
 import { formatDate } from '@/utils/format';
@@ -6,16 +6,12 @@ import { formatDate } from '@/utils/format';
 interface WorkLogsSectionProps {
   workLogs: WorkLog[];
   loading: boolean;
-  canEdit: boolean;
-  onDelete: (workLogId: string) => void;
   onViewDetail: (workLogId: string) => void;
 }
 
 export function WorkLogsSection({
   workLogs,
   loading,
-  canEdit,
-  onDelete,
   onViewDetail
 }: WorkLogsSectionProps) {
   return (
@@ -66,17 +62,6 @@ export function WorkLogsSection({
                     </span>
                   </div>
                 </div>
-                {canEdit && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(log.id);
-                    }}
-                    className="p-1.5 text-rose-400 hover:text-rose-600 transition-all"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                )}
               </div>
             </motion.div>
           ))}

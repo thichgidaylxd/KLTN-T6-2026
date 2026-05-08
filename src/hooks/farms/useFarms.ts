@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CreateFarmInput } from '../../types/farm';
-import type { UpdateFarmRequest } from '../../types/farm';
+import type { CreateFarmRequest, UpdateFarmRequest } from '../../types/farm';
 import { farmService } from '../../services/farm/farmService';
 
 const FARM_KEYS = {
@@ -38,7 +37,7 @@ export const useFarms = () => {
   });
 
   const createFarmMutation = useMutation({
-    mutationFn: async (data: CreateFarmInput) => {
+    mutationFn: async (data: CreateFarmRequest) => {
       const response = await farmService.createFarm(data);
       return response.data;
     },
@@ -116,7 +115,7 @@ export const useFarms = () => {
       () => withUnwrap(farmSummaryQuery.refetch().then((res) => res.data ?? [])),
       [farmSummaryQuery.refetch],
     ),
-    createFarm: useCallback((data: CreateFarmInput) => withUnwrap(createFarmMutation.mutateAsync(data)), [createFarmMutation.mutateAsync]),
+    createFarm: useCallback((data: CreateFarmRequest) => withUnwrap(createFarmMutation.mutateAsync(data)), [createFarmMutation.mutateAsync]),
     updateFarm: useCallback(
       (farmId: string, data: UpdateFarmRequest) =>
         withUnwrap(updateFarmMutation.mutateAsync({ farmId, data })),

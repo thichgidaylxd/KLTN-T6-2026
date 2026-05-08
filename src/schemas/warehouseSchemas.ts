@@ -15,8 +15,8 @@ export const createWarehouseSchema = z.object({
   name: z.string().min(1, "Tên kho không được để trống"),
   description: z.string().optional(),
   address: z.string().optional(),
-  latitude: z.number({ required_error: "Vui lòng chọn vị trí trên bản đồ" }),
-  longitude: z.number({ required_error: "Vui lòng chọn vị trí trên bản đồ" }),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional()
 });
 
 export const updateWarehouseSchema = z.object({

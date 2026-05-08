@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -6,7 +5,6 @@ import {
   FileText,
   Loader2,
   X,
-  CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
@@ -24,7 +22,6 @@ interface CreateFarmModalProps {
 
 export function CreateFarmModal({ isOpen, onClose, onSuccess }: CreateFarmModalProps) {
   const { createFarm, loading } = useFarms();
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const {
     register,
@@ -33,19 +30,19 @@ export function CreateFarmModal({ isOpen, onClose, onSuccess }: CreateFarmModalP
     formState: { errors },
   } = useForm<CreateFarmInput>({
     resolver: zodResolver(createFarmSchema),
+    defaultValues: {
+      farmName: '',
+      description: '',
+    },
   });
 
   const onSubmit = async (data: CreateFarmInput) => {
     try {
       await createFarm(data).unwrap();
-      setIsSuccess(true);
       toast.success('Khởi tạo trang trại thành công!');
-      setTimeout(() => {
-        setIsSuccess(false);
-        reset();
-        onClose();
-        if (onSuccess) onSuccess();
-      }, 2000);
+      reset();
+      onClose();
+      if (onSuccess) onSuccess();
     } catch (err: any) {
       toast.error(err?.message || 'Có lỗi xảy ra khi tạo trang trại');
     }
@@ -72,22 +69,7 @@ export function CreateFarmModal({ isOpen, onClose, onSuccess }: CreateFarmModalP
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-[520px] max-h-[90vh] overflow-y-auto bg-white rounded-[32px] shadow-2xl pointer-events-auto"
             >
-              {isSuccess ? (
-                <div className="p-10 text-center space-y-6">
-                  <motion.div 
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600"
-                  >
-                    <CheckCircle2 size={48} />
-                  </motion.div>
-                  <h2 className="text-3xl font-black text-gray-900 tracking-tight">Tuyệt vời!</h2>
-                  <div className="flex justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-                  </div>
-                </div>
-              ) : (
-                <>
+              <>
                   <div className="p-6 pb-0 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm">
@@ -171,8 +153,7 @@ export function CreateFarmModal({ isOpen, onClose, onSuccess }: CreateFarmModalP
                       </Button>
                     </div>
                   </form>
-                </>
-              )}
+              </>
             </motion.div>
           </div>
         </div>

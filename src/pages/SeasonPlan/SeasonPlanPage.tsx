@@ -14,7 +14,6 @@ import {
   LayoutGrid,
   List,
   CalendarDays,
-  GitBranch,
   Target,
   Code2,
   Archive,
@@ -24,6 +23,8 @@ import {
   Share2,
   Zap,
   Bell,
+  Calendar,
+  GitBranch,
 } from 'lucide-react';
 
 import { Modal } from '../../components/ui/Modal';
@@ -37,7 +38,6 @@ import { PlanTimeline } from '@/components/season-plan/PlanTimeline';
 import { CreatePlanModal } from '@/components/season-plan/CreatePlanModal';
 import { ClonePlanModal } from '@/components/season-plan/ClonePlanModal';
 import { PlanDetailPanel } from '@/components/season-plan/PlanDetailPanel';
-import { CreatePhaseModal } from '@/components/season-plan/CreatePhaseModal';
 import { AttendanceManagement } from '@/components/work-log/AttendanceManagement';
 import { extractErrorMessage, extractDeleteTaskErrorMessage, extractDeletePhaseErrorMessage } from '@/utils/errorUtils';
 
@@ -112,12 +112,7 @@ export function SeasonPlanPage() {
   // ── Modal state ───────────────────────────────────────────────────────────
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [cloneSourcePlan, setCloneSourcePlan] = useState<SeasonPlan | null>(null);
-  const [isCreatePhaseModalOpen, setIsCreatePhaseModalOpen] = useState(false);
-  const [phaseModalTargetPlanId, setPhaseModalTargetPlanId] = useState<string | null>(null);
-  const [phaseModalInitialData, setPhaseModalInitialData] = useState<
-    { name: string; startDate: string; endDate: string } | undefined
-  >(undefined);
-  const [isPhaseSaving, setIsPhaseSaving] = useState(false);
+  const [initialIsAddingPhase, setInitialIsAddingPhase] = useState(false);
 
   // ── Selection ─────────────────────────────────────────────────────────────
   const [selectedItem, setSelectedItem] = useState<SelectionState | null>(null);
@@ -161,8 +156,6 @@ export function SeasonPlanPage() {
   useEffect(() => {
     if (accessToken) {
       fetchPlans();
-      // If we are on a specific plan page, fetch its stages and plots immediately
-      // instead of waiting for plans to be fetched and currentPlan to be derived.
       if (planId) {
         fetchStages(planId);
         fetchPlanPlots(planId);
@@ -191,7 +184,7 @@ export function SeasonPlanPage() {
       setActiveTab('timeline');
       setSelectedItem({ type: 'PLAN', id: currentPlan.id, planId: currentPlan.id });
     }
-  }, [currentPlan?.id]); // chỉ chạy khi ID plan thay đổi, không phụ thuộc selectedItem
+  }, [currentPlan?.id]);
 
   useEffect(() => {
     if (selectedItem?.planId) {
@@ -244,7 +237,6 @@ export function SeasonPlanPage() {
         original.startDate !== updatedPlan.startDate ||
         original.endDate !== updatedPlan.endDate;
 
-      // Cập nhật ngày bắt đầu và kết thúc → PUT /api/v1/plans/{planId}/time
       if (isDateChanged) {
         await updatePlanTime(updatedPlan.id, updatedPlan.startDate, updatedPlan.endDate, original.version).unwrap();
       }
@@ -263,7 +255,6 @@ export function SeasonPlanPage() {
     data: { startDate: string; endDate: string }
   ) => {
     try {
-      // Optimistic UI update so bar does not snap back while waiting for PUT response
       optimisticallyUpdatePhaseTime({ planId, stageId, startDate: data.startDate, endDate: data.endDate });
       const stageVersion = plans
         .find((p) => p.id === planId)
@@ -272,7 +263,6 @@ export function SeasonPlanPage() {
       await updatePhaseTime(planId, stageId, { ...data, version: stageVersion }).unwrap();
       await fetchStages(planId).unwrap();
     } catch (err: any) {
-      // Re-sync from server when PUT fails to rollback optimistic state
       await fetchStages(planId);
       showError('Lỗi cập nhật timeline giai đoạn', err);
     }
@@ -293,7 +283,6 @@ export function SeasonPlanPage() {
         ?.version;
       await updateTaskTime(planId, stageId, taskId, { ...data, version: taskVersion }).unwrap();
     } catch (err: any) {
-      // Re-sync from server when PUT fails to rollback optimistic state
       await fetchTasks(planId, stageId);
       showError('Lỗi cập nhật timeline công việc', err);
     }
@@ -339,9 +328,6 @@ export function SeasonPlanPage() {
           throw new Error(`Không tìm thấy status "${data.statusCode}" trong danh mục Plan Stage Status. Có sẵn: [${availableCodes}]`);
         }
 
-        // Xóa phần hardcode check transition ở client, để API backend tự validate
-        // và trả về lỗi nếu transition không hợp lệ.
-
         await updatePhaseStatus(planId, stageId, targetStatus.id).unwrap();
       }
     } catch (err: any) {
@@ -349,14 +335,12 @@ export function SeasonPlanPage() {
     }
   };
 
-  // handleUpdatePhaseTime removed to clear warning
-
   const handleDeletePlan = (planId: string) =>
     setDeleteConfirm({ isOpen: true, planId, isDeleting: false });
 
   const confirmDelete = async () => {
     if (!deleteConfirm.planId) return;
-    
+
     setDeleteConfirm(prev => ({ ...prev, isDeleting: true }));
     try {
       await removePlan(deleteConfirm.planId).unwrap();
@@ -370,27 +354,11 @@ export function SeasonPlanPage() {
     }
   };
 
-  const handleAddPhase = (planId: string) => {
-    const plan = plans.find(p => p.id === planId);
-    if (!plan) return;
 
-    setPhaseModalTargetPlanId(planId);
-    // Để trống để người dùng tự nhập ngày theo đúng yêu cầu
-    setPhaseModalInitialData({
-      name: '',
-      startDate: '',
-      endDate: ''
-    });
-    setIsCreatePhaseModalOpen(true);
-  };
 
-  const handleSaveNewPhase = async (data: { name: string; startDate: string; endDate: string }) => {
-    if (!phaseModalTargetPlanId) return;
-    setIsPhaseSaving(true);
+  const handleSaveNewPhase = async (planId: string, data: { name: string; startDate: string; endDate: string }) => {
     try {
-      await createPhase(phaseModalTargetPlanId, data).unwrap();
-      setIsCreatePhaseModalOpen(false);
-      setPhaseModalTargetPlanId(null);
+      await createPhase(planId, data).unwrap();
     } catch (err: any) {
       let errorMsg = 'Thời gian bị trùng hoặc không hợp lệ';
       let details: string[] = [];
@@ -400,8 +368,7 @@ export function SeasonPlanPage() {
           `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
       }
       setNotification({ isOpen: true, type: 'error', title: 'Lỗi tạo giai đoạn', message: errorMsg, details: details.length ? details : undefined });
-    } finally {
-      setIsPhaseSaving(false);
+      throw err; // Re-throw for PlanDetailPanel to handle
     }
   };
 
@@ -455,7 +422,6 @@ export function SeasonPlanPage() {
   };
 
   const handleDeleteTask = async (planId: string, stageId: string, taskId: string) => {
-    // Lấy thông tin task từ cache để kiểm tra trạng thái trước khi xóa
     const cachedTask = plans
       .find(p => p.id === planId)
       ?.phases?.find(ph => ph.id === stageId)
@@ -568,11 +534,7 @@ export function SeasonPlanPage() {
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white">
 
-      {/* ════════════════════════════════════════════════════════
-          TOP BAR  (Jira-style: project name + action icons)
-      ════════════════════════════════════════════════════════ */}
       <div className="flex items-center gap-3 px-5 py-2.5 border-b border-slate-200 bg-white shrink-0">
-        {/* Back button when inside a single plan */}
         {currentPlan && (
           <button
             onClick={() => navigate(`/farms/${farmId}/season-plans`)}
@@ -582,7 +544,6 @@ export function SeasonPlanPage() {
           </button>
         )}
 
-        {/* Project icon + name */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm">
             <Zap size={14} className="text-white" fill="currentColor" />
@@ -592,24 +553,22 @@ export function SeasonPlanPage() {
               {currentPlan ? currentPlan.name : 'Kế hoạch mùa vụ'}
             </h1>
             {currentPlan && (
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[11px] text-slate-400">
-                  {formatDate(currentPlan.startDate)} — {formatDate(currentPlan.endDate)}
-                </span>
+              <div className="flex items-center gap-2 mt-0.5 text-[11px] font-medium text-slate-500">
+                <Calendar size={12} className="text-slate-400" />
+                <span>{formatDate(currentPlan.startDate)} — {formatDate(currentPlan.endDate)}</span>
                 {getPlanPlotNames(currentPlan) && (
-                  <span className="text-[11px] font-medium text-slate-500">
-                    · {getPlanPlotNames(currentPlan)}
-                  </span>
+                  <>
+                    <span className="text-slate-300">·</span>
+                    <span>{getPlanPlotNames(currentPlan)}</span>
+                  </>
                 )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Action icons (right side — like Jira) */}
         <div className="flex items-center gap-1">
           {canEdit && !currentPlan && (
             <Button
@@ -645,9 +604,6 @@ export function SeasonPlanPage() {
         </div>
       </div>
 
-      {/* ════════════════════════════════════════════════════════
-          NAV TABS  (Summary | Timeline | Backlog | Board …)
-      ════════════════════════════════════════════════════════ */}
       <div className="flex items-end gap-0 px-4 border-b border-slate-200 bg-white shrink-0 overflow-x-auto no-scrollbar">
         {NAV_TABS.map(tab => {
           const Icon = tab.icon;
@@ -671,19 +627,13 @@ export function SeasonPlanPage() {
             </button>
           );
         })}
-        {/* Add tab */}
         <button className="flex items-center gap-1 px-3 py-2.5 text-[12px] text-slate-400 hover:text-slate-700 border-b-2 border-transparent whitespace-nowrap ml-1">
           <span className="text-lg leading-none">+</span>
         </button>
       </div>
 
-      {/* ════════════════════════════════════════════════════════
-          TIMELINE TAB TOOLBAR  (search + status filters)
-          — only shown on timeline tab and when not in single plan
-      ════════════════════════════════════════════════════════ */}
       {activeTab === 'timeline' && !currentPlan && (
         <div className="flex items-center gap-3 px-4 py-2 bg-white border-b border-slate-100 shrink-0">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
             <input
@@ -695,9 +645,7 @@ export function SeasonPlanPage() {
             />
           </div>
 
-          {/* Epic / Type / Status filters — Jira filter pills */}
           <div className="flex items-center gap-1.5">
-            {/* Avatar chips placeholder */}
             <div className="flex items-center -space-x-1">
               {[1, 2, 3].map(i => (
                 <div key={i} className="w-6 h-6 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-indigo-600">
@@ -706,12 +654,10 @@ export function SeasonPlanPage() {
               ))}
             </div>
 
-            {/* Status filter pills */}
           </div>
 
           <div className="flex-1" />
 
-          {/* Group by placeholder */}
           <button className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 border border-slate-200 rounded hover:border-slate-400 transition-colors bg-white">
             <Settings2 size={12} />
             Nhóm theo
@@ -719,12 +665,8 @@ export function SeasonPlanPage() {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════
-          MAIN CONTENT AREA
-      ════════════════════════════════════════════════════════ */}
       <div className="flex-1 flex overflow-hidden min-h-0 relative">
 
-        {/* ── Tab: Timeline ── */}
         {activeTab === 'timeline' && (
           <>
             <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-slate-50">
@@ -756,7 +698,7 @@ export function SeasonPlanPage() {
                     onUpdatePhaseTime={handleUpdatePhaseTimeFromTimeline}
                     onUpdateTaskTime={handleUpdateTaskTimeFromTimeline}
                     onDeletePlan={handleDeletePlan}
-                    onAddPhase={handleAddPhase}
+                    onAddPhase={handleSaveNewPhase}
                     onExpandPhase={handleExpandPhase}
                     preExpandedPlanId={currentPlan ? undefined : String(planId)}
                     canEdit={canEdit}
@@ -765,7 +707,6 @@ export function SeasonPlanPage() {
               )}
             </div>
 
-            {/* Detail side panel */}
             <PlanDetailPanel
               isOpen={!!selectedItem}
               selection={selectedData}
@@ -784,6 +725,9 @@ export function SeasonPlanPage() {
                 }, originalPhase);
               }}
               onDeletePhase={handleDeletePhase}
+              onAddPhase={handleSaveNewPhase}
+              initialIsAddingPhase={initialIsAddingPhase}
+              onClearInitialIsAddingPhase={() => setInitialIsAddingPhase(false)}
               onAddTask={handleAddTask}
               onUpdateTask={handleUpdateTask}
               onDeleteTask={handleDeleteTask}
@@ -809,9 +753,8 @@ export function SeasonPlanPage() {
         {/* Lazy mount: chỉ render khi đã click tab ít nhất 1 lần, sau đó giữ hidden thay vì unmount */}
         {hasVisitedBacklog && currentPlan && (
           <div className={activeTab === 'backlog' ? 'flex-1 flex flex-col min-h-0 overflow-hidden' : 'hidden'}>
-            <AttendanceManagement 
-              farmId={farmId || ''} 
-              plan={currentPlan} 
+            <AttendanceManagement
+              plan={currentPlan}
             />
           </div>
         )}
@@ -849,14 +792,6 @@ export function SeasonPlanPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSave={handleCreatePlan}
-      />
-
-      <CreatePhaseModal
-        isOpen={isCreatePhaseModalOpen}
-        onClose={() => setIsCreatePhaseModalOpen(false)}
-        onSave={handleSaveNewPhase}
-        initialData={phaseModalInitialData}
-        isLoading={isPhaseSaving}
       />
 
       {cloneSourcePlan && (

@@ -14,7 +14,7 @@ export interface PlanStageStatusChange {
     id: string;
     fullName: string;
     email: string;
-    phone?: string | null;
+    phone: string;
     status: string;
     isLocked: boolean;
     createdAt: string;
@@ -29,7 +29,7 @@ export interface PlanStageStatusTransition {
   farmRole: {
     id: string;
     name: string;
-    description?: string;
+    description: string;
   };
   createdAt: string;
 }

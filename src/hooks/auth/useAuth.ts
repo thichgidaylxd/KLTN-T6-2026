@@ -10,7 +10,7 @@ import {
 } from '../../store/authSlice';
 import { getUserFromToken } from '../../utils/jwt';
 import { authService } from '../../services/auth/authService';
-import { LoginInput, RegisterInput } from '../../types/auth';
+import { LoginRequest as LoginInput, RegisterInput } from '../../types/auth';
 
 export const useAuth = () => {
   const dispatch = useDispatch<AppDispatch>();

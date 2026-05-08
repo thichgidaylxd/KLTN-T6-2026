@@ -1,7 +1,8 @@
 import { AxiosRequestConfig } from 'axios';
 import { axiosInstance } from '../../config/axios';
 import { ApiResponse } from '../../types/auth';
-import { Farm, CreateFarmRequest, UpdateFarmRequest } from '../../types/farm';
+import { Farm, CreateFarmRequest, UpdateFarmRequest, FarmSummary, SelectFarmResponseData } from '../../types/farm';
+import { deleteFarmResponseSchema } from '../../schemas/farmSchemas';
 
 export const farmService = {
   async createFarm(data: CreateFarmRequest): Promise<ApiResponse<Farm>> {
@@ -19,12 +20,8 @@ export const farmService = {
     return response.data;
   },
 
-  /**
-   * Lấy thông tin tổng quan farm (Dashboard summary)
-   * GET /api/v1/farms/summary
-   */
-  async getFarmSummary(): Promise<ApiResponse<any[]>> {
-    const response = await axiosInstance.get<ApiResponse<any[]>>(
+  async getFarmSummary(): Promise<ApiResponse<FarmSummary[]>> {
+    const response = await axiosInstance.get<ApiResponse<FarmSummary[]>>(
       '/api/v1/farms/summary'
     );
     return response.data;
@@ -37,12 +34,12 @@ export const farmService = {
     return response.data;
   },
 
-  async selectFarm(farmId: string): Promise<ApiResponse<{ farmToken: string }>> {
-    const response = await axiosInstance.post<ApiResponse<{ farmToken: string }>>(
-      `/api/v1/farms/${farmId}/select`
-    );
-    return response.data;
-  },
+   async selectFarm(farmId: string): Promise<ApiResponse<SelectFarmResponseData>> {
+     const response = await axiosInstance.post<ApiResponse<SelectFarmResponseData>>(
+       `/api/v1/farms/${farmId}/select`
+     );
+     return response.data;
+   },
 
   async updateFarm(
     farmId: string,
@@ -57,22 +54,23 @@ export const farmService = {
     return response.data;
   },
 
-  async deleteFarm(farmId: string): Promise<ApiResponse<any>> {
-    const response = await axiosInstance.delete<ApiResponse<any>>(
+  async deleteFarm(farmId: string): Promise<ApiResponse<string>> {
+    const response = await axiosInstance.delete<ApiResponse<string>>(
       `/api/v1/farms/${farmId}`
     );
-    // Nếu status là 204 (No Content), Axios response.data sẽ trống
-    // Chúng ta cần trả về cấu trúc success để các hàm gọi ở trên không bị lỗi
-    if (response.status === 204 || !response.data) {
-      return {
+    // Some backends return a raw string message instead of the envelope object.
+    if (typeof response.data === 'string') {
+      const envelope = {
         success: true,
-        code: 204,
-        message: 'Xóa thành công',
-        data: null,
-        timestamp: new Date().toISOString()
+        code: response.status ?? 200,
+        message: response.data,
+        data: response.data,
+        timestamp: new Date().toISOString(),
       };
+      return deleteFarmResponseSchema.parse(envelope as any);
     }
-    return response.data;
+
+    return deleteFarmResponseSchema.parse(response.data);
   }
 };
 

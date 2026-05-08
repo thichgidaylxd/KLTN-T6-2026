@@ -13,8 +13,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { useFarms } from '@/hooks/farms/useFarms';
-
 import { farmEditSchema, FarmEditInput } from '../../schemas/farmSchemas';
+import type { UpdateFarmRequest } from '../../types/farm';
 
 interface EditFarmModalProps {
   isOpen: boolean;
@@ -49,19 +49,23 @@ export function EditFarmModal({ isOpen, onClose, farm, onSuccess }: EditFarmModa
     }
   }, [farm, isOpen, reset]);
 
-  const onSubmit = async (data: FarmEditInput) => {
-    try {
-      const targetFarmId = farm.id || farm.farmId;
-      if (!targetFarmId) {
-        toast.error('Không tìm thấy ID trang trại');
-        return;
-      }
+   const onSubmit = async (data: FarmEditInput) => {
+     try {
+       const targetFarmId = farm.id || farm.farmId;
+       if (!targetFarmId) {
+         toast.error('Không tìm thấy ID trang trại');
+         return;
+       }
 
-      await updateFarm(targetFarmId, {
-        version: farm.version,
-        name: data.name,
-        description: data.description || ''
-      }).unwrap();
+       const updateData: UpdateFarmRequest = {
+         name: data.name,
+         description: data.description || '',
+       };
+       if (farm.version !== undefined) {
+         updateData.version = farm.version;
+       }
+
+       await updateFarm(targetFarmId, updateData).unwrap();
       
       toast.success('Cập nhật trang trại thành công');
       onSuccess?.();

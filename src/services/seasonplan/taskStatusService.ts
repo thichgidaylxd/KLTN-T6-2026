@@ -5,6 +5,7 @@ import {
   getTaskStatusTransitionsResponseSchema,
   updateTaskStatusResponseSchema,
 } from '../../schemas/taskStatusSchemas';
+import { getAvailableTaskStatusesResponseSchema } from '../../schemas/seasonPlanSchemas';
 import { StatusObject } from '../../types/seasonPlan';
 
 export interface TaskStatusObject extends StatusObject {
@@ -71,6 +72,6 @@ export const taskStatusService = {
     const response = await axiosInstance.get(
       `/api/v1/plans/${planId}/stages/${stageId}/tasks/${taskId}/available-statuses`
     );
-    return getTaskStatusesResponseSchema.parse(response.data).data;
+    return getAvailableTaskStatusesResponseSchema.parse(response.data).data;
   },
 };
