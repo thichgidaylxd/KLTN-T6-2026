@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Loader2, CheckCircle2, XCircle, Eye, EyeOff, Sprout } from 'lucide-react'
+import { toast } from 'sonner'
 import { loginSchema } from '../../schemas/authSchemas'
-// Thêm vào imports
 import { useDispatch } from 'react-redux'
 import { loginSuccess } from '../../store/authSlice'
 import { authService } from '../../services/auth/authService'
-import { memberService } from '../../services/members/memberService'
+import { farmInvitationService } from '../../services/farm/farmInvitationService'
+import { extractErrorMessage } from '../../utils/errorUtils'
+import { useQueryClient, useMutation } from '@tanstack/react-query'
 
 type Phase = 'loading' | 'login-required' | 'accepting' | 'success' | 'error'
 
@@ -27,6 +29,7 @@ export function AcceptInvitationPage() {
     const { invitationId } = useParams<{ invitationId: string }>()
     const navigate = useNavigate()
     const dispatch = useDispatch()
+    const queryClient = useQueryClient()
 
     const [phase, setPhase] = useState<Phase>('loading')
     const [invitation, setInvitation] = useState<InvitationInfo | null>(null)
@@ -39,47 +42,52 @@ export function AcceptInvitationPage() {
     const [loginError, setLoginError] = useState('')
     const [isLoggingIn, setIsLoggingIn] = useState(false)
 
+    // Accept invitation mutation — invalidates all queries on success
+    const acceptMutation = useMutation({
+        mutationFn: (id: string) => farmInvitationService.acceptInvitation(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries()
+            toast.success('Đã chấp nhận lời mời')
+        },
+        onError: (err: unknown) => {
+            toast.error(extractErrorMessage(err))
+        }
+    })
+
     // Bước 1 — fetch thông tin invitation (public, không cần auth)
     useEffect(() => {
         const fetchInvitation = async () => {
             try {
-                const res = await memberService.previewInvitation(invitationId as string)
-                if (res.data.success) {
-                    setInvitation(res.data.data)
-                    // Pre-fill email từ invitation
-                    setEmail(res.data.data.email)
-                }
-            } catch (err: any) {
-                setErrorMsg(err.response?.data?.message || 'Lời mời không hợp lệ hoặc đã hết hạn')
+                const preview = await farmInvitationService.getInvitationPreview(invitationId as string)
+                setInvitation(preview)
+                // Pre-fill email từ invitation
+                setEmail(preview.email)
+            } catch (err: unknown) {
+                setErrorMsg(extractErrorMessage(err))
                 setPhase('error')
                 return
             }
 
             // Kiểm tra đã login chưa
-            const token = sessionStorage.getItem('access_token')
+            const token = sessionStorage.getItem('accessToken')
             if (token) {
                 // Đã login → accept luôn
-                await doAccept()
+                setPhase('accepting')
+                try {
+                    await acceptMutation.mutateAsync(invitationId as string)
+                    setPhase('success')
+                    setTimeout(() => navigate('/farms'), 4000)
+                } catch (err: unknown) {
+                    setErrorMsg(extractErrorMessage(err))
+                    setPhase('error')
+                }
             } else {
                 setPhase('login-required')
             }
         }
-        fetchInvitation()
-    }, [invitationId])
+        void fetchInvitation()
+    }, [invitationId, navigate, acceptMutation])
 
-    const doAccept = async () => {
-        setPhase('accepting')
-        try {
-            const res = await memberService.acceptInvitation(invitationId as string)
-            if (res.data.success) {
-                setPhase('success')
-                setTimeout(() => navigate('/farms'), 4000)
-            }
-        } catch (err: any) {
-            setErrorMsg(err.response?.data?.message || 'Không thể chấp nhận lời mời')
-            setPhase('error')
-        }
-    }
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoginError('')
@@ -98,18 +106,24 @@ export function AcceptInvitationPage() {
                 // Dispatch vào Redux — giống hệt useLogin hook
                 dispatch(loginSuccess(response.data))
                 // Sau khi store có auth → accept invitation
-                await doAccept()
+                setPhase('accepting')
+                try {
+                    await acceptMutation.mutateAsync(invitationId as string)
+                    setPhase('success')
+                    setTimeout(() => navigate('/farms'), 4000)
+                } catch (err: unknown) {
+                    setErrorMsg(extractErrorMessage(err))
+                    setPhase('error')
+                }
             } else {
                 setLoginError('Email hoặc mật khẩu không đúng')
             }
-        } catch (err: any) {
-            setLoginError(err.response?.data?.message || 'Email hoặc mật khẩu không đúng')
+        } catch (err: unknown) {
+            setLoginError(extractErrorMessage(err))
         } finally {
             setIsLoggingIn(false)
         }
     }
-
-
 
     return (
         <div className="min-h-screen bg-[#f5f4f0] flex flex-col items-center justify-center p-4 font-['DM_Sans',sans-serif]">

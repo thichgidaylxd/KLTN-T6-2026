@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { apiResponseSchema } from './seasonPlanSchemas';
 
 // Schema cho dữ liệu trả về của một Farm
 export const farmResponseSchema = z.object({
@@ -70,3 +71,140 @@ export const farmEditSchema = z.object({
 });
 
 export type FarmEditInput = z.infer<typeof farmEditSchema>;
+
+// ── Shared sub-schemas ──
+export const userObjectSchema = z.object({
+  id: z.string().uuid(),
+  fullName: z.string(),
+  email: z.string().email(),
+  phone: z.string().nullable().optional(),
+  status: z.string(),
+  isLocked: z.boolean(),
+  createdAt: z.string(),
+});
+
+export const farmRoleSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+});
+
+// ── Farm Member ──
+export const farmMemberSchema = z.object({
+  userId: z.string().uuid(),
+  fullName: z.string(),
+  email: z.string().email(),
+  avatarUrl: z.string().nullable().optional(),
+  role: farmRoleSchema,
+  isActive: z.boolean(),
+  joinedAt: z.string(),
+});
+
+export const getFarmMembersResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.number(),
+  message: z.string(),
+  data: z.array(farmMemberSchema),
+  timestamp: z.string(),
+});
+
+// ── Farm Invitation ──
+export const farmInvitationSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  farm: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+  }),
+  role: farmRoleSchema,
+  status: z.enum(['PENDING', 'ACCEPTED', 'EXPIRED', 'CANCELLED']),
+  inviter: z.object({
+    id: z.string().uuid(),
+    fullName: z.string(),
+    email: z.string().email(),
+  }),
+  createdAt: z.string(),
+  expiresAt: z.string(),
+});
+
+export const invitationPreviewSchema = z.object({
+  farmName: z.string(),
+  inviterName: z.string(),
+  role: z.string(),
+  email: z.string().email(),
+  expiresAt: z.string(),
+});
+
+export const acceptInvitationResponseSchema = z.object({
+  userId: z.string().uuid(),
+  fullName: z.string(),
+  email: z.string().email(),
+  avatarUrl: z.string().nullable().optional(),
+  role: farmRoleSchema,
+  isActive: z.boolean(),
+  joinedAt: z.string(),
+});
+
+export const sendInvitationRequestSchema = z.object({
+  email: z.string().email('Email không hợp lệ'),
+  roleId: z.string().uuid('Vui lòng chọn vai trò'),
+});
+
+export const sendInvitationResponseSchema = apiResponseSchema(z.string());
+
+// ── Response wrappers ──
+export const getFarmInvitationsResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.number(),
+  message: z.string(),
+  data: z.array(farmInvitationSchema),
+  timestamp: z.string(),
+});
+
+export const getInvitationPreviewResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.number(),
+  message: z.string(),
+  data: invitationPreviewSchema,
+  timestamp: z.string(),
+});
+
+export const getMyInvitationsResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.number(),
+  message: z.string(),
+  data: z.array(farmInvitationSchema),
+  timestamp: z.string(),
+});
+
+export const acceptInvitationApiResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.number(),
+  message: z.string(),
+  data: acceptInvitationResponseSchema,
+  timestamp: z.string(),
+});
+
+export const cancelInvitationResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.number(),
+  message: z.string(),
+  data: z.string(),
+  timestamp: z.string(),
+});
+
+export const getFarmRolesResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.number(),
+  message: z.string(),
+  data: z.array(farmRoleSchema),
+  timestamp: z.string(),
+});
+
+export const deleteFarmMemberResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.number(),
+  message: z.string(),
+  data: z.string(),
+  timestamp: z.string(),
+});
