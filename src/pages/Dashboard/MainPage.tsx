@@ -20,7 +20,7 @@ function useDashboardData(farmId?: string) {
   const { hubToken } = useAuth();
   const [isSyncing, setIsSyncing] = useState(false);
   
-  const { plots, aggregateStats, loading: plotsLoading, fetchPlots, clearPlots, fetchAggregateStats } = usePlots();
+  const { plots, plotsLoading, fetchPlots, clearPlots } = usePlots();
   const { crops, cropTypes, loading: cropsLoading, cropTypesLoading, fetchCrops, fetchCropTypes } = useCrops();
 
   useEffect(() => {
@@ -33,24 +33,21 @@ function useDashboardData(farmId?: string) {
       fetchPlots(farmId);
       setIsSyncing(false);
     } else {
-      // 2b. CHẾ ĐỘ HUB: Xóa plots hiện tại và load số liệu tổng hợp
+      // 2b. CHẾ ĐỘ HUB: Xóa plots hiện tại
       clearPlots();
-      if (hubToken) {
-        fetchAggregateStats(hubToken);
-      }
       setIsSyncing(false);
     }
-  }, [farmId, fetchCrops, fetchCropTypes, fetchPlots, clearPlots, fetchAggregateStats, hubToken]);
+  }, [farmId, fetchCrops, fetchCropTypes, fetchPlots, clearPlots]);
 
   const isLoading = (farmId && plotsLoading) || cropsLoading || cropTypesLoading || isSyncing;
 
   return {
     stats: {
-      totalPlots: farmId ? plots.length : aggregateStats.totalPlots,
+      totalPlots: farmId ? plots.length : 0,
       totalCrops: cropTypes.length, 
       totalArea: farmId 
         ? plots.reduce((acc, p) => acc + (Number(p.areaHa) || 0), 0)
-        : aggregateStats.totalArea,
+        : 0,
       totalPlants: crops.length,
       performancePct: 0, 
     },

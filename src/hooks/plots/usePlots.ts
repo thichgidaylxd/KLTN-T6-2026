@@ -74,6 +74,9 @@ export function usePlots() {
      fetchPlots: useCallback(() => {
        void queryClient.invalidateQueries({ queryKey: PLOT_KEYS.list });
      }, [queryClient]),
+     clearPlots: useCallback(() => {
+       queryClient.setQueryData(PLOT_KEYS.list, []);
+     }, [queryClient]),
      createPlot: useCallback((data: CreatePlotRequest) => withUnwrap(createPlotMutation.mutateAsync(data)), [
        createPlotMutation,
      ]),
@@ -87,4 +90,4 @@ export function usePlots() {
        void queryClient.invalidateQueries({ queryKey: ['plots'] });
      }, [queryClient]),
    };
-}
+ }
