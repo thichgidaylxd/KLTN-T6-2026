@@ -1,4 +1,4 @@
-import { Calendar, Package, Zap, CheckSquare, Flag, FileText } from 'lucide-react';
+import { Calendar, Package, Zap, CheckSquare, Flag, FileText, ArrowLeftToLine, ArrowRightToLine } from 'lucide-react';
 import { SeasonPlan, Phase, Task } from '@/types/seasonPlan';
 import { PlanStageStatusTransition } from '@/services/seasonplan/planStageStatusService';
 import { DateInput } from '@/components/ui/DateInput';
@@ -27,6 +27,7 @@ interface GeneralInfoProps {
   taskStatusTransitions?: any[]; // use any or import TaskStatusTransition
   availableStatuses?: any[];
   isAvailableStatusesLoading?: boolean;
+  onScrollToDate?: (dateStr: string) => void;
 }
 
 export function GeneralInfo({
@@ -45,6 +46,7 @@ export function GeneralInfo({
   taskStatusTransitions,
   availableStatuses = [],
   isAvailableStatusesLoading = false,
+  onScrollToDate,
 }: GeneralInfoProps) {
   const { plan, type } = selection;
 
@@ -103,19 +105,52 @@ export function GeneralInfo({
       <div className="px-4 pt-4 pb-3 border-b border-slate-100">
         <div className="flex items-start gap-2">
           <div className="flex-1 min-w-0">
-            <InlineText
-              canEdit={isEditing}
-              value={
-                type === 'PLAN' ? tempPlan?.name ?? '' :
-                  type === 'PHASE' ? tempPhase?.name ?? '' :
-                    tempTask?.name ?? ''
-              }
-              onChange={v => {
-                if (type === 'PLAN' && tempPlan) setTempPlan({ ...tempPlan, name: v });
-                if (type === 'PHASE' && tempPhase) setTempPhase({ ...tempPhase, name: v });
-                if (type === 'TASK' && tempTask) setTempTask({ ...tempTask, name: v });
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <InlineText
+                  canEdit={isEditing}
+                  value={
+                    type === 'PLAN' ? tempPlan?.name ?? '' :
+                      type === 'PHASE' ? tempPhase?.name ?? '' :
+                        tempTask?.name ?? ''
+                  }
+                  onChange={v => {
+                    if (type === 'PLAN' && tempPlan) setTempPlan({ ...tempPlan, name: v });
+                    if (type === 'PHASE' && tempPhase) setTempPhase({ ...tempPhase, name: v });
+                    if (type === 'TASK' && tempTask) setTempTask({ ...tempTask, name: v });
+                  }}
+                />
+              </div>
+              
+              {!isEditing && onScrollToDate && (
+                <div className="flex items-center gap-0.5 flex-shrink-0">
+                  {((type === 'PLAN' && plan.startDate) || (type === 'PHASE' && selection.phase?.startDate) || (type === 'TASK' && selection.task?.startDate)) && (
+                    <button
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                      onClick={() => {
+                        const d = type === 'PLAN' ? plan.startDate : type === 'PHASE' ? selection.phase?.startDate : selection.task?.startDate;
+                        if (d) onScrollToDate(d);
+                      }}
+                      title="Đi đến ngày bắt đầu"
+                    >
+                      <ArrowLeftToLine size={13} />
+                    </button>
+                  )}
+                  {((type === 'PLAN' && plan.endDate) || (type === 'PHASE' && selection.phase?.endDate) || (type === 'TASK' && selection.task?.endDate)) && (
+                    <button
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                      onClick={() => {
+                        const d = type === 'PLAN' ? plan.endDate : type === 'PHASE' ? selection.phase?.endDate : selection.task?.endDate;
+                        if (d) onScrollToDate(d);
+                      }}
+                      title="Đi đến ngày kết thúc"
+                    >
+                      <ArrowRightToLine size={13} />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

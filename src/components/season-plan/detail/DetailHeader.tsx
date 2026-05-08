@@ -1,5 +1,5 @@
 import { 
-  X, ChevronRight, Edit2, Save, Link2, ExternalLink, Trash2, Layout, Zap, CheckSquare 
+  X, ChevronRight, Edit2, Save, Link2, ExternalLink, Trash2, Layout, Zap, CheckSquare
 } from 'lucide-react';
 import { SeasonPlan, Phase, Task } from '@/types/seasonPlan';
 

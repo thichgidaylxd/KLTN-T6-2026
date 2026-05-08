@@ -17,7 +17,6 @@ import { CreatePlotModal } from '@/components/land-plots/CreatePlotModal';
 import { EditPlotModal } from '@/components/land-plots/EditPlotModal';
 import { MapSidebar } from '@/components/map/MapSidebar';
 import { MapCanvas } from '@/components/map/MapCanvas';
-import { MapHint } from '@/components/map/MapHint';
 import { DeletePlotDialog } from '@/components/map/DeletePlotDialog';
 import { isSelfIntersecting, polygonsOverlap, getPlotPath } from '../../utils/plotUtils';
 
@@ -343,33 +342,28 @@ export function MapPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-white">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => navigate(`/farms/${currentFarmId}/actions`)}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all font-bold text-xs shrink-0"
-          >
-            <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center bg-white shadow-sm hover:shadow-md transition-all">
-              <ArrowLeft size={14} />
-            </div>
-            Quay lại
-          </button>
+      {/* Header */}
+<div className="bg-white border-b border-slate-200 px-5 flex items-center shrink-0" style={{ height: '56px' }}>
+  <button
+    onClick={() => navigate(`/farms/${currentFarmId}/actions`)}
+    className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 transition-colors text-sm shrink-0"
+  >
+    <ArrowLeft size={15} />
+    Quay lại
+  </button>
 
-          <div className="h-10 w-px bg-slate-200 mx-1 hidden sm:block" />
+  <div className="w-px bg-slate-200 mx-4 self-stretch my-3" />
 
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600">
-              <MapIcon className="w-8 h-8" />
-            </div>
-            <div className="text-left">
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Bản đồ nông trại</h1>
-              <p className="text-gray-500 mt-0.5 font-medium text-sm">
-                Trực quan hóa và quản lý không gian các khu vực canh tác
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+  <div className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center mr-3 shrink-0">
+    <MapIcon size={16} className="text-slate-500" />
+  </div>
+
+  <div>
+    <h1 className="text-sm font-semibold text-slate-900 leading-tight">Bản đồ nông trại</h1>
+    <p className="text-xs text-slate-400 leading-tight mt-0.5">Trực quan hóa và quản lý không gian các khu vực canh tác</p>
+  </div>
+</div>
+    
 
       <MapCanvas
         isDrawing={mode !== 'none'}
@@ -417,8 +411,6 @@ export function MapPage() {
           canSave={currentPath.length >= 3}
           overlappingPlotName={overlappingPlotName}
         />
-
-        <MapHint show={mode === 'none' && !selectedPlot} />
 
         <BoundaryConfirmDialog
           isOpen={isConfirmOpen}

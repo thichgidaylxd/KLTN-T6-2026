@@ -120,8 +120,8 @@ export default function Sidebar({
   if (variant === "compact") {
     return (
       <>
-        <aside className="flex flex-col items-center justify-between h-full w-16 bg-white shrink-0 rounded-3xl shadow-sm border border-slate-100 py-6 px-2 overflow-y-auto custom-scrollbar">
-          <div className="flex flex-col items-center gap-2 w-full">
+        <aside className="flex flex-col items-center justify-between h-full w-16 bg-white shrink-0 rounded-3xl shadow-sm border border-slate-100 py-6 px-2">
+          <div className="flex flex-col items-center gap-2 w-full flex-1 overflow-y-auto custom-scrollbar no-scrollbar">
             {NAV_GROUPS.flatMap((g) => g.items)
               .concat(FOOTER_ITEMS.flatMap((g) => g.items))
               .filter(filterItem)
@@ -132,7 +132,7 @@ export default function Sidebar({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "w-10 h-10 rounded-xl transition-all duration-200",
+                    "w-10 h-10 rounded-xl transition-all duration-200 shrink-0",
                     active === item.key
                       ? "bg-emerald-50 text-emerald-700"
                       : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
@@ -146,39 +146,41 @@ export default function Sidebar({
               ))}
           </div>
 
-          {!currentFarmId && (
-            <div className="relative">
-              <Button
-                onClick={() => setIsSettingsOpen((p) => !p)}
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "w-10 h-10 rounded-xl transition-all duration-200",
-                  isSettingsOpen ? "bg-slate-100 text-slate-700" : "text-slate-400 hover:bg-slate-50"
+          <div className="mt-auto pt-4 relative w-full flex justify-center shrink-0">
+            {!currentFarmId && (
+              <div className="relative">
+                <Button
+                  onClick={() => setIsSettingsOpen((p) => !p)}
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "w-10 h-10 rounded-xl transition-all duration-200",
+                    isSettingsOpen ? "bg-slate-100 text-slate-700" : "text-slate-400 hover:bg-slate-50"
+                  )}
+                >
+                  <Settings size={20} />
+                </Button>
+                {isSettingsOpen && (
+                  <div className="absolute bottom-0 left-full ml-2 w-52 rounded-2xl border border-slate-200 bg-white shadow-xl p-2 z-50">
+                    <button
+                      onClick={handleChangePassword}
+                      className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      <Key size={15} />
+                      Đổi mật khẩu
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                    >
+                      <LogOut size={15} />
+                      Đăng xuất
+                    </button>
+                  </div>
                 )}
-              >
-                <Settings size={20} />
-              </Button>
-              {isSettingsOpen && (
-                <div className="absolute bottom-0 left-full ml-2 w-52 rounded-2xl border border-slate-200 bg-white shadow-xl p-2 z-50">
-                  <button
-                    onClick={handleChangePassword}
-                    className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    <Key size={15} />
-                    Đổi mật khẩu
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-                  >
-                    <LogOut size={15} />
-                    Đăng xuất
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </aside>
 
         <ConfirmModal
@@ -201,7 +203,7 @@ export default function Sidebar({
   /* ── WIDE variant ── */
   return (
     <>
-      <aside className="flex flex-col h-full w-[260px] bg-white shrink-0 rounded-[32px] border border-slate-100 shadow-sm overflow-y-auto custom-scrollbar">
+      <aside className="flex flex-col h-full w-[260px] bg-white shrink-0 rounded-[32px] border border-slate-100 shadow-sm relative">
         {/* Header */}
         <div className="flex items-center gap-3 px-4 pt-5 pb-3 shrink-0">
           <div className="w-8 h-8 bg-emerald-50 rounded-xl flex items-center justify-center border border-emerald-100 shrink-0">
@@ -213,7 +215,8 @@ export default function Sidebar({
         </div>
 
         {/* Nav */}
-        <nav className="flex flex-col gap-1 px-3 py-1">
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <nav className="flex flex-col gap-1 px-3 py-1">
           {NAV_GROUPS.map((group) => {
             const visibleItems = group.items.filter(filterItem);
             if (!visibleItems.length) return null;
@@ -249,9 +252,10 @@ export default function Sidebar({
             );
           })}
         </nav>
+        </div>
 
         {/* Footer */}
-        <div className="px-3 pt-1 pb-3 border-t border-slate-100 flex flex-col gap-1">
+        <div className="px-3 pt-1 pb-3 border-t border-slate-100 flex flex-col gap-1 shrink-0 relative">
           {FOOTER_ITEMS.map((group) => {
             const visibleItems = group.items.filter(filterItem);
             if (!visibleItems.length) return null;

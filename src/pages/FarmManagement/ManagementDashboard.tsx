@@ -180,14 +180,7 @@ export function ManagementDashboardPage() {
               onChange={e => setSearchTerm(e.target.value)}
               className="bg-slate-100 border border-transparent rounded-full pl-9 pr-4 py-2 text-[13px] outline-none w-64 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all"
             />
-          </div>
-          <button 
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-5 py-2 text-[13px] font-bold flex items-center gap-2 shadow-lg shadow-emerald-600/10 active:scale-95 transition-all"
-          >
-            <Plus size={16} strokeWidth={3} />
-            Thêm mới
-          </button>
+          </div>     
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSeasonPlans } from '../../hooks/seasonPlans/useSeasonPlans';
 import { SeasonPlan, Task } from '../../types/seasonPlan';
@@ -102,6 +102,7 @@ export function SeasonPlanPage() {
 
   const { user, accessToken } = useAuth();
   const canEdit = canEditPlan(user?.role, accessToken);
+  const timelineRef = useRef<{ scrollToDate: (dateStr: string) => void }>(null);
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<NavTab>('timeline');
@@ -415,16 +416,6 @@ export function SeasonPlanPage() {
 
     let plotId = data.plotId;
     if (!plotId && plan.plots?.length) plotId = plan.plots[0].plotId;
-
-    if (!plotId) {
-      setNotification({
-        isOpen: true,
-        type: 'error',
-        title: 'Thiếu thông tin lô đất',
-        message: 'Kế hoạch này chưa được gán lô đất nào. Vui lòng gán lô đất cho kế hoạch trước khi tạo công việc.'
-      });
-      return;
-    }
     try {
       await createSeasonTask(planId, phaseId, { ...data, plotId }).unwrap();
     } catch (err: any) {
@@ -498,15 +489,6 @@ export function SeasonPlanPage() {
   const handleUpdateTask = async (planId: string, stageId: string, task: Task, originalTask?: Task) => {
     const plan = plans.find(p => p.id === planId);
     const plotId = task.plotId || (plan?.plots?.length ? plan.plots[0].plotId : undefined);
-    if (!plotId) {
-      setNotification({
-        isOpen: true,
-        type: 'error',
-        title: 'Thiếu thông tin lô đất',
-        message: 'Công việc này thiếu thông tin lô đất và kế hoạch không có lô đất mặc định.'
-      });
-      return;
-    }
     try {
       if (!originalTask) {
         await updateSeasonTask(planId, stageId, task.id, {
@@ -767,6 +749,7 @@ export function SeasonPlanPage() {
               ) : (
                 <div className="flex-1 h-full min-h-0">
                   <PlanTimeline
+                    ref={timelineRef}
                     plans={filteredPlans}
                     onSelect={selection => setSelectedItem(selection)}
                     selectedId={selectedItem?.id}
@@ -786,6 +769,7 @@ export function SeasonPlanPage() {
             <PlanDetailPanel
               isOpen={!!selectedItem}
               selection={selectedData}
+              onScrollToDate={(dateStr) => timelineRef.current?.scrollToDate(dateStr)}
               onClose={() => {
                 setSelectedItem(null);
               }}

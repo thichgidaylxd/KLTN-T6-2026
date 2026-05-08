@@ -124,7 +124,7 @@ export const createTaskSchema = z.object({
   description: z.string().optional(),
   startDate: z.string().min(1, 'Vui lòng nhập ngày bắt đầu'),
   endDate: z.string().min(1, 'Vui lòng nhập ngày kết thúc'),
-  plotId: z.string().min(1, 'Vui lòng chọn lô đất'),
+  plotId: z.string().nullable().optional(),
 });
 
 

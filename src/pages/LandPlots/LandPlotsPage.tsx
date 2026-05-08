@@ -36,6 +36,11 @@ export function LandPlotsPage() {
 
   // Fetch data handled automatically by usePlots hook reacting to currentFarmId
 
+  // Tính toán Stats
+  const totalPlots = plots.length;
+  const totalArea = plots.reduce((sum, plot) => sum + (plot.areaHa || 0), 0);
+  const activePlots = plots.filter((plot) => plot.status === 'ACTIVE').length;
+
   // Xử lý lọc dữ liệu
   const filteredPlots = useMemo(() => {
     return plots.filter((plot) => {
@@ -112,42 +117,59 @@ export function LandPlotsPage() {
   };
 
   return (
-    <div className="w-full flex-1 space-y-6 font-sans py-4 animate-in fade-in duration-500 text-left">
+    <div className="w-full flex-1 flex flex-col font-sans bg-slate-50 min-h-0 text-left">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 bg-white p-6 transition-all duration-300">
-        <div className="flex items-center gap-6 w-full">
+      <div className="bg-white px-5 flex items-center justify-between border-b border-slate-200 shrink-0" style={{ height: '56px' }}>
+        <div className="flex items-center">
           <button
             onClick={() => navigate(`/farms/${currentFarmId}/actions`)}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all font-bold text-xs shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shrink-0"
           >
-            <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center bg-white shadow-sm hover:shadow-md transition-all">
-              <ArrowLeft size={14} />
-            </div>
-            Quay lại
+            <ArrowLeft size={15} /> Quay lại
           </button>
-
-          <div className="h-10 w-px bg-slate-200 mx-1 hidden sm:block" />
-
-          <div className="flex items-center gap-4 flex-1">
-            <div className="p-3 bg-emerald-100/50 rounded-2xl text-emerald-600">
-              <LayoutGridIcon className="w-8 h-8" />
-            </div>
-            <div className="text-left">
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Quản lý lô đất</h1>
-              <p className="text-gray-500 mt-0.5 font-medium text-sm">
-                Quản lý danh sách và thông tin các khu vực canh tác
-              </p>
-            </div>
+          <div className="w-px bg-slate-200 mx-4 self-stretch my-2" />
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg shadow-emerald-500/20 flex items-center justify-center text-white mr-4 shrink-0">
+            <LayoutGridIcon size={22} strokeWidth={2.5} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 leading-tight">Quản lý lô đất</h1>
+            <p className="text-sm text-slate-500 font-medium leading-tight mt-1">Quản lý danh sách và thông tin các khu vực canh tác</p>
           </div>
         </div>
-        <div>
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all active:scale-95 group whitespace-nowrap"
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all active:scale-95 font-bold text-sm shadow-md shadow-emerald-600/20"
           >
-            <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-            Tạo lô đất mới
+            <PlusIcon size={18} strokeWidth={2.5} /> Tạo lô đất mới
           </button>
+        </div>
+      </div>
+
+      {/* Stats Section */}
+      <div className="bg-white border-b border-slate-200 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 shrink-0 shadow-sm">
+        <div className="px-8 py-5 flex flex-col justify-center hover:bg-slate-50/50 transition-colors">
+          <div className="text-[13px] text-slate-500 mb-1.5 font-bold uppercase tracking-wider">Tổng lô đất</div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-extrabold text-slate-800 tracking-tight">{totalPlots}</span>
+            <span className="text-sm text-slate-500 font-semibold">lô</span>
+          </div>
+        </div>
+        <div className="px-8 py-5 flex flex-col justify-center hover:bg-slate-50/50 transition-colors">
+          <div className="text-[13px] text-slate-500 mb-1.5 font-bold uppercase tracking-wider">Tổng diện tích</div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-extrabold text-slate-800 tracking-tight">
+              {totalArea.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+            </span>
+            <span className="text-sm text-slate-500 font-semibold">ha</span>
+          </div>
+        </div>
+        <div className="px-8 py-5 flex flex-col justify-center hover:bg-slate-50/50 transition-colors">
+          <div className="text-[13px] text-slate-500 mb-1.5 font-bold uppercase tracking-wider">Đang hoạt động</div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-extrabold text-emerald-600 tracking-tight">{activePlots}</span>
+            <span className="text-lg text-slate-400 font-bold">/ {totalPlots}</span>
+          </div>
         </div>
       </div>
 
@@ -162,7 +184,7 @@ export function LandPlotsPage() {
       />
 
       {/* Content Section */}
-      <div className="transition-all duration-300">
+      <div className="flex-1 min-h-0 bg-white">
         {viewMode === 'table' ? (
           <PlotTable
             plots={filteredPlots}

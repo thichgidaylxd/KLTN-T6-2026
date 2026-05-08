@@ -63,6 +63,7 @@ interface PlanDetailPanelProps {
   taskStatusTransitions?: any[];
   fetchTaskAvailableStatuses?: (planId: string, stageId: string, taskId: string) => Promise<any[]>;
   fetchPhaseAvailableStatuses?: (planId: string, stageId: string) => Promise<any[]>;
+  onScrollToDate?: (dateStr: string) => void;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -88,6 +89,7 @@ export function PlanDetailPanel({
   taskStatusTransitions = [],
   fetchTaskAvailableStatuses,
   fetchPhaseAvailableStatuses,
+  onScrollToDate,
 }: PlanDetailPanelProps) {
   const { currentFarmId } = useAuth();
   const { selectedFarmId } = useSelector((state: RootState) => state.farm);
@@ -492,6 +494,7 @@ export function PlanDetailPanel({
                     taskStatusTransitions={taskStatusTransitions}
                     availableStatuses={availableStatuses}
                     isAvailableStatusesLoading={isAvailableStatusesLoading}
+                    onScrollToDate={onScrollToDate}
                   />
 
                   {sel.type === 'PLAN' && (

@@ -33,34 +33,35 @@ export function PlotTable({
 
   return (
     <div className="bg-transparent overflow-hidden font-sans text-left">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-gray-600">
-          <thead className="bg-gray-50/50 text-gray-700">
+      <div className="overflow-x-auto border-t border-slate-200">
+        <table className="w-full text-left text-sm text-slate-700">
+          <thead className="border-b border-slate-200">
             <tr>
-              <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Tên lô đất</th>
-              <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Diện tích (ha)</th>
-              <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Trạng thái</th>
-              <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Mô tả</th>
-              <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-right">Thao tác</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-slate-500">Tên lô đất</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-slate-500">Diện tích (ha)</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-slate-500">Trạng thái</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-slate-500">Mô tả</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-slate-500 text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-slate-100">
             {plots.map((plot) => (
               <tr
                 key={plot.id}
-                className="hover:bg-emerald-50/50 transition-colors group"
+                className="hover:bg-slate-50 transition-colors group"
               >
-                <td className="px-6 py-4 font-semibold text-gray-900">
+                <td className="px-6 py-4 font-semibold text-slate-900 flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full ${plot.status === 'ACTIVE' ? 'bg-[#2e7d32]' : 'bg-[#c62828]'}`} />
                   {plot.name}
                 </td>
-                <td className="px-6 py-4 font-medium">
-                  {plot.areaHa == null ? 0 : plot.areaHa.toLocaleString('vi-VN')}
+                <td className="px-6 py-4 font-semibold text-slate-900">
+                  {plot.areaHa == null ? 0 : plot.areaHa.toLocaleString('en-US')}
                 </td>
                 <td className="px-6 py-4">
                   <PlotStatusBadge status={plot.status} />
                 </td>
                 <td
-                  className="px-6 py-4 max-w-xs truncate text-gray-500"
+                  className="px-6 py-4 max-w-xs truncate text-slate-500 font-medium"
                   title={plot.description}
                 >
                   {plot.description || '-'}
@@ -69,24 +70,24 @@ export function PlotTable({
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => onViewMap(plot)}
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      className="p-2 text-slate-600 bg-white border border-slate-200 hover:text-emerald-700 hover:border-emerald-300 rounded-lg transition-all shadow-sm"
                       title="Xem trên bản đồ"
                     >
-                      <MapIcon className="w-4.5 h-4.5" />
+                      <MapIcon className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => onEdit(plot)}
-                      className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                      className="p-2 text-slate-600 bg-white border border-slate-200 hover:text-emerald-700 hover:border-emerald-300 rounded-lg transition-all shadow-sm"
                       title="Chỉnh sửa thông tin"
                     >
-                      <Edit2Icon className="w-4.5 h-4.5" />
+                      <Edit2Icon className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => onDelete(plot)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      className="p-2 text-slate-600 bg-white border border-slate-200 hover:text-red-700 hover:border-red-300 rounded-lg transition-all shadow-sm"
                       title="Xóa"
                     >
-                      <Trash2Icon className="w-4.5 h-4.5" />
+                      <Trash2Icon className="w-4 h-4" />
                     </button>
                   </div>
                 </td>

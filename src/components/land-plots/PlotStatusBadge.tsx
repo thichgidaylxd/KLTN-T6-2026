@@ -7,13 +7,13 @@ interface PlotStatusBadgeProps {
 export function PlotStatusBadge({ status }: PlotStatusBadgeProps) {
   if (status === 'ACTIVE') {
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] uppercase font-black bg-emerald-100 text-emerald-800 border border-emerald-200 tracking-wider">
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#e8f5e9] text-[#2e7d32]">
         Đang hoạt động
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] uppercase font-black bg-slate-100 text-slate-800 border border-slate-200 tracking-wider">
+    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#ffebee] text-[#c62828]">
       Ngưng hoạt động
     </span>
   )
