@@ -23,7 +23,7 @@ export interface Plot {
 
 export interface CreatePlotRequest {
   plotName: string;
-  geometry: Geometry;
+  geometry?: Geometry;
   description?: string;
 }
 

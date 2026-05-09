@@ -17,8 +17,8 @@ export const useTaskDependencies = (
     if (!taskId) return;
     setLoading(true);
     try {
-      const ids = await seasonPlanTaskService.getTaskDependencies(taskId);
-      setDependencies(ids);
+      const result = await seasonPlanTaskService.getTaskDependencies(taskId);
+      setDependencies(result.dependsOnTasks.map(t => t.id));
     } catch (error) {
       console.error('Lỗi lấy danh sách phụ thuộc:', error);
     } finally {

@@ -50,7 +50,7 @@ export const useCrops = (farmId?: string) => {
       const response = await cropService.getCropTypes();
       return response.data ?? [];
     },
-    enabled: false,
+    enabled: true,
   });
 
   const createCropMutation = useMutation({

@@ -14,7 +14,7 @@ export interface PlanStageStatusChange {
     id: string;
     fullName: string;
     email: string;
-    phone: string;
+    phone?: string | null;
     status: string;
     isLocked: boolean;
     createdAt: string;

@@ -25,17 +25,18 @@ export function DependenciesSection({
   onSelectTask
 }: DependenciesSectionProps) {
   const tasks = phase.tasks || [];
+  const deps = Array.isArray(dependencies) ? dependencies : [];
   
   // Ẩn toàn bộ section nếu:
   // 1. Chỉ có 1 task duy nhất trong giai đoạn (không thể phụ thuộc vào chính mình)
   // 2. VÀ hiện tại cũng chưa có bất kỳ liên kết phụ thuộc nào được thiết lập
-  if (tasks.length <= 1 && dependencies.length === 0) {
+  if (tasks.length <= 1 && deps.length === 0) {
     return null;
   }
 
   // Lấy danh sách các task khác trong cùng giai đoạn để có thể chọn làm dependency
-  const availableTasks = tasks.filter(t => t.id !== taskId && !dependencies.includes(t.id));
-  const dependencyTasks = tasks.filter(t => dependencies.includes(t.id));
+  const availableTasks = tasks.filter(t => t.id !== taskId && !deps.includes(t.id));
+  const dependencyTasks = tasks.filter(t => deps.includes(t.id));
 
   return (
     <div className="px-4 py-3 border-t border-slate-100">

@@ -5,7 +5,7 @@ const actorSchema = z.object({
   id: z.string().uuid(),
   fullName: z.string(),
   email: z.string(),
-  phone: z.string(),
+  phone: z.string().nullable().optional(),
   status: z.string(),
   isLocked: z.boolean(),
   createdAt: z.string(),

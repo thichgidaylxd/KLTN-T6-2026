@@ -16,9 +16,9 @@ export const plotStatusSchema = z.enum(['ACTIVE', 'INACTIVE']);
 
 // Schema cho tạo plot mới
 export const createPlotSchema = z.object({
-  plotName: z.string().min(1, 'Tên lô đất không được để trống').max(200, 'Tên quá dài'),
-  geometry: geometrySchema,
-  description: z.string().optional(),
+  name: z.string().min(1, 'Tên lô đất không được để trống').max(200, 'Tên quá dài'),
+  geometry: geometrySchema.nullable().optional(),
+  description: z.string().nullable().optional(),
 });
 
 // Schema cho cập nhật plot
@@ -26,8 +26,8 @@ export const updatePlotSchema = z.object({
   version: z.number().int().min(0, 'Version không hợp lệ'),
   name: z.string().min(1, 'Tên lô đất không được để trống').max(200, 'Tên quá dài').optional(),
   status: plotStatusSchema.optional(),
-  geometry: geometrySchema.optional(),
-  description: z.string().optional(),
+  geometry: geometrySchema.nullable().optional(),
+  description: z.string().nullable().optional(),
   isClearDescription: z.boolean().optional(),
   isClearGeometry: z.boolean().optional(),
 }).refine(

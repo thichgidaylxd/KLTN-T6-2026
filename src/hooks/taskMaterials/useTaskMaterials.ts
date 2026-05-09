@@ -14,10 +14,15 @@ const withUnwrap = <T,>(promise: Promise<T>) =>
   Object.assign(promise, { unwrap: () => promise });
 
 // ── Hook: Danh sách vật tư của Task ──
-export function useTaskMaterials(planId: string | undefined, stageId: string | undefined, taskId: string | undefined) {
+export function useTaskMaterials(
+  planId: string | undefined,
+  stageId: string | undefined,
+  taskId: string | undefined,
+  enabledParam: boolean = true
+) {
   const queryClient = useQueryClient();
 
-  const enabled = !!planId && !!stageId && !!taskId;
+  const enabled = enabledParam && !!planId && !!stageId && !!taskId;
 
   const taskMaterialsQuery = useQuery<TaskMaterial[]>({
     queryKey: enabled
