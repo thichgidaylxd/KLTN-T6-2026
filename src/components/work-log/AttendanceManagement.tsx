@@ -367,11 +367,11 @@ export function AttendanceManagement({ plan }: AttendanceManagementProps) {
                             </div>
                             <span className={cn(
                               "text-[10px] px-2.5 py-1 rounded-xl font-black uppercase tracking-[1px] border",
-                              log.type === 'OVERTIME'
+                              (log.isOverTime || log.type === 'OVERTIME')
                                 ? "bg-amber-50 text-amber-600 border-amber-100"
                                 : "bg-indigo-50 text-indigo-600 border-indigo-100"
                             )}>
-                              {log.type === 'OVERTIME' ? 'Tăng ca' : 'Chính thức'}
+                              {(log.isOverTime || log.type === 'OVERTIME') ? 'Tăng ca' : 'Chính thức'}
                             </span>
                             <div className="flex items-center gap-2 text-[12px] font-bold text-indigo-600 bg-indigo-50/50 px-3 py-1 rounded-xl border border-indigo-100/30">
                               <Package size={14} />

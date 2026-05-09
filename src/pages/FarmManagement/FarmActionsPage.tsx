@@ -29,7 +29,7 @@ const FarmActionsPage: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { farmSummary, farms, fetchFarms, fetchFarmsSummary, deleteFarm, loading: loadingFarms } = useFarms();
-    const { plots, loading: loadingPlots } = usePlots();
+    const { plots, plotsLoading } = usePlots();
     const { systemCrops, systemCropsLoading } = useCrops(farmId);
     const { plans, fetchStages, loading: loadingPlans } = useSeasonPlans(farmId);
 
@@ -63,8 +63,8 @@ const FarmActionsPage: React.FC = () => {
 
 
     // Ưu tiên tìm trong list 'farms' (full detail) để có description
-    const farm = farms.find((f: any) => f.id === farmId) ||
-        farmSummary.find((f: any) => f.farmId === farmId);
+    const farm = (farms.find((f) => f.id === farmId) as any) ||
+        (farmSummary.find((f) => f.farmId === farmId) as any);
 
     const farmName = farm?.farmName || farm?.name || 'Trang Trại';
     const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
@@ -124,6 +124,7 @@ const FarmActionsPage: React.FC = () => {
             <DashboardHeader
               onEdit={() => setIsEditModalOpen(true)}
               onDelete={() => setIsDeleteModalOpen(true)}
+              showActions={canManage}
             />
 
             <div className="px-8 py-8 space-y-8 max-w-7xl mx-auto">
@@ -136,7 +137,7 @@ const FarmActionsPage: React.FC = () => {
                     cropsCount={systemCrops.length}
                     plansCount={plans.length}
                     planProgress={planProgress}
-                    loading={loadingPlots || systemCropsLoading || loadingPlans}
+                    loading={plotsLoading || systemCropsLoading || loadingPlans}
                 />
 
                 {/* Quick Actions Grid */}
@@ -180,7 +181,7 @@ const FarmActionsPage: React.FC = () => {
 
                 {/* Info & Team Section */}
                 <FarmInfoSection
-                    farmName={farm?.farmName || farm?.name || 'Trang Trại'}
+                    farmName={farmName}
                     description={farm?.description || 'Chưa có mô tả cho trang trại này.'}
                 />
             </div>

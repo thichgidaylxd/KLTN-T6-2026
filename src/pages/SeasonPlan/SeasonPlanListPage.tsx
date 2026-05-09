@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/auth/useAuth';
 import { useSeasonPlans } from '../../hooks/seasonPlans/useSeasonPlans';
 import { useCrops } from '../../hooks/crops/useCrops';
@@ -17,8 +17,9 @@ import { getStatusColor } from '@/components/season-plan/detail/DetailCommon';
 
 export function SeasonPlanListPage() {
   const navigate = useNavigate();
+  const { farmId } = useParams<{ farmId: string }>();
   const { currentFarmId, user, accessToken } = useAuth();
-  const { plans, loading, error, fetchPlans, createPlan, deletePlan: removePlan, fetchStages, fetchTasks } = useSeasonPlans();
+  const { plans, loading, error, fetchPlans, createPlan, deletePlan: removePlan, fetchStages, fetchTasks } = useSeasonPlans(farmId);
   const { fetchCrops, crops } = useCrops();
 
   // Kiểm tra quyền

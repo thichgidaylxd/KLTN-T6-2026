@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { seasonPlanService } from '../../services/seasonPlan/seasonPlanService';
-import type { StatusObject, PlanStageStatusHistory, PlanStageStatusTransition } from '../../types/seasonPlan';
+import { seasonPlanService } from '../../services/seasonplan/seasonPlanService';
 
 const STATUS_KEYS = {
   all: ['planStageStatus'] as const,
@@ -17,12 +16,7 @@ const withUnwrap = <T,>(promise: Promise<T>) =>
 export const usePlanStageStatus = () => {
   const queryClient = useQueryClient();
 
-  // --- Queries ---
 
-  /**
-   * GET /api/v1/plans/{planId}/stages/{stageId}/status-histories
-   * Lịch sử thay đổi trạng thái
-   */
   const getStageStatusHistories = useCallback(
     (planId: string, stageId: string) =>
       withUnwrap(seasonPlanService.getStageStatusHistories(planId, stageId)),
@@ -75,9 +69,18 @@ export const usePlanStageStatus = () => {
   });
 
   /**
-   * Fetch available statuses with React Query (for component usage)
+   * Fetch available statuses (async function)
    */
-  const useAvailableStatuses = (planId: string, stageId: string, enabled = true) =>
+  const getAvailableStatuses = useCallback(
+    (planId: string, stageId: string) =>
+      withUnwrap(seasonPlanService.getAvailableStatuses(planId, stageId)),
+    []
+  );
+
+  /**
+   * Hook for available statuses (React Query)
+   */
+  const useAvailableStatusesHook = (planId: string, stageId: string, enabled = true) =>
     useQuery({
       queryKey: STATUS_KEYS.available(planId, stageId),
       queryFn: () => seasonPlanService.getAvailableStatuses(planId, stageId),
@@ -98,6 +101,7 @@ export const usePlanStageStatus = () => {
     // --- Custom fetchers ---
     getAvailableStatuses,
     getStageStatusHistories,
+    useAvailableStatuses: useAvailableStatusesHook,
 
     // --- Mutation ---
     updateStageStatus: useCallback(
@@ -117,5 +121,57 @@ export const usePlanStageStatus = () => {
     clearData: useCallback(() => {
       queryClient.removeQueries({ queryKey: STATUS_KEYS.all });
     }, [queryClient]),
+  };
+};
+
+/**
+ * Hook for Phase (Stage) status histories and available statuses
+ */
+export const usePlanStageStatusDetails = (
+  planId: string | undefined,
+  stageId: string | undefined,
+  enabledArg: boolean = true
+) => {
+  const queryClient = useQueryClient();
+  const enabled = enabledArg && !!planId && !!stageId;
+
+  const historiesQuery = useQuery({
+    queryKey: enabled
+      ? STATUS_KEYS.histories(planId!, stageId!)
+      : ['planStageStatus', 'histories', 'none'],
+    queryFn: () => {
+      if (!planId || !stageId) throw new Error('Missing IDs');
+      return seasonPlanService.getStageStatusHistories(planId, stageId);
+    },
+    enabled,
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+  const availableQuery = useQuery({
+    queryKey: enabled
+      ? STATUS_KEYS.available(planId!, stageId!)
+      : ['planStageStatus', 'available', 'none'],
+    queryFn: () => {
+      if (!planId || !stageId) throw new Error('Missing IDs');
+      return seasonPlanService.getAvailableStatuses(planId, stageId);
+    },
+    enabled,
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+  return {
+    histories: historiesQuery.data ?? [],
+    historiesLoading: historiesQuery.isLoading || historiesQuery.isFetching,
+    availableStatuses: availableQuery.data ?? [],
+    loading: historiesQuery.isLoading || availableQuery.isLoading,
+    error: historiesQuery.error || availableQuery.error,
+    refetch: () => {
+      if (planId && stageId) {
+        void queryClient.invalidateQueries({ queryKey: STATUS_KEYS.histories(planId, stageId) });
+        void queryClient.invalidateQueries({ queryKey: STATUS_KEYS.available(planId, stageId) });
+      }
+    },
   };
 };

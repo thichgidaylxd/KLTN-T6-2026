@@ -206,11 +206,16 @@ export function WarehouseDetailPage() {
   const { items, loading, fetchItems, createItem, deleteItem } =
     useWarehouseItems(farmId, warehouseId);
 
+  const [activeTab, setActiveTab] = useState<ActiveTab>("items");
   const [filterItemId, setFilterItemId] = useState<string | null>(null);
 
   // Conditionally fetch transactions based on filter
-  const warehouseTx = useTransactionsByWarehouse(farmId, warehouseId);
-  const itemTx = useTransactionsByItem(filterItemId);
+  const warehouseTx = useTransactionsByWarehouse(farmId, warehouseId, undefined, { 
+    enabled: activeTab === "transactions" 
+  });
+  const itemTx = useTransactionsByItem(filterItemId, undefined, { 
+    enabled: activeTab === "transactions" 
+  });
 
   const {
     transactions,
@@ -286,7 +291,7 @@ export function WarehouseDetailPage() {
   const { farmSummary } = useFarms();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>("items");
+
   const [searchTerm, setSearchTerm] = useState("");
   const [locationView, setLocationView] = useState<"grid" | "list">("grid");
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);

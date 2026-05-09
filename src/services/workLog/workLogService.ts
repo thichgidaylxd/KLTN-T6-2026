@@ -80,6 +80,16 @@ export const workLogService = {
     return unwrapData<WorkLogDetail>(response);
   },
 
+  async lockWorkLog(workLogId: string): Promise<WorkLogDetail> {
+    const response = await axiosInstance.patch(`/api/v1/worklogs/${workLogId}/lock`);
+    return unwrapData<WorkLogDetail>(response);
+  },
+
+  async unlockWorkLog(workLogId: string): Promise<WorkLogDetail> {
+    const response = await axiosInstance.patch(`/api/v1/worklogs/${workLogId}/unlock`);
+    return unwrapData<WorkLogDetail>(response);
+  },
+
   // Legacy support for detail by taskId (deprecated)
   async getWorkLogDetailLegacy(_taskId: string, workLogId: string): Promise<WorkLogDetail> {
     return this.getWorkLogDetail(workLogId);

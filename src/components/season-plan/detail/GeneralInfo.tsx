@@ -21,13 +21,13 @@ interface GeneralInfoProps {
   setTempPhase: (p: Phase) => void;
   setTempTask: (t: Task) => void;
   onSelectPhase: (planId: string, phaseId: string) => void;
-  phaseStatusOptions?: { code: string; label: string }[];
+  phaseStatusOptions?: { id: string; code: string; label: string; color?: string }[];
   phaseStatusTransitions?: PlanStageStatusTransition[];
-  taskStatusOptions?: { code: string; label: string }[];
+  taskStatusOptions?: { id: string; code: string; label: string; color?: string }[];
   taskStatusTransitions?: any[]; // use any or import TaskStatusTransition
   availableStatuses?: any[];
-  isAvailableStatusesLoading?: boolean;
   onScrollToDate?: (dateStr: string) => void;
+  onUpdateStatus?: (statusId: string) => void;
 }
 
 export function GeneralInfo({
@@ -45,8 +45,8 @@ export function GeneralInfo({
   taskStatusOptions,
   taskStatusTransitions,
   availableStatuses = [],
-  isAvailableStatusesLoading = false,
   onScrollToDate,
+  onUpdateStatus,
 }: GeneralInfoProps) {
   const { plan, type } = selection;
 
@@ -57,9 +57,23 @@ export function GeneralInfo({
   const validPhaseOptions = (() => {
     // If we have availableStatuses from backend, use them (they already represent valid "To" states)
     if (type === 'PHASE' && availableStatuses.length > 0) {
-      const validCodes = new Set(availableStatuses.map(s => s.code));
-      validCodes.add(currentPhaseStatusCode);
-      return resolvedPhaseStatusOptions.filter(o => validCodes.has(o.code));
+      const options = availableStatuses.map(s => ({
+        id: s.id,
+        code: s.code,
+        label: s.name || s.code,
+        color: s.color
+      }));
+      // Always include current status so chip shows correctly
+      if (!options.find(o => o.code === currentPhaseStatusCode)) {
+        const currentStatus = tempPhase?.status ?? selection.phase?.status;
+        options.unshift({
+          id: (currentStatus as any)?.id || '',
+          code: currentPhaseStatusCode,
+          label: (currentStatus as any)?.name || currentPhaseStatusCode,
+          color: (currentStatus as any)?.color
+        });
+      }
+      return options;
     }
 
     if (!phaseStatusTransitions || phaseStatusTransitions.length === 0) {
@@ -81,9 +95,23 @@ export function GeneralInfo({
   const validTaskOptions = (() => {
     // If we have availableStatuses from backend, use them
     if (type === 'TASK' && availableStatuses.length > 0) {
-      const validCodes = new Set(availableStatuses.map(s => s.code));
-      validCodes.add(currentTaskStatusCode);
-      return resolvedTaskStatusOptions.filter(o => validCodes.has(o.code));
+      const options = availableStatuses.map(s => ({
+        id: s.id,
+        code: s.code,
+        label: s.name || s.code,
+        color: s.color
+      }));
+      // Always include current status so chip shows correctly
+      if (!options.find(o => o.code === currentTaskStatusCode)) {
+        const currentStatus = tempTask?.status ?? selection.task?.status;
+        options.unshift({
+          id: (currentStatus as any)?.id || '',
+          code: currentTaskStatusCode,
+          label: (currentStatus as any)?.name || currentTaskStatusCode,
+          color: (currentStatus as any)?.color
+        });
+      }
+      return options;
     }
 
     if (!taskStatusTransitions || taskStatusTransitions.length === 0) {
@@ -174,16 +202,30 @@ export function GeneralInfo({
             <StatusSelect
               value={statusCodeOf(tempPhase?.status ?? selection.phase?.status)}
               options={validPhaseOptions}
-              onChange={s => tempPhase && setTempPhase({ ...tempPhase, status: { ...tempPhase.status, code: s } })}
-              canEdit={isEditing && validPhaseOptions.length > 0 && !isAvailableStatusesLoading}
+              onChange={statusId => {
+                const opt = availableStatuses.find(o => o.id === statusId);
+                if (tempPhase && opt) {
+                  setTempPhase({ ...tempPhase, status: opt });
+                } else if (onUpdateStatus) {
+                  onUpdateStatus(statusId);
+                }
+              }}
+              canEdit={isEditing && (validPhaseOptions.length > 0 || availableStatuses.length > 0)}
             />
           )}
           {type === 'TASK' && (
             <StatusSelect
               value={statusCodeOf(tempTask?.status ?? selection.task?.status)}
               options={validTaskOptions}
-              onChange={s => tempTask && setTempTask({ ...tempTask, status: { ...tempTask.status, code: s } })}
-              canEdit={isEditing && !isAvailableStatusesLoading}
+              onChange={statusId => {
+                const opt = availableStatuses.find(o => o.id === statusId);
+                if (tempTask && opt) {
+                  setTempTask({ ...tempTask, status: opt });
+                } else if (onUpdateStatus) {
+                  onUpdateStatus(statusId);
+                }
+              }}
+              canEdit={isEditing}
             />
           )}
         </div>

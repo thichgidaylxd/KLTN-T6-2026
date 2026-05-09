@@ -95,8 +95,9 @@ export function SeasonPlanPage() {
     updateTask: updateSeasonTask, updateTaskTime, updateTaskStatus, deleteTask: removeSeasonTask,
     fetchTaskStatuses, fetchTaskStatusTransitions, taskStatuses, taskStatusTransitions,
     addPlotsToPlan, optimisticallyUpdatePhaseTime, optimisticallyUpdateTaskTime,
-    addPlanToState, fetchTaskAvailableStatuses, fetchPhaseAvailableStatuses
-  } = useSeasonPlans();
+    addPlanToState, fetchTaskAvailableStatuses, fetchPhaseAvailableStatuses,
+    getPhaseDetail, getTaskDetail
+  } = useSeasonPlans(farmId);
 
   const { user, accessToken } = useAuth();
   const canEdit = canEditPlan(user?.role, accessToken);
@@ -139,12 +140,14 @@ export function SeasonPlanPage() {
     return matchesSearch;
   });
   const phaseStatusOptions = planStageStatuses.map((s) => ({
+    id: s.id,
     code: s.code,
     label: toLabel(s.code, s.name),
     color: s.color,
   }));
 
   const taskStatusOptions = taskStatuses.map((s) => ({
+    id: s.id,
     code: s.code,
     label: toLabel(s.code, s.name),
     color: s.color,
@@ -300,8 +303,6 @@ export function SeasonPlanPage() {
 
       const isDateChanged = originalPhase.startDate !== data.startDate || originalPhase.endDate !== data.endDate;
       const isNameChanged = originalPhase.name !== data.name;
-      const originalStatusCode = typeof originalPhase.status === 'string' ? originalPhase.status : originalPhase.status?.code;
-      const isStatusChanged = !!data.statusCode && originalStatusCode !== data.statusCode;
 
       if (isDateChanged) {
         await updatePhaseTime(planId, stageId, {
@@ -313,20 +314,6 @@ export function SeasonPlanPage() {
 
       if (isNameChanged) {
         await updatePhase(planId, stageId, { ...data, version: originalPhase.version }).unwrap();
-      }
-
-      if (isStatusChanged) {
-        let targetStatus = planStageStatuses.find((s) => s.code === data.statusCode);
-        if (!targetStatus) {
-          const refreshedStatuses = await fetchPlanStageStatuses().unwrap();
-          targetStatus = refreshedStatuses.find((s: any) => s.code === data.statusCode);
-        }
-        if (!targetStatus) {
-          const availableCodes = planStageStatuses.map((s) => s.code).join(', ');
-          throw new Error(`Không tìm thấy status "${data.statusCode}" trong danh mục Plan Stage Status. Có sẵn: [${availableCodes}]`);
-        }
-
-        await updatePhaseStatus(planId, stageId, targetStatus.id).unwrap();
       }
     } catch (err: any) {
       showError('Lỗi cập nhật giai đoạn', err);
@@ -473,10 +460,6 @@ export function SeasonPlanPage() {
         originalTask.description !== task.description ||
         originalTask.plotId !== plotId;
 
-      const originalStatusCode = typeof originalTask.status === 'string' ? originalTask.status : originalTask.status?.code;
-      const newStatusCode = (task as any).statusCode || (typeof task.status === 'string' ? task.status : task.status?.code);
-      const isStatusChanged = !!newStatusCode && originalStatusCode !== newStatusCode;
-
       // Gộp các thay đổi về nội dung và thời gian vào 1 lần gọi PATCH duy nhất
       // Điều này tránh lỗi xung đột Version (409) khi gọi 2 API liên tiếp
       let currentTaskVersion = originalTask.version;
@@ -492,16 +475,6 @@ export function SeasonPlanPage() {
         }).unwrap();
         // Hook returns { planId, stageId, taskId, task }
         currentTaskVersion = result.task.version ?? 0;
-      }
-
-      // Cập nhật trạng thái (nếu có thay đổi) sau khi đã cập nhật nội dung
-      if (isStatusChanged) {
-        const targetStatus = taskStatuses.find(s => s.code === newStatusCode);
-        if (targetStatus) {
-          await updateTaskStatus(planId, stageId, task.id, targetStatus.id).unwrap();
-        } else {
-          throw new Error(`Không tìm thấy status "${newStatusCode}" trong danh mục Task Status.`);
-        }
       }
       
       toast.success('Cập nhật công việc thành công');
@@ -712,14 +685,14 @@ export function SeasonPlanPage() {
                 setSelectedItem(null);
               }}
               onUpdatePlan={handleUpdatePlan}
-              onUpdatePhase={(id, phase) => {
-                const originalPhase = selectedData?.type === 'PHASE' ? selectedData.phase : null;
+              onUpdatePhase={(id, phase, originalPhase) => {
+                const ori = originalPhase || (selectedData?.type === 'PHASE' ? selectedData.phase : null);
                 handleUpdatePhase(id, phase.id, {
                   name: phase.name,
                   startDate: phase.startDate,
                   endDate: phase.endDate,
                   statusCode: typeof phase.status === 'string' ? phase.status : phase.status?.code,
-                }, originalPhase);
+                }, ori);
               }}
               onDeletePhase={handleDeletePhase}
               onAddPhase={handleSaveNewPhase}
@@ -728,6 +701,10 @@ export function SeasonPlanPage() {
               onAddTask={handleAddTask}
               onUpdateTask={handleUpdateTask}
               onDeleteTask={handleDeleteTask}
+              onFetchPhaseDetail={getPhaseDetail}
+              onFetchTaskDetail={getTaskDetail}
+              onUpdatePhaseStatus={updatePhaseStatus}
+              onUpdateTaskStatus={updateTaskStatus}
               fetchTaskAvailableStatuses={fetchTaskAvailableStatuses}
               fetchPhaseAvailableStatuses={fetchPhaseAvailableStatuses}
               onSelectPhase={(_id, phaseId) =>

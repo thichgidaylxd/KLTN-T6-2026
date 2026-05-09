@@ -58,6 +58,18 @@ export const useWorkLogs = (planId?: string, stageId?: string, taskId?: string) 
         queryKey: WORKLOG_KEYS.byEmployee(employeeId, from, to),
         queryFn: () => workLogService.getEmployeeWorkLogs(employeeId, from, to),
       })), [queryClient]),
+
+    lockWorkLog: useCallback(async (workLogId: string) => {
+      const result = await workLogService.lockWorkLog(workLogId);
+      void queryClient.invalidateQueries({ queryKey: WORKLOG_KEYS.all });
+      return result;
+    }, [queryClient]),
+
+    unlockWorkLog: useCallback(async (workLogId: string) => {
+      const result = await workLogService.unlockWorkLog(workLogId);
+      void queryClient.invalidateQueries({ queryKey: WORKLOG_KEYS.all });
+      return result;
+    }, [queryClient]),
   };
 };
 

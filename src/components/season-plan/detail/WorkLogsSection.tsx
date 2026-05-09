@@ -45,9 +45,9 @@ export function WorkLogsSection({
                     </span>
                     <span className={cn(
                       "text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase",
-                      log.type === 'OVERTIME' ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
+                      (log.isOverTime || log.type === 'OVERTIME') ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
                     )}>
-                      {log.type === 'OVERTIME' ? 'Tăng ca' : 'Chính thức'}
+                      {(log.isOverTime || log.type === 'OVERTIME') ? 'Tăng ca' : 'Chính thức'}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1 line-clamp-1 italic">

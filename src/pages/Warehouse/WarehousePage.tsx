@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Warehouse as WarehouseIcon, MapPin, Plus, Trash2, Loader2, ArrowLeft, Map as MapIcon } from 'lucide-react'
+import { Warehouse as WarehouseIcon, MapPin, Plus, Trash2, Loader2, ArrowLeft, Map as MapIcon, History } from 'lucide-react'
 import { toast } from 'sonner'
 import { Navigate } from 'react-router-dom'
 
@@ -81,7 +81,7 @@ export function WarehousePage() {
   return (
     <div className="w-full flex-1 space-y-6 font-sans py-4 animate-in fade-in duration-500 text-left">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 bg-white p-6 transition-all duration-300">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-6 transition-all duration-300">
         <div className="flex items-center gap-6 w-full text-left">
           <button
             onClick={() => navigate(`/farms/${currentFarmId}/actions`)}
@@ -108,12 +108,19 @@ export function WarehousePage() {
           </div>
         </div>
         {canManage && (
-          <div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => navigate(`/farms/${currentFarmId}/transactions`)}
+              className="flex items-center gap-2 h-10 px-4 text-[13px] font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 whitespace-nowrap shadow-sm"
+            >
+              <History size={16} className="text-emerald-500" />
+              Lịch sử giao dịch
+            </button>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all active:scale-95 group whitespace-nowrap shadow-lg shadow-emerald-200/50"
+              className="flex items-center gap-2 h-10 px-4 text-[13px] font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-all active:scale-95 whitespace-nowrap shadow-lg shadow-emerald-200/50"
             >
-              <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+              <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
               Thêm kho hàng mới
             </button>
           </div>

@@ -45,3 +45,20 @@ export const formatDate = (dateString: string | undefined): string => {
     return dateString;
   }
 };
+
+/**
+ * Format ISO date string to HH:mm
+ */
+export const formatOnlyTime = (dateString: string | undefined): string => {
+  if (!dateString) return '—';
+  try {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(date);
+  } catch (e) {
+    return '—';
+  }
+};

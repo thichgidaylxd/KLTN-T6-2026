@@ -27,19 +27,19 @@ export const farmService = {
     return response.data;
   },
 
-  async getFarmDetail(id: string): Promise<ApiResponse<Farm>> {
+  async getFarmDetail(farmId: string): Promise<ApiResponse<Farm>> {
     const response = await axiosInstance.get<ApiResponse<Farm>>(
-      `/api/v1/farms/${id}`
+      `/api/v1/farms/${farmId}`
     );
     return response.data;
   },
 
-   async selectFarm(farmId: string): Promise<ApiResponse<SelectFarmResponseData>> {
-     const response = await axiosInstance.post<ApiResponse<SelectFarmResponseData>>(
-       `/api/v1/farms/${farmId}/select`
-     );
-     return response.data;
-   },
+  async selectFarm(farmId: string): Promise<ApiResponse<SelectFarmResponseData>> {
+    const response = await axiosInstance.post<ApiResponse<SelectFarmResponseData>>(
+      `/api/v1/farms/${farmId}/select`
+    );
+    return response.data;
+  },
 
   async updateFarm(
     farmId: string,
@@ -73,4 +73,3 @@ export const farmService = {
     return deleteFarmResponseSchema.parse(response.data);
   }
 };
-

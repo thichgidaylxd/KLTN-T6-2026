@@ -111,11 +111,11 @@ export function EmployeeWorkLogModal({ isOpen, onClose, employeeId, employeeName
                       </div>
                       <span className={cn(
                         'px-2 py-0.5 rounded-full text-[10px] font-bold',
-                        log.type === 'OVERTIME'
+                        (log.isOverTime || log.type === 'OVERTIME')
                           ? 'bg-amber-100 text-amber-700'
                           : 'bg-blue-100 text-blue-700',
                       )}>
-                        {log.type === 'OVERTIME' ? 'Tăng ca' : 'Chính thức'}
+                        {(log.isOverTime || log.type === 'OVERTIME') ? 'Tăng ca' : 'Chính thức'}
                       </span>
                     </div>
 

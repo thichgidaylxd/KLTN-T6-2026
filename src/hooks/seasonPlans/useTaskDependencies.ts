@@ -34,6 +34,8 @@ export const useTaskDependencies = (
 
   const addDependency = async (dependsOnTaskId: string) => {
     if (!planId || !stageId || !taskId) return;
+    
+ 
     setAdding(true);
     try {
       await seasonPlanTaskService.addTaskDependency(planId, stageId, taskId, dependsOnTaskId);

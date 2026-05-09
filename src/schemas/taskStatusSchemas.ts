@@ -24,6 +24,7 @@ export const taskStatusChangeSchema = z.object({
 });
 
 export const taskStatusTransitionSchema = z.object({
+  id: z.string().uuid().optional(),
   farm: z.object({
     id: z.string().uuid(),
     name: z.string(),
@@ -33,8 +34,8 @@ export const taskStatusTransitionSchema = z.object({
   farmRole: z.object({
     id: z.string().uuid(),
     name: z.string(),
-    description: z.string().optional(),
-  }).optional(),
+    description: z.string().nullable().optional(),
+  }),
   createdAt: z.string(),
 });
 

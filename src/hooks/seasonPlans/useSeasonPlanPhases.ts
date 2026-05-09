@@ -18,6 +18,29 @@ export const useSeasonPlanPhases = ({ updatePlansCache }: UseSeasonPlanPhasesPro
     planStageStatusTransitions,
     planStageStatusHistoriesByStage,
     error: null,
+    getPhaseDetail: useCallback(
+      (planId: string, stageId: string) =>
+        withUnwrap(
+          seasonPlanPhaseService.getStageById(planId, stageId).then((phase) => {
+            updatePlansCache((prev) =>
+              prev.map((p) =>
+                p.id === planId
+                  ? {
+                    ...p,
+                    phases: (p.phases ?? []).map((ph) =>
+                      ph.id === stageId
+                        ? { ...ph, ...phase, tasks: ph.tasks } // Giữ lại danh sách task hiện có
+                        : ph,
+                    ),
+                  }
+                  : p,
+              ),
+            );
+            return phase;
+          }),
+        ),
+      [updatePlansCache],
+    ),
     fetchStages: useCallback(
       (planId: string) =>
         withUnwrap(
@@ -46,7 +69,7 @@ export const useSeasonPlanPhases = ({ updatePlansCache }: UseSeasonPlanPhasesPro
           seasonPlanPhaseService.deleteStage(planId, stageId).then(() => {
             updatePlansCache((prev) =>
               prev.map((p) =>
-                p.id === planId ? { ...p, phases: p.phases.filter((ph) => ph.id !== stageId) } : p,
+                p.id === planId ? { ...p, phases: (p.phases ?? []).filter((ph) => ph.id !== stageId) } : p,
               ),
             );
             return { planId, stageId };
@@ -61,7 +84,7 @@ export const useSeasonPlanPhases = ({ updatePlansCache }: UseSeasonPlanPhasesPro
             updatePlansCache((prev) =>
               prev.map((p) =>
                 p.id === planId
-                  ? { ...p, phases: p.phases.map((ph) => (ph.id === phase.id ? { ...ph, ...phase } : ph)) }
+                  ? { ...p, phases: (p.phases ?? []).map((ph) => (ph.id === phase.id ? { ...ph, ...phase } : ph)) }
                   : p,
               ),
             );
@@ -77,7 +100,7 @@ export const useSeasonPlanPhases = ({ updatePlansCache }: UseSeasonPlanPhasesPro
             updatePlansCache((prev) =>
               prev.map((p) =>
                 p.id === planId
-                  ? { ...p, phases: p.phases.map((ph) => (ph.id === phase.id ? { ...ph, ...phase } : ph)) }
+                  ? { ...p, phases: (p.phases ?? []).map((ph) => (ph.id === phase.id ? { ...ph, ...phase } : ph)) }
                   : p,
               ),
             );
@@ -93,7 +116,7 @@ export const useSeasonPlanPhases = ({ updatePlansCache }: UseSeasonPlanPhasesPro
             p.id === payload.planId
               ? {
                 ...p,
-                phases: p.phases.map((ph) =>
+                phases: (p.phases ?? []).map((ph) =>
                   ph.id === payload.stageId
                     ? { ...ph, startDate: payload.startDate, endDate: payload.endDate }
                     : ph,
@@ -144,7 +167,7 @@ export const useSeasonPlanPhases = ({ updatePlansCache }: UseSeasonPlanPhasesPro
                 p.id === planId
                   ? {
                     ...p,
-                    phases: p.phases.map((ph) =>
+                    phases: (p.phases ?? []).map((ph) =>
                       ph.id === stageId ? { ...ph, status: result.toStatus } : ph,
                     ),
                   }

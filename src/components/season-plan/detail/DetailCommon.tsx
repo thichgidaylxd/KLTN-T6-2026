@@ -115,8 +115,8 @@ export function InlineText({
 
 export function StatusSelect({ value, options, onChange, canEdit }: {
   value: string | StatusObject;
-  options: { code: string; label: string; color?: string }[];
-  onChange?: (code: string) => void;
+  options: { id: string; code: string; label: string; color?: string }[];
+  onChange?: (id: string) => void;
   canEdit: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -166,7 +166,7 @@ export function StatusSelect({ value, options, onChange, canEdit }: {
               <button
                 key={opt.code}
                 type="button"
-                onClick={() => { onChange?.(opt.code); setOpen(false); }}
+                onClick={() => { onChange?.(opt.id); setOpen(false); }}
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors',
                   opt.code === code ? 'bg-slate-50' : 'hover:bg-slate-50',

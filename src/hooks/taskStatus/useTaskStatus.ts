@@ -54,14 +54,20 @@ export function useTaskStatus() {
       taskStatusId: string;
     }) => {
       const response = await taskStatusService.updateTaskStatus(planId, stageId, taskId, taskStatusId);
-      return response.data;
+      return response;
     },
     onSuccess: (_, { planId, stageId, taskId }) => {
-      void queryClient.invalidateQueries({
+      // 1. Refetch lịch sử ngay lập tức
+      void queryClient.refetchQueries({
         queryKey: TASK_STATUS_KEYS.histories(planId, stageId, taskId),
       });
-      void queryClient.invalidateQueries({
+      // 2. Refetch danh sách trạng thái hợp lệ tiếp theo
+      void queryClient.refetchQueries({
         queryKey: TASK_STATUS_KEYS.available(planId, stageId, taskId),
+      });
+      // 3. Invalidate dữ liệu kế hoạch chính để cập nhật UI Timeline
+      void queryClient.invalidateQueries({
+        queryKey: ['season-plans'],
       });
       toast.success('Cập nhật trạng thái thành công');
     },
@@ -92,8 +98,10 @@ export function useTaskStatusDetails(
   planId: string | undefined,
   stageId: string | undefined,
   taskId: string | undefined,
+  enabledArg: boolean = true
 ) {
-  const enabled = !!planId && !!stageId && !!taskId;
+  const queryClient = useQueryClient();
+  const enabled = enabledArg && !!planId && !!stageId && !!taskId;
 
   const historiesQuery = useQuery<TaskStatusHistory[]>({
     queryKey: enabled
@@ -105,7 +113,8 @@ export function useTaskStatusDetails(
       return response ?? [];
     },
     enabled,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 0, // Luôn tải mới khi chuyển tab
+    gcTime: 0,    // Không giữ cache cũ
   });
 
   const availableQuery = useQuery<TaskStatusObject[]>({
@@ -118,12 +127,14 @@ export function useTaskStatusDetails(
       return response ?? [];
     },
     enabled,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 0, // Luôn tải mới khi chuyển tab
+    gcTime: 0,    // Không giữ cache cũ
   });
 
   return {
-    statusHistories: historiesQuery.data ?? [],
+    histories: historiesQuery.data ?? [],
     availableStatuses: availableQuery.data ?? [],
+    historiesLoading: historiesQuery.isLoading || historiesQuery.isFetching,
     loading: historiesQuery.isLoading || availableQuery.isLoading,
     error: historiesQuery.error || availableQuery.error,
     refetch: () => {

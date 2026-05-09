@@ -4,10 +4,14 @@ import { formatDate } from '@/utils/format';
 import {
   Loader2, Calendar, User, Clock, FileText, Package,
   AlertCircle, Lock, CheckCircle2, XCircle, Briefcase,
-  StickyNote, Hash,
+  StickyNote, Hash, Unlock,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { WorkLogMaterial } from '@/types/workLog/workLog';
+import { useWorkLogs } from '@/hooks/workLog/useWorkLogs';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { extractErrorMessage } from '@/utils/errorUtils';
 
 interface WorkLogDetailModalProps {
   isOpen: boolean;
@@ -49,6 +53,26 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 export function WorkLogDetailModal({ isOpen, onClose, workLogId }: WorkLogDetailModalProps) {
   const { data: detail, isLoading: loading, error } = useWorkLogDetail(workLogId);
+  const { lockWorkLog, unlockWorkLog } = useWorkLogs();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleToggleLock = async () => {
+    if (!detail) return;
+    setIsProcessing(true);
+    try {
+      if (detail.lockedAt) {
+        await unlockWorkLog(workLogId);
+        toast.success('Mở khóa nhật ký thành công');
+      } else {
+        await lockWorkLog(workLogId);
+        toast.success('Chốt công thành công');
+      }
+    } catch (err) {
+      toast.error(extractErrorMessage(err));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -88,8 +112,43 @@ export function WorkLogDetailModal({ isOpen, onClose, workLogId }: WorkLogDetail
           )}
         </div>
 
+        {/* ── Action Bar ── */}
+        {!loading && !error && detail && (
+          <div className="px-6 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                "w-2 h-2 rounded-full animate-pulse",
+                detail.lockedAt ? "bg-amber-500" : "bg-emerald-500"
+              )} />
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Trạng thái: {detail.lockedAt ? 'Đã chốt công' : 'Chờ duyệt'}
+              </span>
+            </div>
+            
+            <button
+              onClick={handleToggleLock}
+              disabled={isProcessing}
+              className={cn(
+                "flex items-center gap-2 px-4 py-1.5 rounded-xl text-[12px] font-black transition-all shadow-sm active:scale-95 disabled:opacity-50",
+                detail.lockedAt 
+                  ? "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50" 
+                  : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200 shadow-lg"
+              )}
+            >
+              {isProcessing ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : detail.lockedAt ? (
+                <Unlock size={14} />
+              ) : (
+                <CheckCircle2 size={14} />
+              )}
+              {detail.lockedAt ? 'Mở khóa sửa' : 'Chốt công (Duyệt)'}
+            </button>
+          </div>
+        )}
+
         {/* ── Body ── */}
-        <div className="max-h-[75vh] overflow-y-auto">
+        <div className="max-h-[70vh] overflow-y-auto scrollbar-hide">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
               <Loader2 size={30} className="animate-spin text-indigo-500" />
@@ -122,11 +181,11 @@ export function WorkLogDetailModal({ isOpen, onClose, workLogId }: WorkLogDetail
                       <InfoRow icon={<Clock size={12} />} label="Loại công">
                         <span className={cn(
                           'px-2 py-0.5 rounded-full text-[11px] font-bold',
-                          detail.type === 'OVERTIME'
+                          (detail.overtime || detail.type === 'OVERTIME')
                             ? 'bg-amber-100 text-amber-700'
                             : 'bg-blue-100 text-blue-700',
                         )}>
-                          {detail.type === 'OVERTIME' ? 'Tăng ca' : 'Chính thức'}
+                          {(detail.overtime || detail.type === 'OVERTIME') ? 'Tăng ca' : 'Chính thức'}
                         </span>
                       </InfoRow>
 

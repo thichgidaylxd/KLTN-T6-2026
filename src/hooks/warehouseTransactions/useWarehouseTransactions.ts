@@ -22,6 +22,7 @@ export const TRANSACTION_KEYS = {
 export const useTransactionsByItem = (
   warehouseItemId?: string | null,
   initialPageable?: PageableParams,
+  options?: { enabled?: boolean },
 ) => {
   const [pageable, setPageable] = useState<PageableParams>({
     page: 0,
@@ -43,8 +44,8 @@ export const useTransactionsByItem = (
       : ['warehouse-transactions', 'item', 'inactive'],
     queryFn: () =>
       warehouseTransactionService.getTransactionsByItem(warehouseItemId!, pageable),
-    enabled: !!warehouseItemId,
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    enabled: (options?.enabled ?? true) && !!warehouseItemId,
+    staleTime: 0, 
   });
 
   return {
@@ -68,6 +69,7 @@ export const useTransactionsByWarehouse = (
   farmId?: string | null,
   warehouseId?: string | null,
   initialPageable?: PageableParams,
+  options?: { enabled?: boolean },
 ) => {
   const [pageable, setPageable] = useState<PageableParams>({
     page: 0,
@@ -89,8 +91,8 @@ export const useTransactionsByWarehouse = (
       : ['warehouse-transactions', 'warehouse', 'inactive'],
     queryFn: () =>
       warehouseTransactionService.getTransactionsByWarehouse(farmId!, warehouseId!, pageable),
-    enabled: !!farmId && !!warehouseId,
-    staleTime: 1000 * 60 * 2,
+    enabled: (options?.enabled ?? true) && !!farmId && !!warehouseId,
+    staleTime: 0,
   });
 
   return {
@@ -113,6 +115,7 @@ export const useTransactionsByWarehouse = (
 export const useTransactionsByFarm = (
   farmId?: string | null,
   initialPageable?: PageableParams,
+  options?: { enabled?: boolean },
 ) => {
   const [pageable, setPageable] = useState<PageableParams>({
     page: 0,
@@ -134,8 +137,8 @@ export const useTransactionsByFarm = (
       : ['warehouse-transactions', 'farm', 'inactive'],
     queryFn: () =>
       warehouseTransactionService.getTransactionsByFarm(farmId!, pageable),
-    enabled: !!farmId,
-    staleTime: 1000 * 60 * 2,
+    enabled: (options?.enabled ?? true) && !!farmId,
+    staleTime: 0,
   });
 
   const refresh = useCallback(() => {
