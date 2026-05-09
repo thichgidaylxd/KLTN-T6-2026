@@ -9,6 +9,7 @@ import LogoBrowser from "../../assets/Logo-browser.png";
 import CornBackground from "../../assets/Corn-Background.png";
 import { getRoleDisplayName } from "../../utils/roleUtils";
 
+
 const navItems = ["Trang Chủ", "Dịch vụ", "Tin tức", "Triển khai", "Kế Hoạch"];
 
 export type NavbarVariant =
@@ -239,66 +240,77 @@ export function Navbar({
             })}
           </div>
 
-          {/* Buttons */}
-          <div
-            className={`flex-1 flex items-center justify-end gap-2.5 shrink-0 transition-all duration-[700ms] ease-out delay-[600ms]
-              ${mounted ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"}`}
-          >
-            {variant === "dashboard" && isAuthenticated ? (
-              <>
-                <div
-                  className={`flex flex-col gap-0.5 h-12 px-4 py-1.5 rounded-xl border ${scrolled
-                    ? "border-gray-300 bg-gray-50"
-                    : "border-light-yellow-1 bg-white/5"
-                    }`}
-                >
-                  <span
-                    className={`font-roboto text-[13px] font-semibold leading-tight ${scrolled ? "text-gray-800" : "text-light-yellow-1"
-                      }`}
-                  >
-                    {user?.fullName || roleDisplay}
-                  </span>
-                  <span
-                    className={`font-roboto text-[11px] font-normal leading-tight ${scrolled ? "text-gray-600" : "text-light-yellow-1/80"
-                      }`}
-                  >
-                    {roleDisplay}
-                  </span>
-                </div>
-                <Button
-                  onClick={handleLogout}
-                  variant={scrolled ? "outline-dark" : "outline-yellow"}
-                  size="md"
-                  className="rounded-xl"
-                >
-                  Đăng xuất
-                </Button>
-              </>
-            ) : (
-              <>
-                {showLoginButton && (
+           {/* Buttons */}
+           <div
+             className={`flex-1 flex items-center justify-end gap-2.5 shrink-0 transition-all duration-[700ms] ease-out delay-[600ms]
+               ${mounted ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"}`}
+           >
+              {isAuthenticated ? (
+                <>
+                  {variant === "dashboard" ? (
+                    <Button
+                      onClick={() => navigate("/dashboard")}
+                      variant={scrolled ? "outline-dark" : "outline-yellow"}
+                      size="sm"
+                      className="flex flex-col items-start gap-0.5 px-3 py-1.5 rounded-lg font-roboto"
+                    >
+                      <span
+                        className={`text-xs font-semibold leading-tight ${scrolled ? "text-gray-800" : "text-light-yellow-1"
+                          }`}
+                      >
+                        {user?.fullName || roleDisplay}
+                      </span>
+                      <span
+                        className={`text-[10px] font-normal leading-tight ${scrolled ? "text-gray-600" : "text-light-yellow-1/80"
+                          }`}
+                      >
+                        {roleDisplay}
+                      </span>
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => navigate("/dashboard")}
+                      variant={scrolled ? "outline-dark" : "outline-yellow"}
+                      size="sm"
+                      className="flex items-center justify-center gap-1 rounded-lg font-roboto font-medium text-xs"
+                    >
+                      Vào hệ thống
+                    </Button>
+                  )}
                   <Button
-                    onClick={() => navigate("/login")}
+                    onClick={handleLogout}
                     variant={scrolled ? "outline-dark" : "outline-yellow"}
-                    className="flex items-center justify-center gap-1.5 h-[42px] px-6 rounded-xl font-roboto font-bold text-[14px] transition-all duration-300"
+                    size="sm"
+                    className="rounded-lg"
                   >
-                    {variant === "register" ? "Đăng Nhập Ngay" : "Đăng nhập"}
-                    <ArrowUpRightIcon className="w-4 h-4 flex-shrink-0" />
+                    Đăng xuất
                   </Button>
-                )}
-                {showCreateButton && (
-                  <Button
-                    onClick={() => navigate("/register")}
-                    variant="cta-yellow"
-                    className="flex items-center justify-center gap-1.5 h-[42px] px-6 rounded-xl font-roboto font-bold text-[14px] transition-all duration-300 transform hover:scale-105 active:scale-95"
-                  >
-                    Tạo Tài Khoản
-                    <ArrowUpRightIcon className="w-4 h-4 flex-shrink-0" />
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
+                </>
+              ) : (
+               <>
+                 {showLoginButton && (
+                   <Button
+                     onClick={() => navigate("/login")}
+                     variant={scrolled ? "outline-dark" : "outline-yellow"}
+                     className="flex items-center justify-center gap-1.5 h-[42px] px-6 rounded-xl font-roboto font-bold text-[14px] transition-all duration-300"
+                   >
+                     {variant === "register" ? "Đăng Nhập Ngay" : "Đăng nhập"}
+                     <ArrowUpRightIcon className="w-4 h-4 flex-shrink-0" />
+                   </Button>
+                 )}
+                 {showCreateButton && (
+                   <Button
+                     onClick={() => navigate("/register")}
+                     variant="cta-yellow"
+                     className="flex items-center justify-center gap-1.5 h-[42px] px-6 rounded-xl font-roboto font-bold text-[14px] transition-all duration-300 transform hover:scale-105 active:scale-95"
+                   >
+                     Tạo Tài Khoản
+                     <ArrowUpRightIcon className="w-4 h-4 flex-shrink-0" />
+                   </Button>
+                 )}
+               </>
+             )}
+           </div>
         </div>
 
         {/* Divider khi chưa scroll */}

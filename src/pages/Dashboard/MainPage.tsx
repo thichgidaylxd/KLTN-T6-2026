@@ -17,26 +17,33 @@ import {
  * Hook lấy số liệu tổng hợp từ Redux Store
  */
 function useDashboardData(farmId?: string) {
-  const { hubToken } = useAuth();
   const [isSyncing, setIsSyncing] = useState(false);
   
   const { plots, plotsLoading, fetchPlots, clearPlots } = usePlots();
   const { crops, cropTypes, loading: cropsLoading, cropTypesLoading, fetchCrops, fetchCropTypes } = useCrops();
 
   useEffect(() => {
-    // 1. Luôn load danh mục cây trồng và loại cây (Global)
-    fetchCrops();
-    fetchCropTypes();
+    const loadData = async () => {
+      try {
+        // 1. Luôn load danh mục cây trồng và loại cây (Global)
+        // Lưu ý: Cần Hub Token cho các API này. Nếu đang dùng Farm Token có thể bị 403.
+        await Promise.allSettled([fetchCrops(), fetchCropTypes()]);
+        
+        if (farmId) {
+          // 2a. CHẾ ĐỘ TRANG TRẠI: Load lô đất của farm này
+          fetchPlots();
+        } else {
+          // 2b. CHẾ ĐỘ HUB: Xóa plots hiện tại
+          clearPlots();
+        }
+      } catch (error) {
+        console.error("Dashboard data sync error:", error);
+      } finally {
+        setIsSyncing(false);
+      }
+    };
 
-    if (farmId) {
-      // 2a. CHẾ ĐỘ TRANG TRẠI: Load lô đất của farm này
-      fetchPlots(farmId);
-      setIsSyncing(false);
-    } else {
-      // 2b. CHẾ ĐỘ HUB: Xóa plots hiện tại
-      clearPlots();
-      setIsSyncing(false);
-    }
+    loadData();
   }, [farmId, fetchCrops, fetchCropTypes, fetchPlots, clearPlots]);
 
   const isLoading = (farmId && plotsLoading) || cropsLoading || cropTypesLoading || isSyncing;

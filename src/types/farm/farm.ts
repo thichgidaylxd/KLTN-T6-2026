@@ -47,14 +47,14 @@ export interface SelectFarmResponseData {
 export interface FarmRole {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
 }
 
 export interface FarmMember {
   userId: string;
   fullName: string;
   email: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   role: FarmRole;
   isActive: boolean;
   joinedAt: string;
@@ -90,7 +90,7 @@ export interface AcceptInvitationResponse {
   userId: string;
   fullName: string;
   email: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   role: FarmRole;
   isActive: boolean;
   joinedAt: string;

@@ -33,6 +33,12 @@ export default function DashboardLayout() {
       return;
     }
 
+    // Tự động thoát farm context khi quay lại trang dashboard tổng
+    if (!urlFarmId && currentFarmId && location.pathname === "/dashboard") {
+      clearFarmContext();
+      return;
+    }
+
     const syncFarmContext = async () => {
       if (urlFarmId && urlFarmId !== 'undefined' && urlFarmId !== currentFarmId) {
         setIsSyncing(true);
@@ -50,7 +56,7 @@ export default function DashboardLayout() {
     };
 
     syncFarmContext();
-  }, [urlFarmId, currentFarmId, selectFarm, isAdmin, location.pathname, navigate]);
+  }, [urlFarmId, currentFarmId, selectFarm, clearFarmContext, isAdmin, location.pathname, navigate]);
 
   const getActive = () => {
     const p = location.pathname;
