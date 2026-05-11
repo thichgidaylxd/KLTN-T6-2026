@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, CheckCircle2, Edit2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/utils/cn';
 import { StatusObject } from '@/types/seasonPlan';
@@ -81,18 +81,24 @@ export function statusChipClass(code: string): string {
 }
 
 
-export function DetailRow({ icon: Icon, label, children }: {
+export function DetailRow({ icon: Icon, label, children, editable }: {
   icon: React.ElementType;
   label: string;
   children: React.ReactNode;
+  editable?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0 group">
+    <div className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0 group relative">
       <div className="flex items-center gap-2 w-[110px] shrink-0">
         <Icon size={14} className="text-slate-400 shrink-0" />
         <span className="text-[11px] text-slate-500 font-medium truncate">{label}</span>
       </div>
-      <div className="flex-1 min-w-0 flex items-center">{children}</div>
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        {children}
+        {editable && (
+          <Edit2 size={10} className="text-indigo-400 ml-auto shrink-0" />
+        )}
+      </div>
     </div>
   );
 }

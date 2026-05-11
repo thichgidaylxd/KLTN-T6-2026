@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Loader2, CheckCircle2, XCircle, Eye, EyeOff, Sprout } from 'lucide-react'
 import { toast } from 'sonner'
@@ -41,52 +41,65 @@ export function AcceptInvitationPage() {
     const [showPassword, setShowPassword] = useState(false)
     const [loginError, setLoginError] = useState('')
     const [isLoggingIn, setIsLoggingIn] = useState(false)
+    const hasAcceptedRef = useRef(false)
 
     // Accept invitation mutation — invalidates all queries on success
     const acceptMutation = useMutation({
         mutationFn: (id: string) => farmInvitationService.acceptInvitation(id),
         onSuccess: () => {
             queryClient.invalidateQueries()
-            toast.success('Đã chấp nhận lời mời')
         },
         onError: (err: unknown) => {
-            toast.error(extractErrorMessage(err))
+            console.error('[AcceptInvitationPage] Error accepting invitation:', err)
         }
     })
 
     // Bước 1 — fetch thông tin invitation (public, không cần auth)
     useEffect(() => {
-        const fetchInvitation = async () => {
+        let isMounted = true;
+
+        const fetchAndAccept = async () => {
             try {
                 const preview = await farmInvitationService.getInvitationPreview(invitationId as string)
+                if (!isMounted) return;
+                
                 setInvitation(preview)
-                // Pre-fill email từ invitation
                 setEmail(preview.email)
+
+                // Kiểm tra đã login chưa
+                const token = sessionStorage.getItem('accessToken')
+                if (token) {
+                    if (hasAcceptedRef.current) return;
+                    hasAcceptedRef.current = true;
+                    
+                    setPhase('accepting')
+                    try {
+                        await acceptMutation.mutateAsync(invitationId as string)
+                        if (!isMounted) return;
+                        setPhase('success')
+                        toast.success('Đã chấp nhận lời mời thành công')
+                        setTimeout(() => navigate('/farms'), 3000)
+                    } catch (err: unknown) {
+                        if (!isMounted) return;
+                        setErrorMsg(extractErrorMessage(err))
+                        setPhase('error')
+                    }
+                } else {
+                    setPhase('login-required')
+                }
             } catch (err: unknown) {
+                if (!isMounted) return;
                 setErrorMsg(extractErrorMessage(err))
                 setPhase('error')
-                return
-            }
-
-            // Kiểm tra đã login chưa
-            const token = sessionStorage.getItem('accessToken')
-            if (token) {
-                // Đã login → accept luôn
-                setPhase('accepting')
-                try {
-                    await acceptMutation.mutateAsync(invitationId as string)
-                    setPhase('success')
-                    setTimeout(() => navigate('/farms'), 4000)
-                } catch (err: unknown) {
-                    setErrorMsg(extractErrorMessage(err))
-                    setPhase('error')
-                }
-            } else {
-                setPhase('login-required')
             }
         }
-        void fetchInvitation()
-    }, [invitationId, navigate, acceptMutation])
+
+        void fetchAndAccept()
+
+        return () => {
+            isMounted = false;
+        }
+    }, [invitationId, navigate]); // Removed acceptMutation from dependencies to be safe
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -106,14 +119,19 @@ export function AcceptInvitationPage() {
                 // Dispatch vào Redux — giống hệt useLogin hook
                 dispatch(loginSuccess(response.data))
                 // Sau khi store có auth → accept invitation
+                if (hasAcceptedRef.current) return;
+                hasAcceptedRef.current = true;
+
                 setPhase('accepting')
                 try {
                     await acceptMutation.mutateAsync(invitationId as string)
                     setPhase('success')
-                    setTimeout(() => navigate('/farms'), 4000)
+                    toast.success('Đã chấp nhận lời mời thành công')
+                    setTimeout(() => navigate('/farms'), 3000)
                 } catch (err: unknown) {
                     setErrorMsg(extractErrorMessage(err))
                     setPhase('error')
+                    hasAcceptedRef.current = false;
                 }
             } else {
                 setLoginError('Email hoặc mật khẩu không đúng')

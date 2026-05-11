@@ -70,6 +70,7 @@ const FOOTER_ITEMS = [
     title: "Hệ thống",
     items: [
       { key: "subscription", label: "Gói cước & Dịch vụ", icon: CreditCard, roles: ["owner"] },
+  { key: "config", label: "Cấu hình", icon: Settings, roles: ["owner", "admin", "manager", "employee"] },
     ],
   },
 ];

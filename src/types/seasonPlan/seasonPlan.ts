@@ -102,6 +102,7 @@ export interface Task {
   completedAt?: string;
   createdBy?: string;
   createdAt?: string;
+  dependencies?: any[]; // Quan hệ phụ thuộc
   // Local/Extended fields for resource management
   assignedMembers?: string[];
   materials?: TaskMaterial[];
@@ -225,4 +226,21 @@ export interface RemoveTaskAssigneeRequest {
 
 export interface TaskAssigneeWithTask extends TaskAssignee {
   task: Task;
+}
+
+export interface PagedData<T> {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+  first: boolean;
+  empty: boolean;
+}
+
+export interface PageableParams {
+  page: number;
+  size: number;
+  sort?: string[];
 }

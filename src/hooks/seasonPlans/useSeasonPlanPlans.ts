@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CreateSeasonPlanRequest, SeasonPlan } from '../../types/seasonPlan';
-import { seasonPlanService } from '../../services/seasonplan/seasonPlanService';
+import { CreateSeasonPlanRequest, SeasonPlan } from '@/types/seasonPlan';
+import { seasonPlanService } from '@/services/seasonplan/seasonPlanService';
 import { createUpdatePlansCache, PLAN_KEYS, withUnwrap } from './seasonPlanShared';
 import { useAuth } from '../auth/useAuth';
 
@@ -11,7 +11,9 @@ export const useSeasonPlanPlans = (farmId?: string) => {
   const [activeFarmId, setActiveFarmId] = useState<string | null>(farmId || currentFarmId);
   
   useEffect(() => {
-    if (currentFarmId && !farmId) {
+    if (farmId) {
+      setActiveFarmId(farmId);
+    } else if (currentFarmId) {
       setActiveFarmId(currentFarmId);
     }
   }, [currentFarmId, farmId]);
@@ -22,6 +24,21 @@ export const useSeasonPlanPlans = (farmId?: string) => {
     queryKey: activeFarmId ? PLAN_KEYS.byFarm(activeFarmId) : PLAN_KEYS.list,
     queryFn: () => seasonPlanService.getPlans(),
     enabled: !!activeFarmId || !farmId,
+    // Merge existing phases/plots from cache when refetching list
+    select: (newData: SeasonPlan[]) => {
+      const currentData = queryClient.getQueryData<SeasonPlan[]>(
+        activeFarmId ? PLAN_KEYS.byFarm(activeFarmId) : PLAN_KEYS.list
+      );
+      
+      return newData.map(newPlan => {
+        const existing = currentData?.find(p => p.id === newPlan.id);
+        return {
+          ...newPlan,
+          phases: newPlan.phases?.length ? newPlan.phases : (existing?.phases ?? []),
+          plots: newPlan.plots?.length ? newPlan.plots : (existing?.plots ?? []),
+        };
+      });
+    }
   });
 
   const createPlanMutation = useMutation({
@@ -44,7 +61,7 @@ export const useSeasonPlanPlans = (farmId?: string) => {
     onSuccess: (updatedPlan) => {
       updatePlansCache((prev) =>
         prev.map((plan) =>
-          plan.id === updatedPlan.id ? { ...updatedPlan, phases: plan.phases, plots: plan.plots } : plan,
+          plan.id === (updatedPlan as any).id ? { ...(updatedPlan as any), phases: plan.phases, plots: plan.plots } : plan,
         ),
       );
     },
@@ -68,6 +85,28 @@ export const useSeasonPlanPlans = (farmId?: string) => {
         return withUnwrap(queryClient.fetchQuery({ queryKey: key, queryFn: () => seasonPlanService.getPlans() }));
       },
       [queryClient, activeFarmId],
+    ),
+    fetchPlan: useCallback(
+      (planId: string) =>
+        withUnwrap(
+          queryClient.fetchQuery({
+            queryKey: PLAN_KEYS.detail(planId),
+            queryFn: async () => {
+              const plan = await seasonPlanService.getPlanById(planId);
+              // Update list cache with this new data
+              updatePlansCache((prev) =>
+                prev.map((p) => (p.id === planId ? { 
+                  ...p, 
+                  ...plan, 
+                  phases: (plan.phases && plan.phases.length > 0) ? plan.phases : p.phases,
+                  plots: (plan.plots && plan.plots.length > 0) ? plan.plots : p.plots 
+                } : p)),
+              );
+              return plan;
+            },
+          }),
+        ),
+      [queryClient, updatePlansCache],
     ),
     createPlan: useCallback((data: CreateSeasonPlanRequest) => withUnwrap(createPlanMutation.mutateAsync(data)), [createPlanMutation]),
     updatePlan: useCallback(
@@ -101,12 +140,25 @@ export const useSeasonPlanPlans = (farmId?: string) => {
                 const incoming = result.addedPlots ?? [];
                 const merged = [...current];
                 incoming.forEach((item: { plotId: string; plotName: string }) => {
-                  if (!merged.some((m) => m.plotId === item.plotId)) merged.push(item);
+                   if (!merged.some((m) => m.plotId === item.plotId)) merged.push(item);
                 });
                 return { ...p, plots: merged };
               }),
             );
             return { planId, addedPlots: result.addedPlots ?? [] };
+          }),
+        ),
+      [updatePlansCache],
+    ),
+    deletePlotFromPlan: useCallback(
+      (planId: string, plotId: string) =>
+        withUnwrap(
+          seasonPlanService.removePlotFromPlan(planId, plotId).then(() => {
+            updatePlansCache((prev) =>
+              prev.map((p) =>
+                p.id === planId ? { ...p, plots: p.plots?.filter((pt) => pt.plotId !== plotId) } : p,
+              ),
+            );
           }),
         ),
       [updatePlansCache],

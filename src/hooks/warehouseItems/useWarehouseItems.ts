@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateWarehouseItemDto, WarehouseItem } from '../../types/warehouseItem/warehouseItem';
+import { UpdateWarehouseItemInput } from '../../schemas/warehouseItemSchemas';
 import { warehouseItemService } from '../../services/warehouseItem/warehouseItemService';
 
 const ITEM_KEYS = {
@@ -61,7 +62,7 @@ export const useWarehouseItems = (farmId?: string | null, warehouseId?: string |
       fId: string;
       wId: string;
       itemId: string;
-      itemData: any;
+      itemData: UpdateWarehouseItemInput;
     }) => {
       return warehouseItemService.updateWarehouseItem(fId, wId, itemId, itemData);
     },
@@ -150,7 +151,7 @@ export const useWarehouseItems = (farmId?: string | null, warehouseId?: string |
       [createItemMutation],
     ),
     updateItem: useCallback(
-      (fId: string, wId: string, itemId: string, itemData: any) =>
+      (fId: string, wId: string, itemId: string, itemData: UpdateWarehouseItemInput) =>
         withUnwrap(updateItemMutation.mutateAsync({ fId, wId, itemId, itemData })),
       [updateItemMutation],
     ),

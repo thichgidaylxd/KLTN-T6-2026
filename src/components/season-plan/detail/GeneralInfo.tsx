@@ -1,10 +1,11 @@
-import { Calendar, Package, Zap, CheckSquare, Flag, FileText, ArrowLeftToLine, ArrowRightToLine } from 'lucide-react';
+import { Calendar, Package, Zap, CheckSquare, Flag, FileText, ArrowLeftToLine, ArrowRightToLine, Edit2 } from 'lucide-react';
 import { SeasonPlan, Phase, Task } from '@/types/seasonPlan';
-import { PlanStageStatusTransition } from '@/services/seasonplan/planStageStatusService';
+import { PlanStageStatusTransition } from '@/services/plan/planStageStatusService';
 import { DateInput } from '@/components/ui/DateInput';
 import { 
   DetailRow, InlineText, StatusSelect, statusCodeOf, fmtDate 
 } from './DetailCommon';
+import { cn } from '@/utils/cn';
 
 interface GeneralInfoProps {
   selection: {
@@ -28,6 +29,8 @@ interface GeneralInfoProps {
   availableStatuses?: any[];
   onScrollToDate?: (dateStr: string) => void;
   onUpdateStatus?: (statusId: string) => void;
+  onStartEdit?: () => void;
+  canEdit?: boolean;
 }
 
 export function GeneralInfo({
@@ -47,6 +50,8 @@ export function GeneralInfo({
   availableStatuses = [],
   onScrollToDate,
   onUpdateStatus,
+  onStartEdit,
+  canEdit = false,
 }: GeneralInfoProps) {
   const { plan, type } = selection;
 
@@ -141,19 +146,36 @@ export function GeneralInfo({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <div className="flex-1 min-w-0">
-                <InlineText
-                  canEdit={isEditing}
-                  value={
-                    type === 'PLAN' ? tempPlan?.name ?? '' :
-                      type === 'PHASE' ? tempPhase?.name ?? '' :
-                        tempTask?.name ?? ''
-                  }
-                  onChange={v => {
-                    if (type === 'PLAN' && tempPlan) setTempPlan({ ...tempPlan, name: v });
-                    if (type === 'PHASE' && tempPhase) setTempPhase({ ...tempPhase, name: v });
-                    if (type === 'TASK' && tempTask) setTempTask({ ...tempTask, name: v });
-                  }}
-                />
+                <div 
+                  className={cn(
+                    "group relative flex items-center gap-2 rounded-md transition-all px-1 -ml-1",
+                    canEdit && !isEditing && "hover:bg-slate-50 cursor-pointer"
+                  )}
+                  onClick={() => canEdit && !isEditing && onStartEdit?.()}
+                >
+                  <InlineText
+                    canEdit={isEditing && type !== 'PLAN'}
+                    value={
+                      type === 'PLAN' ? tempPlan?.name ?? '' :
+                        type === 'PHASE' ? tempPhase?.name ?? '' :
+                          tempTask?.name ?? ''
+                    }
+                    onChange={v => {
+                      if (type === 'PLAN' && tempPlan) setTempPlan({ ...tempPlan, name: v });
+                      if (type === 'PHASE' && tempPhase) setTempPhase({ ...tempPhase, name: v });
+                      if (type === 'TASK' && tempTask) setTempTask({ ...tempTask, name: v });
+                    }}
+                  />
+                  {(isEditing || (canEdit && type !== 'PLAN')) && (
+                    <Edit2 
+                      size={12} 
+                      className={cn(
+                        "transition-all shrink-0",
+                        isEditing ? "text-indigo-500" : "text-slate-400 opacity-50"
+                      )} 
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Persistent Navigation Buttons */}
@@ -235,14 +257,14 @@ export function GeneralInfo({
       <div className="px-4 py-1">
         {type === 'PLAN' && (
           <>
-            <DetailRow icon={Calendar} label="Ngày bắt đầu">
+            <DetailRow icon={Calendar} label="Ngày bắt đầu" editable={canEdit}>
               {isEditing ? (
                 <DateInput value={tempPlan?.startDate ?? plan.startDate ?? ''} onChange={val => updateTemp('startDate', val)} />
               ) : (
                 <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempPlan?.startDate ?? plan.startDate)}</span>
               )}
             </DetailRow>
-            <DetailRow icon={Calendar} label="Ngày kết thúc">
+            <DetailRow icon={Calendar} label="Ngày kết thúc" editable={canEdit}>
               {isEditing ? (
                 <DateInput value={tempPlan?.endDate ?? plan.endDate ?? ''} onChange={val => updateTemp('endDate', val)} />
               ) : (
@@ -269,14 +291,14 @@ export function GeneralInfo({
 
         {type === 'PHASE' && selection.phase && (
           <>
-            <DetailRow icon={Calendar} label="Ngày bắt đầu">
+            <DetailRow icon={Calendar} label="Ngày bắt đầu" editable={canEdit}>
               {isEditing ? (
                 <DateInput value={tempPhase?.startDate ?? selection.phase!.startDate} onChange={val => updateTemp('startDate', val)} />
               ) : (
                 <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempPhase?.startDate ?? selection.phase!.startDate)}</span>
               )}
             </DetailRow>
-            <DetailRow icon={Calendar} label="Ngày kết thúc">
+            <DetailRow icon={Calendar} label="Ngày kết thúc" editable={canEdit}>
               {isEditing ? (
                 <DateInput value={tempPhase?.endDate ?? selection.phase!.endDate} onChange={val => updateTemp('endDate', val)} />
               ) : (
@@ -294,14 +316,14 @@ export function GeneralInfo({
 
         {type === 'TASK' && selection.task && selection.phase && (
           <>
-            <DetailRow icon={Calendar} label="Ngày bắt đầu">
+            <DetailRow icon={Calendar} label="Ngày bắt đầu" editable={canEdit}>
               {isEditing ? (
                 <DateInput value={tempTask?.startDate ?? selection.task!.startDate} onChange={val => updateTemp('startDate', val)} />
               ) : (
                 <span className="text-[12px] text-slate-700 font-bold tabular-nums">{fmtDate(tempTask?.startDate ?? selection.task!.startDate)}</span>
               )}
             </DetailRow>
-            <DetailRow icon={Calendar} label="Ngày kết thúc">
+            <DetailRow icon={Calendar} label="Ngày kết thúc" editable={canEdit}>
               {isEditing ? (
                 <DateInput value={tempTask?.endDate ?? selection.task!.endDate} onChange={val => updateTemp('endDate', val)} />
               ) : (
@@ -319,7 +341,7 @@ export function GeneralInfo({
             <DetailRow icon={Flag} label="Kế hoạch">
               <span className="text-[12px] font-medium text-indigo-600">{plan.name}</span>
             </DetailRow>
-            <DetailRow icon={Package} label="Lô đất">
+            <DetailRow icon={Package} label="Lô đất" editable={canEdit}>
               {isEditing ? (
                 <select
                   value={tempTask?.plotId ?? ''}
@@ -341,26 +363,43 @@ export function GeneralInfo({
         )}
       </div>
 
-      {/* Description */}
-      <div className="px-4 py-3 border-t border-slate-100">
-        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          <FileText size={11} /> Mô tả
-        </p>
-        <InlineText
-          multiline
-          canEdit={isEditing && type !== 'PLAN'}
-          placeholder="Thêm mô tả..."
-          value={
-            type === 'PLAN' ? (plan.description ?? '') :
-              type === 'PHASE' ? (tempPhase?.description ?? selection.phase?.description ?? '') :
-                (tempTask?.description ?? selection.task?.description ?? '')
-          }
-          onChange={v => {
-            if (type === 'PHASE' && tempPhase) setTempPhase({ ...tempPhase, description: v });
-            if (type === 'TASK' && tempTask) setTempTask({ ...tempTask, description: v });
-          }}
-        />
-      </div>
+      {/* Description - Only for PLAN (note) and TASK (description) */}
+      {type !== 'PHASE' && (
+        <div className="px-4 py-3 border-t border-slate-100">
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <FileText size={11} /> Mô tả
+          </p>
+          <div 
+            className={cn(
+              "group relative flex items-center gap-2 rounded-md transition-all px-1 -ml-1",
+              canEdit && !isEditing && "hover:bg-slate-50 cursor-pointer"
+            )}
+            onClick={() => canEdit && !isEditing && onStartEdit?.()}
+          >
+            <InlineText
+              multiline
+              canEdit={isEditing && type !== 'PLAN'}
+              placeholder="Thêm mô tả..."
+              value={
+                type === 'PLAN' ? (plan.description ?? '') :
+                  (tempTask?.description ?? selection.task?.description ?? '')
+              }
+              onChange={v => {
+                if (type === 'TASK' && tempTask) setTempTask({ ...tempTask, description: v });
+              }}
+            />
+            {(isEditing || (canEdit && type !== 'PLAN')) && (
+              <Edit2 
+                size={12} 
+                className={cn(
+                  "transition-all shrink-0",
+                  isEditing ? "text-indigo-500" : "text-slate-400 opacity-50"
+                )} 
+              />
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

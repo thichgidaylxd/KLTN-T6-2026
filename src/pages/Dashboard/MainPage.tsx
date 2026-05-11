@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/auth/useAuth';
 import { usePlots } from '../../hooks/plots/usePlots';
 import { useCrops } from '../../hooks/crops/useCrops';
 import { useSeasonPlans } from '../../hooks/seasonPlans/useSeasonPlans';
+import { useAssignedTasks } from '../../hooks/tasks/useAssignedTasks';
 import {
   StatCard,
   WeatherCard,
@@ -35,8 +36,8 @@ function useDashboardData(farmId?: string) {
       try {
         // Fetch farm-specific data that might not be auto-fetching or needs explicit trigger
         await Promise.allSettled([
-          fetchFarmCrops(farmId),
-          fetchPlans(farmId)
+          fetchFarmCrops(),
+          fetchPlans()
         ]);
       } catch (error) {
         console.error("Dashboard farm sync error:", error);
@@ -82,6 +83,7 @@ export default function MainPage() {
   const { farmId: routeFarmId } = useParams<{ farmId: string }>();
   const navigate = useNavigate();
   const { user, currentFarmId } = useAuth();
+  const { tasks: assignedTasks, loading: assignedLoading } = useAssignedTasks(user?.id);
   
   // Ưu tiên farmId từ URL, nếu không có thì lấy farmId hiện tại từ context
   const farmId = routeFarmId || currentFarmId || undefined;
@@ -94,7 +96,12 @@ export default function MainPage() {
     }
   }, [user, navigate]);
 
-  const { stats, npkData, isLoading } = useDashboardData(farmId);
+  const { stats, npkData, isLoading: dashboardLoading } = useDashboardData(farmId);
+  const isLoading = dashboardLoading || assignedLoading;
+
+  // Tính toán số lượng task hoàn thành và chưa hoàn thành cho riêng user hiện tại
+  const completedCount = assignedTasks.filter(t => t.status?.isTerminal).length;
+  const pendingCount = assignedTasks.length - completedCount;
 
   return (
     <div className="flex h-full w-full overflow-hidden p-3 gap-3">
@@ -102,8 +109,8 @@ export default function MainPage() {
       <div className="flex flex-col flex-1 gap-3 overflow-hidden">
 
         <TaskBar
-          completed={0}
-          pending={0}
+          completed={completedCount}
+          pending={pendingCount}
           isLoading={isLoading}
         />
 

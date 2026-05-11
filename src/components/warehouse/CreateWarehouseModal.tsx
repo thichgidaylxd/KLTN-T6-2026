@@ -44,7 +44,7 @@ export function CreateWarehouseModal({ farmId, isOpen, onClose, onSuccess }: Pro
   // Tự động nạp danh sách lô đất và kho hàng khi mở modal
   useEffect(() => {
     if (isOpen && farmId) {
-      void fetchPlots(farmId);
+      void fetchPlots();
       void fetchWarehouses(farmId);
     }
   }, [isOpen, farmId, fetchPlots, fetchWarehouses]);
@@ -64,7 +64,11 @@ export function CreateWarehouseModal({ farmId, isOpen, onClose, onSuccess }: Pro
 
   const onSubmit = async (data: CreateWarehouseFormValues) => {
     try {
-      await createWarehouse(farmId, data).unwrap();
+      await createWarehouse(farmId, {
+        ...data,
+        latitude: data.latitude ?? 0,
+        longitude: data.longitude ?? 0,
+      }).unwrap();
       toast.success("Tạo kho hàng thành công!");
       handleClose();
       onSuccess?.();

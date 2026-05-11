@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+
 import type { Plot, CreatePlotRequest, UpdatePlotRequest } from '../../types/plot/plot';
 import { plotService } from '../../services/plots/plotService';
-import { extractErrorMessage } from '../../utils/errorUtils';
+
 
 const PLOT_KEYS = {
   all: ['plots'] as const,
@@ -39,10 +39,9 @@ export function usePlots(farmId?: string) {
     },
     onSuccess: () => {
       void invalidate();
-      toast.success('Tạo lô đất thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
+      // Handled by component
     },
   });
 
@@ -53,10 +52,9 @@ export function usePlots(farmId?: string) {
     },
     onSuccess: () => {
       void invalidate();
-      toast.success('Cập nhật lô đất thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
+      // Handled by component
     },
   });
 
@@ -67,10 +65,9 @@ export function usePlots(farmId?: string) {
     },
     onSuccess: () => {
       void invalidate();
-      toast.success('Xóa lô đất thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
+      // Handled by component
     },
   });
 

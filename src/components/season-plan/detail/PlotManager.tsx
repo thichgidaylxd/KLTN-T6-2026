@@ -1,4 +1,4 @@
-import { Package, Plus, Check, Loader2, AlertCircle } from 'lucide-react';
+import { Package, Plus, Check, Loader2, AlertCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/utils/cn';
 import { SeasonPlan } from '@/types/seasonPlan';
@@ -13,6 +13,8 @@ interface PlotManagerProps {
   setSelectedPlotIds: (ids: string[]) => void;
   loadingAddPlot: boolean;
   onAddPlots: () => void;
+  onDeletePlot?: (plotId: string) => void;
+  canEdit?: boolean;
 }
 
 export function PlotManager({
@@ -24,7 +26,9 @@ export function PlotManager({
   selectedPlotIds,
   setSelectedPlotIds,
   loadingAddPlot,
-  onAddPlots
+  onAddPlots,
+  onDeletePlot,
+  canEdit
 }: PlotManagerProps) {
   const currentPlotIds = plan.plots?.map(p => p.plotId) || [];
   const availablePlots = plots.filter(p => !currentPlotIds.includes(p.id));
@@ -146,9 +150,17 @@ export function PlotManager({
       <div className="flex flex-wrap gap-2">
         {plan.plots && plan.plots.length > 0 ? (
           plan.plots.map(pp => (
-            <div key={pp.plotId} className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-full">
+            <div key={pp.plotId} className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-full group">
               <Package size={10} />
               <span className="text-[11px] font-bold">{pp.plotName}</span>
+              {canEdit && onDeletePlot && (
+                <button
+                  onClick={() => onDeletePlot(pp.plotId)}
+                  className="hover:text-rose-500 transition-colors ml-0.5"
+                >
+                  <X size={10} />
+                </button>
+              )}
             </div>
           ))
         ) : (

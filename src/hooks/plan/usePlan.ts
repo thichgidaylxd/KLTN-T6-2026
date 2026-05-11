@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import type {
   Plan,
   CreatePlanRequest,
@@ -9,7 +8,6 @@ import type {
   PlotInPlan,
 } from '../../types/plan/plan';
 import { planService } from '../../services/plan/planService';
-import { extractErrorMessage } from '../../utils/errorUtils';
 
 const PLAN_KEYS = {
   list: ['plans', 'list'] as const,
@@ -40,10 +38,8 @@ export function usePlans() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['plans'] });
-      toast.success('Tạo kế hoạch thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
     },
   });
 
@@ -55,10 +51,8 @@ export function usePlans() {
     onSuccess: (_, { planId }) => {
       void queryClient.invalidateQueries({ queryKey: ['plans'] });
       void queryClient.invalidateQueries({ queryKey: PLAN_KEYS.detail(planId) });
-      toast.success('Cập nhật thời gian thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
     },
   });
 
@@ -69,10 +63,8 @@ export function usePlans() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['plans'] });
-      toast.success('Xóa kế hoạch thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
     },
   });
 
@@ -81,12 +73,10 @@ export function usePlans() {
       const response = await planService.addPlotsToPlan(planId, data);
       return response.data;
     },
-    onSuccess: (result, { planId }) => {
+    onSuccess: (_, { planId }) => {
       void queryClient.invalidateQueries({ queryKey: PLAN_KEYS.plots(planId) });
-      toast.success(`Đã thêm ${result.addedPlots.length} plot vào kế hoạch`);
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
     },
   });
 

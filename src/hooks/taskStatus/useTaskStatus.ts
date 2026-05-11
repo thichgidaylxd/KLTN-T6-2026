@@ -1,9 +1,7 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import type { TaskStatusHistory, TaskStatusTransition, TaskStatusObject } from '../../types/seasonPlan/seasonPlan';
 import { taskStatusService } from '../../services/taskStatus/taskStatusService';
-import { extractErrorMessage } from '../../utils/errorUtils';
 
 const TASK_STATUS_KEYS = {
   list: ['taskStatuses'] as const,
@@ -69,10 +67,9 @@ export function useTaskStatus() {
       void queryClient.invalidateQueries({
         queryKey: ['season-plans'],
       });
-      toast.success('Cập nhật trạng thái thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
+      // Errors are handled by the caller using extractErrorMessage
     },
   });
 

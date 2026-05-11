@@ -38,7 +38,7 @@ export interface TaskStatusTransition {
   farmRole?: {
     id: string;
     name: string;
-    description?: string;
+    description?: string | null;
   };
   createdAt: string;
 }

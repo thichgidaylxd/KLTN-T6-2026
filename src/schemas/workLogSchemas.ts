@@ -22,12 +22,23 @@ const taskStatusSchema = z.object({
 
 const taskSchema = z.object({
   id: z.string().uuid(),
+  version: z.number().optional(),
+  planStageId: z.string().uuid().optional(),
+  farmId: z.string().uuid().optional(),
+  farmName: z.string().optional(),
+  plotId: z.string().uuid().optional(),
+  status: taskStatusSchema,
   name: z.string(),
   description: z.string().nullable().optional(),
   startDate: z.string(),
+  actualStartDate: z.string().nullable().optional(),
   endDate: z.string(),
-  status: taskStatusSchema,
+  actualEndDate: z.string().nullable().optional(),
   progressPercent: z.number(),
+  acceptedAt: z.string().nullable().optional(),
+  completedAt: z.string().nullable().optional(),
+  createdBy: z.string().nullable().optional(),
+  createdAt: z.string().nullable().optional(),
 });
 
 export const workLogSchema = z.object({

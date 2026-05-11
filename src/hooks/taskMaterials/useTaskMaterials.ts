@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+
 import type { TaskMaterial, AddTaskMaterialRequest } from '../../types/taskMaterial/taskMaterial';
 import { taskMaterialService } from '../../services/taskMaterial/taskMaterialService';
-import { extractErrorMessage } from '../../utils/errorUtils';
+
 
 const TASK_MATERIAL_KEYS = {
   list: (planId: string, stageId: string, taskId: string) =>
@@ -46,10 +46,8 @@ export function useTaskMaterials(
       void queryClient.invalidateQueries({
         queryKey: TASK_MATERIAL_KEYS.list(planId, stageId, taskId),
       });
-      toast.success('Thêm vật tư thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
     },
   });
 
@@ -62,10 +60,8 @@ export function useTaskMaterials(
       void queryClient.invalidateQueries({
         queryKey: TASK_MATERIAL_KEYS.list(planId, stageId, taskId),
       });
-      toast.success('Xóa vật tư khỏi task thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
     },
   });
 

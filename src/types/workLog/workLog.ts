@@ -14,6 +14,8 @@ export interface WorkLog {
   isOverTime?: boolean | null;
   notes?: string | null;
   workDate: string;
+  lockedAt?: string | null;
+  createdAt?: string | null;
   task?: {
     id: string;
     version: number;
@@ -62,8 +64,6 @@ export interface WorkLog {
 
 export interface WorkLogDetail extends WorkLog {
   shiftName?: string | null;
-  lockedAt?: string | null;
-  createdAt?: string | null;
   materials?: WorkLogMaterial[] | null;
   overtime?: boolean | null;
 }

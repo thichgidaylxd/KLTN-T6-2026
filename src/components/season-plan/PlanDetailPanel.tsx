@@ -20,6 +20,7 @@ import { createTaskSchema } from '@/schemas/seasonPlanSchemas';
 import { createTaskMaterialSchema } from '@/schemas/taskMaterialSchemas';
 import { createTaskAssigneeSchema } from '@/schemas/taskAssigneeSchemas';
 import { extractErrorMessage } from '@/utils/errorUtils';
+import { PlanStageStatusTransition } from '@/services/plan/planStageStatusService';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 import { DetailHeader } from './detail/DetailHeader';
@@ -53,6 +54,7 @@ interface PlanDetailPanelProps {
   onClose: () => void;
   onUpdatePlan: (plan: SeasonPlan) => void;
   onUpdatePhase: (planId: string, phase: Phase, originalPhase?: Phase) => void;
+  onClone?: (plan: SeasonPlan) => void;
   onAddTask: (planId: string, phaseId: string, data: { name: string; description: string; startDate: string; endDate: string; plotId: string }) => void;
   onUpdateTask: (planId: string, phaseId: string, task: Task, originalTask?: Task) => void;
   onSelectPhase: (planId: string, phaseId: string) => void;
@@ -62,12 +64,12 @@ interface PlanDetailPanelProps {
   onDeleteTask?: (planId: string, phaseId: string, taskId: string) => void;
   initialIsAddingPhase?: boolean;
   onClearInitialIsAddingPhase?: () => void;
-  onClone?: (plan: SeasonPlan) => void;
   onAddPhase?: (planId: string, data: { name: string; startDate: string; endDate: string }) => Promise<void>;
   onAddPlots?: (planId: string, plotIds: string[]) => Promise<void>;
+  onDeletePlot?: (planId: string, plotId: string) => Promise<void>;
   canEdit?: boolean;
   phaseStatusOptions?: { id: string; code: string; label: string; color?: string }[];
-  phaseStatusTransitions?: import('@/services/seasonplan/planStageStatusService').PlanStageStatusTransition[];
+  phaseStatusTransitions?: PlanStageStatusTransition[];
   taskStatusOptions?: { id: string; code: string; label: string; color?: string }[];
   taskStatusTransitions?: any[];
   onScrollToDate?: (dateStr: string) => void;
@@ -75,6 +77,9 @@ interface PlanDetailPanelProps {
   onFetchTaskDetail?: (planId: string, stageId: string, taskId: string) => Promise<Task>;
   onUpdatePhaseStatus?: (planId: string, stageId: string, statusId: string) => Promise<any>;
   onUpdateTaskStatus?: (planId: string, stageId: string, taskId: string, statusId: string) => Promise<any>;
+  fetchTaskAvailableStatuses?: (planId: string, stageId: string, taskId: string) => Promise<any>;
+  fetchPhaseAvailableStatuses?: (planId: string, stageId: string) => Promise<any>;
+  updatePlansCache?: (updater: (prev: any[]) => any[]) => void;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -85,6 +90,7 @@ export function PlanDetailPanel({
   onClose,
   onUpdatePlan,
   onUpdatePhase,
+  onClone,
   onAddTask,
   onUpdateTask,
   onSelectPhase,
@@ -105,6 +111,8 @@ export function PlanDetailPanel({
   onFetchTaskDetail,
   onUpdatePhaseStatus,
   onUpdateTaskStatus,
+  onDeletePlot,
+  updatePlansCache,
 }: PlanDetailPanelProps) {
   const queryClient = useQueryClient();
   const { currentFarmId } = useAuth();
@@ -153,7 +161,8 @@ export function PlanDetailPanel({
     selection?.plan.id,
     selection?.type === 'TASK' ? (selection as any).phase.id : undefined,
     selection?.type === 'TASK' ? (selection as any).task.id : undefined,
-    isOpen && activeTab === 'INFO' && selection?.type === 'TASK'
+    isOpen && activeTab === 'INFO' && selection?.type === 'TASK',
+    updatePlansCache
   );
 
   const {
@@ -162,7 +171,8 @@ export function PlanDetailPanel({
   } = useWorkLogs(
     selection?.plan.id,
     selection?.type === 'TASK' ? (selection as any).phase.id : undefined,
-    selection?.type === 'TASK' ? (selection as any).task.id : undefined
+    selection?.type === 'TASK' ? (selection as any).task.id : undefined,
+    activeTab === 'LOGS'
   );
 
   const {
@@ -259,7 +269,10 @@ export function PlanDetailPanel({
       }
       
       if (!newTaskPlotId) {
-        setNewTaskPlotId(phase.plotId || plan.plots?.[0]?.plotId || '');
+        // Chỉ tự động chọn nếu kế hoạch chỉ có đúng 1 lô đất. 
+        // Nếu có nhiều lô (>1), để trống để kích hoạt logic bắt buộc chọn/hiện modal.
+        const autoPlotId = (plan.plots && plan.plots.length === 1) ? plan.plots[0].plotId : '';
+        setNewTaskPlotId(phase.plotId || autoPlotId);
       }
     }
   }, [isAddingTask, selection, hasSuggested]);
@@ -307,22 +320,22 @@ export function PlanDetailPanel({
         onFetchTaskDetail?.(selection.plan.id, (selection as any).phase.id, (selection as any).task.id);
       }
     }
-  setSelectedWarehouseId('');
-  setSelectedWarehouseItemId('');
-  setSelectedAssigneeUserId('');
-  setPlannedQty('');
-  // Reset về tab thông tin mỗi khi thay đổi lựa chọn để tránh lỗi UI
-  setActiveTab('INFO');
+    setSelectedWarehouseId('');
+    setSelectedWarehouseItemId('');
+    setSelectedAssigneeUserId('');
+    setPlannedQty('');
+    // Reset về tab thông tin mỗi khi thay đổi lựa chọn để tránh lỗi UI
+    setActiveTab('INFO');
 
-  if (selection) {
-    setTempPlan(selection.plan);
-    if (selection.type === 'PHASE') setTempPhase(selection.phase);
-    if (selection.type === 'TASK') {
-      setTempPhase(selection.phase);
-      setTempTask(selection.task);
+    if (selection) {
+      setTempPlan(selection.plan);
+      if (selection.type === 'PHASE') setTempPhase(selection.phase);
+      if (selection.type === 'TASK') {
+        setTempPhase(selection.phase);
+        setTempTask(selection.task);
+      }
     }
-  }
-}, [selection]);
+  }, [selection, isOpen, onFetchPhaseDetail, onFetchTaskDetail]);
 
   const handleStartEdit = () => {
     if (!selection) return;
@@ -422,15 +435,17 @@ export function PlanDetailPanel({
     }
   };
 
-  const handleAddTaskSubmit = () => {
+  const handleAddTaskSubmit = (plotIdOverride?: string | React.MouseEvent) => {
     if (selection.type !== 'PHASE') return;
+
+    const finalPlotId = (typeof plotIdOverride === 'string') ? plotIdOverride : newTaskPlotId;
 
     const payload = {
       name: newTaskName,
       description: newTaskDesc,
       startDate: newTaskStart || (selection as any).phase.startDate,
       endDate: newTaskEnd || (selection as any).phase.endDate,
-      plotId: newTaskPlotId || (selection as any).phase.plotId || plan.plots?.[0]?.plotId || "",
+      plotId: finalPlotId || (selection as any).phase.plotId || "",
     };
 
     const validation = createTaskSchema.safeParse(payload);
@@ -518,8 +533,22 @@ export function PlanDetailPanel({
       toast.error(extractErrorMessage(error));
     }
   };
+  const handleAddDependency = async (dependsOnTaskId: string) => {
+    console.error("EVENT: Bắt đầu thêm tiền nhiệm cho Task:", (selection as any)?.task?.id, "với ID phụ thuộc:", dependsOnTaskId);
+    try {
+      await addDependency(dependsOnTaskId);
+    } catch (error: any) {
+      // Error is already handled with toast in useTaskDependencies
+    }
+  };
 
-
+  const handleDeleteDependency = async (dependsOnTaskId: string) => {
+    try {
+      await deleteDependency(dependsOnTaskId);
+    } catch (error: any) {
+      // Error already handled
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -545,6 +574,9 @@ export function PlanDetailPanel({
               else if (sel.type === 'TASK') onDeleteTask?.(sel.plan.id, (sel as any).phase.id, (sel as any).task.id);
             }}
             onSelectPhase={onSelectPhase}
+            onClone={() => {
+              if (sel.type === 'PLAN') onClone?.(sel.plan);
+            }}
           />
 
           <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
@@ -629,6 +661,7 @@ export function PlanDetailPanel({
                     availableStatuses={availableStatuses}
                     onScrollToDate={onScrollToDate}
                     onUpdateStatus={handleUpdateStatus}
+                    canEdit={canEdit}
                   />
 
                   {sel.type === 'PLAN' && (
@@ -643,6 +676,8 @@ export function PlanDetailPanel({
                         setSelectedPlotIds={setSelectedPlotIds}
                         loadingAddPlot={loadingAddPlot}
                         onAddPlots={handleAddPlotsSubmit}
+                        onDeletePlot={(pid) => onDeletePlot?.(plan.id, pid)}
+                        canEdit={canEdit}
                       />
                       <PhasesSection
                         plan={plan}
@@ -661,8 +696,8 @@ export function PlanDetailPanel({
                       loading={isDependenciesLoading}
                       adding={isAddingDependency}
                       canEdit={canEdit}
-                      onAdd={addDependency}
-                      onDelete={deleteDependency}
+                      onAdd={handleAddDependency}
+                      onDelete={handleDeleteDependency}
                       onSelectTask={(tid) => onSelectTask(plan.id, (sel as any).phase.id, tid)}
                     />
                   )}
@@ -831,7 +866,6 @@ export function PlanDetailPanel({
               workLogId={selectedWorkLogId}
             />
           )}
-
         </motion.div>
       )}
     </AnimatePresence>

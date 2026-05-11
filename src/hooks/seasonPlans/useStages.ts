@@ -1,9 +1,7 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import type { Phase } from '../../types/seasonPlan/seasonPlan';
 import { seasonPlanService } from '../../services/seasonplan/seasonPlanService';
-import { extractErrorMessage } from '../../utils/errorUtils';
 
 const STAGE_KEYS = {
   list: (planId: string) => ['stages', planId] as const,
@@ -31,44 +29,38 @@ export function useStages(planId: string | undefined) {
   const createStageMutation = useMutation({
     mutationFn: async ({ planId, data }: { planId: string; data: { name: string; startDate: string; endDate: string } }) => {
       const response = await seasonPlanService.createStage(planId, data);
-      return response.data;
+      return response;
     },
     onSuccess: (_, { planId }) => {
       void queryClient.invalidateQueries({ queryKey: STAGE_KEYS.list(planId) });
-      toast.success('Tạo giai đoạn thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
     },
   });
 
   const updateStageTimeMutation = useMutation({
     mutationFn: async ({ planId, stageId, data }: { planId: string; stageId: string; data: { startDate: string; endDate: string } }) => {
       const response = await seasonPlanService.updateStageTime(planId, stageId, data);
-      return response.data;
+      return response;
     },
     onSuccess: (_, { planId, stageId }) => {
       void queryClient.invalidateQueries({ queryKey: STAGE_KEYS.list(planId) });
       void queryClient.invalidateQueries({ queryKey: STAGE_KEYS.detail(planId, stageId) });
-      toast.success('Cập nhật thời gian giai đoạn thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
     },
   });
 
   const updateStageMutation = useMutation({
     mutationFn: async ({ planId, stageId, data }: { planId: string; stageId: string; data: { name?: string; startDate?: string; endDate?: string } }) => {
       const response = await seasonPlanService.updateStage(planId, stageId, data);
-      return response.data;
+      return response;
     },
     onSuccess: (_, { planId, stageId }) => {
       void queryClient.invalidateQueries({ queryKey: STAGE_KEYS.list(planId) });
       void queryClient.invalidateQueries({ queryKey: STAGE_KEYS.detail(planId, stageId) });
-      toast.success('Cập nhật giai đoạn thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
     },
   });
 
@@ -78,10 +70,8 @@ export function useStages(planId: string | undefined) {
     },
     onSuccess: (_, { planId }) => {
       void queryClient.invalidateQueries({ queryKey: STAGE_KEYS.list(planId) });
-      toast.success('Xóa giai đoạn thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
     },
   });
 
@@ -124,7 +114,7 @@ export function useStage(planId: string | undefined, stageId: string | undefined
     queryFn: async () => {
       if (!planId || !stageId) throw new Error('Missing planId or stageId');
       const response = await seasonPlanService.getStageById(planId, stageId);
-      return response.data;
+      return response;
     },
     enabled: !!planId && !!stageId,
     staleTime: 1000 * 60 * 2,

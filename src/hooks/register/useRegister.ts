@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
+
 import { authService } from '../../services/auth/authService';
 import { registerSchema } from '../../schemas/authSchemas';
 import { RegisterInput } from '../../types/auth';
@@ -29,7 +29,6 @@ export function useRegister() {
       const response = await authService.register(payload);
       if (response.success) {
         setIsSuccess(true);
-        toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
       } else {
         setServerError('Có lỗi xảy ra khi đăng ký. Email có thể đã tồn tại.');
       }

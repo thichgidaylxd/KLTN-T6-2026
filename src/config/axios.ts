@@ -6,6 +6,9 @@ export const axiosInstance = axios.create({
   baseURL: ENV.API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
+  },
+  paramsSerializer: {
+    indexes: null // Tránh tự động thêm [] vào tên tham số mảng (ví dụ: sort)
   }
 });
 

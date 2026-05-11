@@ -99,34 +99,54 @@ export function SubTasksSection({
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex-1 min-w-0">
-                  <select
-                    value={newTaskPlotId}
-                    onChange={e => setNewTaskPlotId(e.target.value)}
-                    className="w-full text-[11px] bg-white border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-indigo-400 transition-all font-bold text-emerald-700"
-                  >
-                    <option value="">Chọn lô đất</option>
-                    {plan.plots?.map(p => (
-                      <option key={p.plotId} value={p.plotId}>{p.plotName}</option>
-                    ))}
-                  </select>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <select
+                      value={newTaskPlotId}
+                      onChange={e => setNewTaskPlotId(e.target.value)}
+                      className={`w-full text-[11px] bg-white border rounded-lg px-2 py-1.5 outline-none transition-all font-bold ${
+                        newTaskName && plan.plots && plan.plots.length > 1 && !newTaskPlotId
+                          ? 'border-amber-300 ring-2 ring-amber-50 text-amber-700'
+                          : 'border-slate-200 focus:border-indigo-400 text-emerald-700'
+                      }`}
+                    >
+                      {plan.plots && plan.plots.length === 1 ? (
+                        <option value={plan.plots[0].plotId}>
+                          {plan.plots[0].plotName} (mặc định)
+                        </option>
+                      ) : (
+                        <>
+                          <option value="">Chọn lô đất</option>
+                          {plan.plots?.map(p => (
+                            <option key={p.plotId} value={p.plotId}>{p.plotName}</option>
+                          ))}
+                        </>
+                      )}
+                    </select>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setIsAddingTask(false)}
+                      className="px-3 py-1.5 bg-white border border-slate-200 text-slate-500 rounded-lg text-[11px] font-bold hover:bg-slate-100 transition-all"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={() => onAddTask()}
+                      disabled={!newTaskName || (plan.plots && plan.plots.length > 1 && !newTaskPlotId)}
+                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[11px] font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:bg-slate-300 transition-all shadow-sm shadow-indigo-200"
+                    >
+                      Tạo
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setIsAddingTask(false)}
-                    className="px-3 py-1.5 bg-white border border-slate-200 text-slate-500 rounded-lg text-[11px] font-bold hover:bg-slate-100 transition-all"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    onClick={onAddTask}
-                    disabled={!newTaskName}
-                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[11px] font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-sm shadow-indigo-200"
-                  >
-                    Tạo
-                  </button>
-                </div>
+
+                {newTaskName && plan.plots && plan.plots.length > 1 && !newTaskPlotId && (
+                  <p className="text-[10px] text-amber-600 font-bold italic animate-pulse">
+                    * Vui lòng chọn lô đất cho công việc của bạn?
+                  </p>
+                )}
               </div>
             </div>
           </motion.div>

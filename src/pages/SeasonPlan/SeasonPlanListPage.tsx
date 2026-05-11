@@ -20,7 +20,7 @@ export function SeasonPlanListPage() {
   const { farmId } = useParams<{ farmId: string }>();
   const { currentFarmId, user, accessToken } = useAuth();
   const { plans, loading, error, fetchPlans, createPlan, deletePlan: removePlan, fetchStages, fetchTasks } = useSeasonPlans(farmId);
-  const { fetchCrops, crops } = useCrops();
+  const { fetchCrops, allCrops } = useCrops();
 
   // Kiểm tra quyền
   const canEdit = canEditPlan(user?.role, accessToken);
@@ -249,7 +249,7 @@ export function SeasonPlanListPage() {
             {filteredPlans.map((plan) => (
               (() => {
                 const progressPercent = calculatePlanProgress(plan);
-                const cropName = crops.find(c => c.id === plan.cropId)?.name || (plan as any).cropName;
+                const cropName = allCrops.find(c => c.id === plan.cropId)?.name || (plan as any).cropName;
 
 
                 return (

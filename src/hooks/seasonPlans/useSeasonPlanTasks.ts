@@ -258,5 +258,69 @@ export const useSeasonPlanTasks = ({ updatePlansCache }: UseSeasonPlanTasksProps
         withUnwrap(taskStatusService.getAvailableTaskStatuses(planId, stageId, taskId)),
       [],
     ),
+    fetchTaskDependencies: useCallback(
+      (taskId: string) => withUnwrap(seasonPlanTaskService.getTaskDependencies(taskId)),
+      []
+    ),
+    addTaskDependency: useCallback(
+      (planId: string, stageId: string, taskId: string, dependsOnTaskId: string) =>
+        withUnwrap(
+          seasonPlanTaskService.addTaskDependency(planId, stageId, taskId, dependsOnTaskId).then((updatedTask) => {
+            updatePlansCache((prev) =>
+              prev.map((p) =>
+                p.id === planId
+                  ? {
+                      ...p,
+                      phases: p.phases?.map((ph) =>
+                        ph.id === stageId
+                          ? {
+                              ...ph,
+                              tasks: ph.tasks?.map((t) => (t.id === taskId ? { ...t, ...updatedTask.task } : t)),
+                            }
+                          : ph
+                      ),
+                    }
+                  : p
+              ),
+            );
+            return updatedTask;
+          }),
+        ),
+      [updatePlansCache],
+    ),
+    deleteTaskDependency: useCallback(
+      (planId: string, stageId: string, taskId: string, dependsOnTaskId: string) =>
+        withUnwrap(
+          seasonPlanTaskService.deleteTaskDependency(taskId, dependsOnTaskId).then(() => {
+            updatePlansCache((prev) =>
+              prev.map((p) =>
+                p.id === planId
+                  ? {
+                      ...p,
+                      phases: p.phases?.map((ph) =>
+                        ph.id === stageId
+                          ? {
+                              ...ph,
+                              tasks: ph.tasks?.map((t) =>
+                                t.id === taskId
+                                  ? {
+                                      ...t,
+                                      dependencies: (t.dependencies || []).filter((d: any) => 
+                                        (d.dependsOnTaskId || d.id) !== dependsOnTaskId
+                                      ),
+                                    }
+                                  : t,
+                              ),
+                            }
+                          : ph
+                      ),
+                    }
+                  : p
+              ),
+            );
+          }),
+        ),
+      [updatePlansCache],
+    ),
   };
 };

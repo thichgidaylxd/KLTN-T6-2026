@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { seasonPlanService } from '../../services/seasonplan/seasonPlanService';
+import { planStageStatusService } from '../../services/plan/planStageStatusService';
 
 const STATUS_KEYS = {
   all: ['planStageStatus'] as const,
@@ -19,7 +19,7 @@ export const usePlanStageStatus = () => {
 
   const getStageStatusHistories = useCallback(
     (planId: string, stageId: string) =>
-      withUnwrap(seasonPlanService.getStageStatusHistories(planId, stageId)),
+      withUnwrap(planStageStatusService.getStageStatusHistories(planId, stageId)),
     []
   );
 
@@ -30,7 +30,7 @@ export const usePlanStageStatus = () => {
   const allPlanStageStatusesQuery = useQuery({
     queryKey: STATUS_KEYS.allStatuses,
     queryFn: async () => {
-      const data = await seasonPlanService.getAllPlanStageStatuses();
+      const data = await planStageStatusService.getPlanStageStatuses();
       return data;
     },
     staleTime: 1000 * 60 * 10, // 10 phút
@@ -43,7 +43,7 @@ export const usePlanStageStatus = () => {
   const transitionsQuery = useQuery({
     queryKey: STATUS_KEYS.transitions,
     queryFn: async () => {
-      const data = await seasonPlanService.getPlanStageStatusTransitions();
+      const data = await planStageStatusService.getPlanStageStatusTransitions();
       return data;
     },
     staleTime: 1000 * 60 * 10,
@@ -57,7 +57,7 @@ export const usePlanStageStatus = () => {
    */
   const updateStageStatusMutation = useMutation({
     mutationFn: async ({ planId, stageId, statusId }: { planId: string; stageId: string; statusId: string }) => {
-      const result = await seasonPlanService.updateStageStatus(planId, stageId, statusId);
+      const result = await planStageStatusService.updateStageStatus(planId, stageId, statusId);
       return result;
     },
     onSuccess: (_, { planId, stageId }) => {
@@ -73,7 +73,7 @@ export const usePlanStageStatus = () => {
    */
   const getAvailableStatuses = useCallback(
     (planId: string, stageId: string) =>
-      withUnwrap(seasonPlanService.getAvailableStatuses(planId, stageId)),
+      withUnwrap(planStageStatusService.getAvailableStatuses(planId, stageId)),
     []
   );
 
@@ -83,7 +83,7 @@ export const usePlanStageStatus = () => {
   const useAvailableStatusesHook = (planId: string, stageId: string, enabled = true) =>
     useQuery({
       queryKey: STATUS_KEYS.available(planId, stageId),
-      queryFn: () => seasonPlanService.getAvailableStatuses(planId, stageId),
+      queryFn: () => planStageStatusService.getAvailableStatuses(planId, stageId),
       enabled: enabled && !!planId && !!stageId,
       staleTime: 1000 * 60 * 5,
     });
@@ -141,7 +141,7 @@ export const usePlanStageStatusDetails = (
       : ['planStageStatus', 'histories', 'none'],
     queryFn: () => {
       if (!planId || !stageId) throw new Error('Missing IDs');
-      return seasonPlanService.getStageStatusHistories(planId, stageId);
+      return planStageStatusService.getStageStatusHistories(planId, stageId);
     },
     enabled,
     staleTime: 0,
@@ -154,7 +154,7 @@ export const usePlanStageStatusDetails = (
       : ['planStageStatus', 'available', 'none'],
     queryFn: () => {
       if (!planId || !stageId) throw new Error('Missing IDs');
-      return seasonPlanService.getAvailableStatuses(planId, stageId);
+      return planStageStatusService.getAvailableStatuses(planId, stageId);
     },
     enabled,
     staleTime: 0,

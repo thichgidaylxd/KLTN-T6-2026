@@ -49,9 +49,26 @@ export const cropService = {
    * Tạo cây trồng hệ thống mới (Scope SYSTEM)
    * POST /api/v1/crops
    * [ADMIN ONLY]
+   * Hỗ trợ gửi dữ liệu JSON hoặc FormData (để upload ảnh trực tiếp)
    */
-  async createCrop(data: CreateCropRequest): Promise<ApiResponse<Crop>> {
-    const response = await axiosInstance.post<ApiResponse<Crop>>('/api/v1/crops', data);
+  async createCrop(data: CreateCropRequest | FormData): Promise<ApiResponse<Crop>> {
+    const isFormData = data instanceof FormData;
+    
+    const response = await axiosInstance.post<ApiResponse<Crop>>('/api/v1/crops', data, {
+      headers: {
+        'Content-Type': isFormData ? 'multipart/form-data' : 'application/json',
+      },
+    });
+    return response.data;
+  },
+
+  /**
+   * Xóa cây trồng hệ thống
+   * DELETE /api/v1/crops/{cropId}
+   * [ADMIN ONLY]
+   */
+  async deleteCrop(cropId: string): Promise<ApiResponse<string>> {
+    const response = await axiosInstance.delete<ApiResponse<string>>(`/api/v1/crops/${cropId}`);
     return response.data;
   },
 
@@ -85,7 +102,7 @@ export const cropService = {
   },
 
   /**
-   * Lấy danh sách cây trồng của farm (đã có ở trên)
+   * Lấy danh sách cây trồng của farm
    * GET /api/v1/farms/{farmId}/crops
    */
   async getFarmCrops(farmId: string): Promise<ApiResponse<Crop[]>> {

@@ -3,7 +3,8 @@ import { CreateWarehouseItemDto, WarehouseItem } from '../../types/warehouseItem
 import { Warehouse } from '../../types/warehouse/warehouse';
 import {
   getWarehouseItemsResponseSchema,
-  createWarehouseItemResponseSchema
+  createWarehouseItemResponseSchema,
+  UpdateWarehouseItemInput
 } from '../../schemas/warehouseItemSchemas';
 import { getWarehousesResponseSchema } from '../../schemas/warehouseSchemas';
 
@@ -36,7 +37,7 @@ export const warehouseItemService = {
     farmId: string,
     warehouseId: string,
     warehouseItemId: string,
-    itemData: any,
+    itemData: UpdateWarehouseItemInput,
   ): Promise<WarehouseItem> {
     const response = await axiosInstance.patch(`/api/v1/farms/${farmId}/warehouses/${warehouseId}/items/${warehouseItemId}`, itemData);
     return createWarehouseItemResponseSchema.parse(response.data).data;

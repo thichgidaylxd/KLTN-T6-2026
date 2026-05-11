@@ -12,6 +12,7 @@ import {
   MapPin,
   Grid3X3,
   List,
+  Eye,
   X,
   TrendingDown,
   Boxes,
@@ -63,6 +64,7 @@ import {
   EditWarehouseItemModal,
   DeleteWarehouseItemModal,
   DeleteLocationModal,
+  LocationDetailModal,
 } from "../../components/warehouse";
 
 type ActiveTab = "items" | "locations" | "transactions";
@@ -304,6 +306,8 @@ export function WarehouseDetailPage() {
   const [selectedLoc, setSelectedLoc] = useState<WarehouseLocation | null>(
     null,
   );
+  const [isDetailLocModalOpen, setIsDetailLocModalOpen] = useState(false);
+  const [selectedLocId, setSelectedLocId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentWarehouse = useMemo(
@@ -486,6 +490,11 @@ export function WarehouseDetailPage() {
       setIsDeleteLocModalOpen(false);
       setSelectedLoc(null);
     }
+  };
+
+  const handleViewLocationDetail = (locId: string) => {
+    setSelectedLocId(locId);
+    setIsDetailLocModalOpen(true);
   };
 
   const numericInput = (
@@ -942,6 +951,7 @@ export function WarehouseDetailPage() {
                   return (
                     <div
                       key={loc.id}
+                      onClick={() => handleViewLocationDetail(loc.id)}
                       className={cn(
                         "bg-white rounded-xl border border-slate-100 p-4 flex flex-col gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group",
                         !loc.isActive && "opacity-50",
@@ -991,14 +1001,20 @@ export function WarehouseDetailPage() {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 pt-2 border-t border-slate-50">
-                        <div
-                          className={cn("w-1.5 h-1.5 rounded-full", c.dot)}
-                        />
-                        <span className="text-[11px] font-mono font-semibold text-slate-500">
-                          {loc.code}
-                        </span>
-                      </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className={cn("w-1.5 h-1.5 rounded-full", c.dot)}
+                            />
+                            <span className="text-[11px] font-mono font-semibold text-slate-500">
+                              {loc.code}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg shadow-sm border border-violet-100/50 transition-all hover:bg-violet-100">
+                            <span>Chi tiết</span>
+                            <ChevronRight size={10} />
+                          </div>
+                        </div>
                     </div>
                   );
                 })}
@@ -1045,7 +1061,8 @@ export function WarehouseDetailPage() {
                       return (
                         <tr
                           key={loc.id}
-                          className="hover:bg-slate-50/60 transition-colors group"
+                          className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
+                          onClick={() => handleViewLocationDetail(loc.id)}
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
@@ -1085,7 +1102,23 @@ export function WarehouseDetailPage() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-1">
-                              <button className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewLocationDetail(loc.id);
+                                }}
+                                className="p-1.5 text-violet-500 hover:text-white hover:bg-violet-600 rounded-lg transition-all shadow-sm border border-violet-100"
+                                title="Xem chi tiết"
+                              >
+                                <Eye size={13} />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // logic sửa nếu có
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              >
                                 <Edit2 size={13} />
                               </button>
                               <button
@@ -1778,6 +1811,16 @@ export function WarehouseDetailPage() {
           }}
           onConfirm={confirmDeleteLocation}
           loading={isSubmitting}
+        />
+      )}
+
+      {selectedLocId && (
+        <LocationDetailModal
+          farmId={farmId!}
+          warehouseId={warehouseId!}
+          locationId={selectedLocId}
+          isOpen={isDetailLocModalOpen}
+          onClose={() => setIsDetailLocModalOpen(false)}
         />
       )}
     </div>

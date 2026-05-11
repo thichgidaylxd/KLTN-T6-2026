@@ -124,14 +124,14 @@ export function WorkLogDetailModal({ isOpen, onClose, workLogId }: WorkLogDetail
                 Trạng thái: {detail.lockedAt ? 'Đã chốt công' : 'Chờ duyệt'}
               </span>
             </div>
-            
+
             <button
               onClick={handleToggleLock}
               disabled={isProcessing}
               className={cn(
                 "flex items-center gap-2 px-4 py-1.5 rounded-xl text-[12px] font-black transition-all shadow-sm active:scale-95 disabled:opacity-50",
-                detail.lockedAt 
-                  ? "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50" 
+                detail.lockedAt
+                  ? "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
                   : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200 shadow-lg"
               )}
             >
@@ -224,7 +224,7 @@ export function WorkLogDetailModal({ isOpen, onClose, workLogId }: WorkLogDetail
                           <span className={cn(
                             'truncate max-w-[120px]',
                             !(detail.employee?.fullName || detail.employeeName)
-                              && 'text-slate-400 italic font-normal text-[12px]',
+                            && 'text-slate-400 italic font-normal text-[12px]',
                           )}>
                             {detail.employee?.fullName || detail.employeeName || 'Chưa xác định'}
                           </span>
@@ -270,8 +270,8 @@ export function WorkLogDetailModal({ isOpen, onClose, workLogId }: WorkLogDetail
                       <InfoRow icon={<Hash size={12} />} label="Mã công việc">
                         {detail.taskId || (detail as any).task?.id
                           ? <span className="font-mono text-[11.5px] text-slate-600">
-                              {(detail.taskId || (detail as any).task?.id)?.slice(0, 8)}…
-                            </span>
+                            {(detail.taskId || (detail as any).task?.id)?.slice(0, 8)}…
+                          </span>
                           : <span className="text-slate-400 italic font-normal text-[12px]">Chưa xác định</span>
                         }
                       </InfoRow>

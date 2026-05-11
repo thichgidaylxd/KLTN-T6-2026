@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '../../services/user/userService';
-import { toast } from 'sonner';
+
 
 export const USER_KEYS = {
   all: ['users'] as const,
@@ -28,13 +28,11 @@ export const useUsers = () => {
 
   const deleteUserMutation = useMutation({
     mutationFn: (userId: string) => userService.deleteUser(userId),
-    onSuccess: (response) => {
-      toast.success(response.message || 'Xóa người dùng thành công');
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USER_KEYS.all });
       void queryClient.invalidateQueries({ queryKey: USER_KEYS.needVerification });
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Lỗi khi xóa người dùng');
+    onError: () => {
     },
   });
 

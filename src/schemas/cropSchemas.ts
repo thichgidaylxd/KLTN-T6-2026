@@ -48,7 +48,7 @@ export const createCropSchema = z.object({
   name: z.string().min(1, 'Tên cây là bắt buộc'),
   cropTypeId: z.string().min(1, 'Vui lòng chọn loại cây trồng'),
   description: z.string().optional(),
-  imageUrl: z.string().url('URL ảnh không hợp lệ').or(z.string().length(0)).optional(),
+  imageUrl: z.string().optional(),
   // Các trường mở rộng (chờ API từ BE, không gửi lên server lúc này)
   stages: z.array(growthStageSchema).default([]).optional(),
   soil: soilConditionSchema.optional(),

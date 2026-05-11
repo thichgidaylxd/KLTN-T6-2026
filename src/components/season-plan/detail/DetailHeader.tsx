@@ -1,5 +1,5 @@
 import { 
-  X, ChevronRight, Edit2, Save, Link2, ExternalLink, Trash2, Layout, Zap, CheckSquare
+  X, ChevronRight, Edit2, Save, Link2, ExternalLink, Trash2, Layout, Zap, CheckSquare, Copy
 } from 'lucide-react';
 import { SeasonPlan, Phase, Task } from '@/types/seasonPlan';
 
@@ -18,6 +18,7 @@ interface DetailHeaderProps {
   onCancelEdit: () => void;
   onDelete: () => void;
   onSelectPhase: (planId: string, phaseId: string) => void;
+  onClone?: () => void;
 }
 
 export function DetailHeader({
@@ -29,7 +30,8 @@ export function DetailHeader({
   onSaveEdit,
   onCancelEdit,
   onDelete,
-  onSelectPhase
+  onSelectPhase,
+  onClone
 }: DetailHeaderProps) {
   const { plan, phase, task, type } = selection;
 
@@ -100,6 +102,15 @@ export function DetailHeader({
             <button className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded transition-colors" title="Sao chép link">
               <Link2 size={13} />
             </button>
+            {type === 'PLAN' && onClone && (
+              <button 
+                className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors" 
+                title="Nhân bản kế hoạch"
+                onClick={onClone}
+              >
+                <Copy size={13} />
+              </button>
+            )}
             <button className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded transition-colors" title="Mở rộng">
               <ExternalLink size={13} />
             </button>

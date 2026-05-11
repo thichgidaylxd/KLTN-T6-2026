@@ -47,23 +47,11 @@ export const planStageStatusTransitionSchema = z.object({
 // Enum for Plan Status (legacy/simple)
 export const planStatusSchema = z.enum(['DRAFT', 'ACTIVE', 'READY_TO_HARVEST', 'HARVESTING', 'COMPLETED', 'CANCELLED', 'UNASSIGNED', 'ASSIGNED', 'OVERDUE']);
 
-// Schema for a single Plan from API
-export const apiPlanSchema = z.object({
-  id: z.string().uuid(),
-  version: z.number().optional(),
-  farmId: z.string().uuid(),
-  clonedFromId: z.string().uuid().nullable().optional(),
-  name: z.string(),
-  startDate: z.string(), // YYYY-MM-DD
-  endDate: z.string(),   // YYYY-MM-DD
-  status: z.union([planStatusSchema, statusObjectSchema]),
-  note: z.string().nullable().optional(),
-  createdById: z.string().uuid().nullable().optional(),
-  createdAt: z.string().optional(),
-  deletedAt: z.string().nullable().optional(),
-  // cropId và plotId không trực tiếp trên Plan object trong Swagger mới
+// Schema for Plan Plot assignments
+export const planPlotSchema = z.object({
+  plotId: z.string().uuid(),
+  plotName: z.string(),
 });
-
 
 // Schema for Plan Stage (Phase)
 export const apiPlanStageSchema = z.object({
@@ -80,7 +68,29 @@ export const apiPlanStageSchema = z.object({
   actualEndDate: z.string().nullable().optional(),
   aiSuggestionCache: z.string().nullable().optional(),
   status: statusObjectSchema,
+  tasks: z.array(z.any()).optional(), // Will be populated by fetchTasks if needed
 });
+
+// Schema for a single Plan from API
+export const apiPlanSchema = z.object({
+  id: z.string().uuid(),
+  version: z.number().optional(),
+  farmId: z.string().uuid(),
+  clonedFromId: z.string().uuid().nullable().optional(),
+  name: z.string(),
+  startDate: z.string(), // YYYY-MM-DD
+  endDate: z.string(),   // YYYY-MM-DD
+  status: z.union([planStatusSchema, statusObjectSchema]),
+  note: z.string().nullable().optional(),
+  createdById: z.string().uuid().nullable().optional(),
+  createdAt: z.string().optional(),
+  deletedAt: z.string().nullable().optional(),
+  cropId: z.string().uuid().nullable().optional(),
+  phases: z.array(apiPlanStageSchema).optional(),
+  plots: z.array(planPlotSchema).optional(),
+});
+
+
 
 // Schema for Task
 export const apiTaskSchema = z.object({
@@ -102,6 +112,7 @@ export const apiTaskSchema = z.object({
   completedAt: z.string().nullable().optional(),
   createdBy: z.string().uuid().optional(),
   createdAt: z.string().optional(),
+  dependencies: z.array(z.any()).optional(),
 });
 
 // Schema cho API Response
@@ -128,8 +139,8 @@ export const taskStatusHistorySchema = z.object({
 });
 
 export const taskStatusTransitionSchema = z.object({
-  id: z.string().uuid(),
-  farm: farmObjectSchema,
+  id: z.string().optional(),
+  farm: farmObjectSchema.optional(),
   fromStatus: statusObjectSchema,
   toStatus: statusObjectSchema,
   farmRole: farmRoleObjectSchema,
@@ -155,18 +166,14 @@ export const deleteStageResponseSchema = apiResponseSchema(z.string());
 export const getTasksResponseSchema = apiResponseSchema(z.array(apiTaskSchema));
 export const createTaskResponseSchema = apiResponseSchema(apiTaskSchema);
 
-
-// Schema for Plan Plot assignments
-export const planPlotSchema = z.object({
-  plotId: z.string().uuid(),
-  plotName: z.string(),
-});
-
 export const getPlanPlotsResponseSchema = apiResponseSchema(z.array(planPlotSchema));
 export const addPlanPlotsResponseSchema = apiResponseSchema(z.object({
   planId: z.string().uuid(),
   addedPlots: z.array(planPlotSchema),
 }));
+
+
+// Response schemas moved up to use apiPlanSchema
 
 // Plan Stage Status APIs
 export const updateStageStatusResponseSchema = apiResponseSchema(planStageStatusHistorySchema);

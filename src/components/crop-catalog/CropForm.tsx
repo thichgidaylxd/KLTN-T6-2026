@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Save, Plus, Trash2, Upload, AlertCircle, Info, Thermometer, Droplets, FlaskConical, PlusCircle } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Upload, AlertCircle, Info, Thermometer, Droplets, FlaskConical, PlusCircle, Image as ImageIcon } from 'lucide-react';
 import { useCrops } from '@/hooks/crops/useCrops';
 import { type Crop, type CreateCropTypeRequest } from '@/types/crop';
 import { createCropSchema, type CreateCropFormInput } from '@/schemas/cropSchemas';
@@ -25,6 +25,8 @@ export const CropForm: React.FC<CropFormProps> = ({
 
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [base64Image, setBase64Image] = useState<string>('');
 
   // Load crop types on mount
   React.useEffect(() => {
@@ -66,7 +68,7 @@ export const CropForm: React.FC<CropFormProps> = ({
   const imageUrl = watch('imageUrl');
 
   const onSubmit = (data: CreateCropFormInput) => {
-    // Kiểm tra trùng tên (không cho phép trùng)
+    // Kiểm tra trùng tên
     const isDuplicate = existingCrops.some(
       (crop) =>
         crop.name.toLowerCase().trim() === data.name.toLowerCase().trim()
@@ -77,13 +79,15 @@ export const CropForm: React.FC<CropFormProps> = ({
       return;
     }
 
-    // Chỉ gửi các trường Basic cho API POST /api/v1/crop hiện tại
+    // Luôn gửi JSON để đảm bảo đúng theo Schema API POST /api/v1/crops (imageUrl: string)
+    // Nếu có base64Image (từ việc chọn file), ta dùng nó làm imageUrl.
     const payload = {
       name: data.name,
       cropTypeId: data.cropTypeId,
       description: data.description,
-      imageUrl: data.imageUrl,
+      imageUrl: base64Image || data.imageUrl, // Ưu tiên ảnh upload từ máy (dưới dạng string base64)
     };
+    
     onSave(payload);
   };
 
@@ -104,6 +108,25 @@ export const CropForm: React.FC<CropFormProps> = ({
     else if (errors.diseases) setActiveTab('diseases');
     
     toast.error('Vui lòng kiểm tra lại các trường thông tin còn thiếu hoặc sai định dạng.');
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Kích thước ảnh upload trực tiếp nên dưới 2MB để đảm bảo hiệu năng');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setBase64Image(base64String);
+        setPreviewUrl(base64String);
+        setValue('imageUrl', file.name); // Để bypass các kiểm tra UI
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -225,34 +248,56 @@ export const CropForm: React.FC<CropFormProps> = ({
               </div>
 
               <div className="space-y-6">
-                <label className="block text-sm font-bold text-slate-700">Ảnh đại diện (Max 5MB)</label>
+                <label className="block text-sm font-bold text-slate-700">Ảnh cây trồng</label>
                 <div className="relative group">
-                  {imageUrl ? (
-                    <div className="relative w-full aspect-video rounded-[24px] overflow-hidden bg-slate-100 ring-4 ring-slate-50">
-                      <img src={imageUrl} alt="Crop Preview" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                  <input
+                    type="file"
+                    id="crop-image-upload"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                  />
+                  {previewUrl || imageUrl ? (
+                    <div className="relative w-full aspect-video rounded-[24px] overflow-hidden bg-slate-100 ring-4 ring-slate-50 shadow-inner">
+                      <img 
+                        src={previewUrl || imageUrl} 
+                        alt="Crop Preview" 
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+                      />
                       <button
                         type="button"
-                        onClick={() => setValue('imageUrl', '')}
+                        onClick={() => {
+                          setBase64Image('');
+                          setPreviewUrl('');
+                          setValue('imageUrl', '');
+                        }}
                         className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur-sm text-red-500 rounded-xl shadow-lg hover:bg-red-500 hover:text-white transition-all shadow-red-200"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
                     </div>
                   ) : (
-                    <div className="w-full aspect-video border-4 border-dashed border-slate-100 rounded-[24px] flex flex-col items-center justify-center bg-slate-50/50 hover:bg-white hover:border-green-300 transition-all cursor-pointer">
-                      <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-300 shadow-sm mb-4">
-                        <Upload className="w-8 h-8" />
+                    <div 
+                      onClick={() => document.getElementById('crop-image-upload')?.click()}
+                      className="w-full aspect-video border-4 border-dashed border-slate-100 rounded-[24px] flex flex-col items-center justify-center bg-slate-50/50 hover:bg-white hover:border-green-300 transition-all cursor-pointer group"
+                    >
+                      <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-300 shadow-sm mb-4 group-hover:scale-110 transition-transform duration-300">
+                        <Upload className="w-8 h-8 group-hover:text-green-500 transition-colors" />
                       </div>
-                      <p className="text-slate-800 font-bold">Tải ảnh lên hoặc dán URL</p>
-                      <p className="text-slate-400 text-xs mt-1">PNG, JPG tối đa 5MB</p>
+                      <p className="text-slate-800 font-bold">Tải ảnh từ máy tính</p>
+                      <p className="text-slate-400 text-[11px] mt-1 font-medium">Hệ thống sẽ chuyển sang Base64 để lưu trữ</p>
                     </div>
                   )}
                 </div>
-                <input
-                  {...register('imageUrl')}
-                  placeholder="Tiện ích: Nhập URL ảnh tại đây để demo..."
-                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-xs"
-                />
+                
+                <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                  <ImageIcon className="w-4 h-4 text-slate-400" />
+                  <input
+                    {...register('imageUrl')}
+                    placeholder={base64Image ? "Đã nhận ảnh từ máy tính" : "Hoặc dán URL ảnh trực tiếp tại đây..."}
+                    className="flex-1 bg-transparent text-[11px] font-medium text-slate-500 focus:outline-none"
+                  />
+                </div>
                 {errors.imageUrl && <p className="mt-2 text-xs font-bold text-red-500">{errors.imageUrl.message}</p>}
               </div>
             </div>
@@ -265,12 +310,6 @@ export const CropForm: React.FC<CropFormProps> = ({
                 <div>
                   <h3 className="text-xl font-bold text-slate-800">Các giai đoạn sinh trưởng</h3>
                   <p className="text-sm text-slate-500 mt-1">Thiết lập lộ trình từ khi gieo hạt đến lúc thu hoạch.</p>
-                  <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg border border-amber-100">
-                    <AlertCircle className="w-4 h-4 text-amber-500" />
-                    <p className="text-[11px] text-amber-700 font-bold leading-none">
-                      Lưu ý: Dữ liệu giai đoạn hiện chỉ phục vụ huấn luyện AI, chưa lưu lên máy chủ chính.
-                    </p>
-                  </div>
                 </div>
                 <button
                   type="button"
@@ -357,7 +396,6 @@ export const CropForm: React.FC<CropFormProps> = ({
                       <input type="number" step="0.1" {...register('soil.phMax', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
                     </div>
                   </div>
-                  {errors.soil?.phMax && <p className="mt-3 text-xs font-bold text-red-500">{errors.soil.phMax.message}</p>}
                 </div>
 
                 {/* Nitơ */}
@@ -426,16 +464,10 @@ export const CropForm: React.FC<CropFormProps> = ({
           {/* TAB 4: DISEASES */}
           {activeTab === 'diseases' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              {/* ... existing disease fields ... */}
-              {/* Keeping existing implementation as it doesn't affect the basic API POST */}
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h3 className="text-lg font-bold text-slate-800">Cơ sở dữ liệu bệnh hại</h3>
                   <p className="text-xs text-slate-500">Thông tin hỗ trợ AI nhận diện và đưa ra giải pháp bảo vệ cây trồng.</p>
-                  <p className="text-[10px] text-amber-600 font-bold mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    Lưu ý: Thư viện bệnh hiện dùng cho logic gợi ý, chưa được đồng bộ API chính.
-                  </p>
                 </div>
                 <button
                   type="button"

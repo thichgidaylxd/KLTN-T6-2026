@@ -43,8 +43,8 @@ export const useWarehouses = () => {
   });
 
   const deleteWarehouseMutation = useMutation({
-    mutationFn: async ({ farmId: targetFarmId, warehouseId, version }: { farmId: string; warehouseId: string; version: number }) => {
-      await warehouseService.deleteWarehouse(targetFarmId, warehouseId, version);
+    mutationFn: async ({ farmId: targetFarmId, warehouseId }: { farmId: string; warehouseId: string }) => {
+      await warehouseService.deleteWarehouse(targetFarmId, warehouseId);
       return warehouseId;
     },
     onSuccess: (deletedId, variables) => {
@@ -104,8 +104,8 @@ export const useWarehouses = () => {
       [updateWarehouseMutation],
     ),
     deleteWarehouse: useCallback(
-      (farmIdValue: string, warehouseId: string, version: number) =>
-        withUnwrap(deleteWarehouseMutation.mutateAsync({ farmId: farmIdValue, warehouseId, version })),
+      (farmIdValue: string, warehouseId: string) =>
+        withUnwrap(deleteWarehouseMutation.mutateAsync({ farmId: farmIdValue, warehouseId })),
       [deleteWarehouseMutation],
     ),
     clearError: useCallback(() => undefined, []),

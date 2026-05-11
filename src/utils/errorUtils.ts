@@ -84,6 +84,15 @@ export function extractErrorMessage(err: unknown): string {
         .join('; ');
     }
 
+    // data object with field-level errors
+    if (p.data && typeof p.data === 'object' && !Array.isArray(p.data)) {
+      const fieldErrors = p.data as Record<string, unknown>;
+      const messages = Object.values(fieldErrors)
+        .filter(val => typeof val === 'string')
+        .join('; ');
+      if (messages) return messages;
+    }
+
     // message
     if (hasStringMessage(payload)) return payload.message;
 

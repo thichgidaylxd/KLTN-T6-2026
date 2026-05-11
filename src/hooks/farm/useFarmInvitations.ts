@@ -1,9 +1,6 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import type { AcceptInvitationResponse } from '@/types/farm/farm';
 import { farmInvitationService } from '@/services/farm/farmInvitationService';
-import { extractErrorMessage } from '@/utils/errorUtils';
 
 const INVITATION_KEYS = {
   my: ['invitations', 'my'] as const,
@@ -52,10 +49,9 @@ export function useFarmInvitations(farmId: string | undefined, status?: string) 
     onSuccess: (_, { farmId }) => {
       void queryClient.invalidateQueries({ queryKey: INVITATION_KEYS.farm(farmId) });
       void queryClient.invalidateQueries({ queryKey: INVITATION_KEYS.my });
-      toast.success('Đã hủy lời mời');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
+      // Handled by component
     },
   });
 
@@ -97,10 +93,9 @@ export function useAcceptInvitation() {
     mutationFn: (invitationId: string) => farmInvitationService.acceptInvitation(invitationId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['invitations', 'my'] });
-      toast.success('Đã chấp nhận lời mời');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
+      // Handled by component
     },
   });
 

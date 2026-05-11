@@ -54,7 +54,7 @@ export function EditWarehouseModal({ farmId, warehouse, isOpen, onClose, onSucce
       }
       
       if (farmId) {
-        void fetchPlots(farmId);
+        void fetchPlots();
       }
     }
   }, [isOpen, warehouse, reset, farmId, fetchPlots]);

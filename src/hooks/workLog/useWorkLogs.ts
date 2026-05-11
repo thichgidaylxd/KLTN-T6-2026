@@ -15,13 +15,13 @@ const WORKLOG_KEYS = {
 const withUnwrap = <T,>(promise: Promise<T>) =>
   Object.assign(promise, { unwrap: () => promise });
 
-export const useWorkLogs = (planId?: string, stageId?: string, taskId?: string) => {
+export const useWorkLogs = (planId?: string, stageId?: string, taskId?: string, enabled = true) => {
   const queryClient = useQueryClient();
 
   const taskWorkLogsQuery = useQuery({
     queryKey: taskId ? WORKLOG_KEYS.byTask(taskId) : ['worklogs', 'inactive'],
     queryFn: () => workLogService.getTaskWorkLogs(planId!, stageId!, taskId!),
-    enabled: !!taskId && !!planId && !!stageId,
+    enabled: enabled && !!taskId && !!planId && !!stageId,
   });
 
   return {
@@ -78,7 +78,8 @@ export const useFarmWorkLogs = (farmId: string, from?: string, to?: string, enab
     queryKey: [...WORKLOG_KEYS.byFarm(from, to), farmId],
     queryFn: () => workLogService.getFarmWorkLogs(from, to),
     enabled: enabled && !!farmId,
-    staleTime: 0,
+    staleTime: 5000, // Giữ dữ liệu "fresh" trong 5s để tránh duplicate request khi re-render
+    retry: false,    // Tắt tự động gọi lại khi lỗi để tránh hiện tượng "duplicate" trong Network tab
     refetchOnMount: true,
   });
 };
@@ -88,7 +89,8 @@ export const usePlanWorkLogs = (planId: string, from?: string, to?: string, enab
     queryKey: WORKLOG_KEYS.byPlan(planId, from, to),
     queryFn: () => workLogService.getPlanWorkLogs(planId, from, to),
     enabled: enabled && !!planId,
-    staleTime: 0,
+    staleTime: 5000,
+    retry: false,
     refetchOnMount: true,
   });
 };
@@ -98,6 +100,7 @@ export const useWorkLogDetail = (workLogId: string) => {
     queryKey: WORKLOG_KEYS.detail(workLogId),
     queryFn: () => workLogService.getWorkLogDetail(workLogId),
     enabled: !!workLogId,
+    retry: false,
   });
 };
 
@@ -106,7 +109,8 @@ export const useWorkLogSummary = (from: string, to: string, enabled = true) => {
     queryKey: WORKLOG_KEYS.summary(from, to),
     queryFn: () => workLogService.getWorkLogSummary(from, to),
     enabled: enabled && !!from && !!to,
-    staleTime: 0,
+    staleTime: 5000,
+    retry: false,
     refetchOnMount: true,
   });
 };

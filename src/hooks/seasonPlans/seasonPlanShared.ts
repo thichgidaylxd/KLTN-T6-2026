@@ -5,6 +5,7 @@ export const PLAN_KEYS = {
   all: ['season-plans'] as const,
   list: ['season-plans', 'list'] as const,
   byFarm: (farmId: string) => ['season-plans', 'list', farmId] as const,
+  detail: (planId: string) => ['season-plans', 'detail', planId] as const,
 };
 
 export const withUnwrap = <T,>(promise: Promise<T>) =>

@@ -4,6 +4,7 @@ import { PublicRoutes } from './PublicRoutes';
 import { PrivateRoutes } from './PrivateRoutes';
 import { LoadingPage } from '../components/ui/LoadingPage';
 import ProtectedRoute from './ProtectedRoute';
+import { ConfigPage } from '@/pages/Config/ConfigPage';
 const AcceptInvitationPage = lazy(() =>
   import('../pages/Invitation/AcceptInvitationPage').then(module => ({
     default: module.AcceptInvitationPage,
@@ -75,6 +76,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/activity" element={<Suspense fallback={<LoadingPage />}><ActivityPage /></Suspense>} />
           <Route path="/task" element={<Suspense fallback={<LoadingPage />}><TasksPage /></Suspense>} />
           <Route path="/gemini" element={<Suspense fallback={<LoadingPage />}><GeminiPage /></Suspense>} />
+          <Route path="/config" element={<Suspense fallback={<LoadingPage />}><ConfigPage /></Suspense>} />
           <Route path="/subscription/pricing" element={<Suspense fallback={<LoadingPage />}><SubscriptionPage /></Suspense>} />
 
           {/* Farm selection — no farmId */}

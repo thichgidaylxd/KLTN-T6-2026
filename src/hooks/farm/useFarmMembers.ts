@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+
 import { farmInvitationService } from '@/services/farm/farmInvitationService';
-import { extractErrorMessage } from '@/utils/errorUtils';
+
 
 const FARM_MEMBER_KEYS = {
   list: (farmId: string) => ['farmMembers', farmId] as const,
@@ -23,10 +23,9 @@ export function useFarmMembers(farmId: string | undefined) {
     onSuccess: (_, { farmId }) => {
       void queryClient.invalidateQueries({ queryKey: FARM_MEMBER_KEYS.list(farmId) });
       void queryClient.invalidateQueries({ queryKey: ['invitations', 'my'] });
-      toast.success('Đã gửi lời mời thành công');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
+      // Handled by component
     },
   });
 
@@ -35,10 +34,9 @@ export function useFarmMembers(farmId: string | undefined) {
       farmInvitationService.deleteFarmMember(farmId, memberId),
     onSuccess: (_, { farmId }) => {
       void queryClient.invalidateQueries({ queryKey: FARM_MEMBER_KEYS.list(farmId) });
-      toast.success('Đã xóa thành viên');
     },
-    onError: (err: unknown) => {
-      toast.error(extractErrorMessage(err));
+    onError: () => {
+      // Handled by component
     },
   });
 

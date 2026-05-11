@@ -35,7 +35,11 @@ export function DependenciesSection({
   }
 
   // Lấy danh sách các task khác trong cùng giai đoạn để có thể chọn làm dependency
-  const availableTasks = tasks.filter(t => t.id !== taskId && !deps.includes(t.id));
+  const availableTasks = tasks.filter(t => {
+    const isCurrentTask = t.id.toLowerCase() === (taskId || "").toLowerCase();
+    const isAlreadyDep = deps.some(dId => dId.toLowerCase() === t.id.toLowerCase());
+    return !isCurrentTask && !isAlreadyDep;
+  });
   const dependencyTasks = tasks.filter(t => deps.includes(t.id));
 
   return (
