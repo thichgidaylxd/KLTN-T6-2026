@@ -249,46 +249,10 @@ export default function Sidebar({
               </div>
             )}
           </div>
-          {/* Scroll Hint — Compact */}
+
           {showScrollHint && (
             <div className="absolute bottom-16 left-[90px] animate-bounce text-emerald-600 pointer-events-none drop-shadow-md">
               <ChevronDown size={22} strokeWidth={3.5} />
-            </div>
-          )}
-
-          {/* Settings popup — Compact (Dashboard only) */}
-          {!currentFarmId && active === "dashboard" && (
-            <div className="w-full flex flex-col items-center pt-2 border-t border-slate-100 mt-2 shrink-0 relative">
-              <Button
-                onClick={() => setIsSettingsOpen((p) => !p)}
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "w-10 h-10 rounded-xl transition-all duration-200",
-                  isSettingsOpen ? "bg-slate-100 text-slate-700 shadow-sm" : "text-slate-500 hover:bg-slate-50"
-                )}
-              >
-                <Settings size={20} className="text-slate-400" />
-              </Button>
-
-              {isSettingsOpen && (
-                <div className="absolute bottom-full mb-2 left-12 w-48 rounded-2xl border border-slate-200 bg-white shadow-xl p-1.5 z-50">
-                  <button
-                    onClick={handleChangePassword}
-                    className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    <Key size={15} className="text-slate-400" />
-                    Đổi mật khẩu
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-                  >
-                    <LogOut size={15} />
-                    Đăng xuất
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </aside>
@@ -420,8 +384,8 @@ export default function Sidebar({
               );
             })}
 
-            {/* Settings popup — wide only (Dashboard only) */}
-            {!currentFarmId && active === "dashboard" && !collapsed && (
+            {/* Settings popup — wide only, hidden when collapsed */}
+            {!currentFarmId && !collapsed && (
               <div className="relative mt-0">
                 <button
                   onClick={() => setIsSettingsOpen((p) => !p)}

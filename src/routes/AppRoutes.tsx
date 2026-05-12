@@ -67,7 +67,7 @@ export const AppRoutes: React.FC = () => {
       </Route>
 
       {/* Private Routes */}
-      <Route element={<PrivateRoutes />}>
+      <Route element={<PrivateRoutes />}> 
         <Route element={<Suspense fallback={<LoadingPage />}><DashboardLayout /></Suspense>}>
           <Route path="/dashboard" element={<Suspense fallback={<LoadingPage />}><MainPage /></Suspense>} />
           <Route path="/change-password" element={<Suspense fallback={<LoadingPage />}><ChangePasswordPage /></Suspense>} />

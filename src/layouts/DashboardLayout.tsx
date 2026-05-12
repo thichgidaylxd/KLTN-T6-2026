@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/auth/useAuth';
 import { useFarms } from '@/hooks/farms/useFarms';
 import { farmService } from '../services/farm/farmService';
 import { getRolesFromToken } from '../utils/jwt';
+import { WebSocketProvider } from "@/components/providers/WebsocketProviders";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -222,6 +223,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="w-full h-screen bg-[#F8FAFC] flex overflow-hidden p-3 gap-3">
+      <WebSocketProvider />
       <Sidebar
         variant={isWideSidebarPage ? "wide" : "compact"}
         active={active}

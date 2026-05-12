@@ -10,6 +10,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+    define: {
+    global: 'globalThis',  // ← thêm dòng này
+  },
 
   server: {
     port: 5222,
