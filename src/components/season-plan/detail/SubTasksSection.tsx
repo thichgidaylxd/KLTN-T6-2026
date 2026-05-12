@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Phase, SeasonPlan } from '@/types/seasonPlan';
 import { TaskSuggestion } from '@/types/ai';
 import { DateInput } from '@/components/ui/DateInput';
-import { cn } from '@/utils/cn';
 import { fmtDate, getStatusColor, statusLabel } from './DetailCommon';
 import { TaskSuggestionsSection } from './TaskSuggestionsSection';
 
@@ -157,6 +156,7 @@ export function SubTasksSection({
                         Kế hoạch chưa có lô đất
                       </p>
                     )}
+
 
 
                     {/* Nhiều plot — bắt chọn */}

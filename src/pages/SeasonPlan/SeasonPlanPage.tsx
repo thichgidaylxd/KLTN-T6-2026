@@ -199,14 +199,18 @@ export function SeasonPlanPage() {
     }
   }, [selectedItem?.planId, fetchStages, fetchPlanPlots]);
 
-  useEffect(() => {
-    if (selectedItem?.type === 'PHASE' || selectedItem?.type === 'TASK') {
-      const stageId = selectedItem.type === 'PHASE' ? selectedItem.id : selectedItem.phaseId;
-      if (stageId && selectedItem.planId) {
-        fetchTasks(selectedItem.planId, stageId);
-      }
-    }
-  }, [selectedItem?.id, selectedItem?.phaseId, selectedItem?.type, selectedItem?.planId, fetchTasks]);
+useEffect(() => {
+  if (selectedItem?.type !== 'PHASE' && selectedItem?.type !== 'TASK') return;
+  const stageId = selectedItem.type === 'PHASE' ? selectedItem.id : selectedItem.phaseId;
+  if (!stageId || !selectedItem.planId) return;
+
+  const plan = plans.find(p => p.id === selectedItem.planId);
+  const phase = plan?.phases?.find(ph => ph.id === stageId);
+  // Chỉ fetch nếu tasks chưa được load (undefined = chưa fetch, [] = đã fetch nhưng rỗng)
+  if (phase?.tasks === undefined) {
+    fetchTasks(selectedItem.planId, stageId);
+  }
+}, [selectedItem?.id, selectedItem?.phaseId, selectedItem?.type, selectedItem?.planId]);
 
   // ── Error helper ──────────────────────────────────────────────────────────
 
@@ -371,7 +375,6 @@ export function SeasonPlanPage() {
     if (!plan || !phase) return;
 
     let plotId = data.plotId;
-    if (!plotId && plan.plots?.length) plotId = plan.plots[0].plotId;
     try {
       await createSeasonTask(planId, phaseId, { ...data, plotId }).unwrap();
     } catch (err: any) {
@@ -694,7 +697,6 @@ export function SeasonPlanPage() {
             </div>
 
             <PlanDetailPanel
-              key={selectedItem ? `${selectedItem.type}-${selectedItem.id}` : 'none'}
               isOpen={!!selectedItem}
               selection={selectedData}
               onScrollToDate={(dateStr) => timelineRef.current?.scrollToDate(dateStr)}

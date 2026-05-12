@@ -475,14 +475,17 @@ useEffect(() => {
   const handleAddTaskSubmit = (plotIdOverride?: string | React.MouseEvent) => {
     if (selection.type !== 'PHASE') return;
 
-    const finalPlotId = (typeof plotIdOverride === 'string') ? plotIdOverride : newTaskPlotId;
 
+    const finalPlotId = (typeof plotIdOverride === 'string') ? plotIdOverride : newTaskPlotId;
+    console.log("finalPlotId:", finalPlotId);
+console.log("newTaskPlotId:", newTaskPlotId);
+console.log("phase.plotId:", (selection as any).phase.plotId);
     const payload = {
       name: newTaskName,
       description: newTaskDesc,
       startDate: newTaskStart || (selection as any).phase.startDate,
       endDate: newTaskEnd || (selection as any).phase.endDate,
-      plotId: finalPlotId || (selection as any).phase.plotId || "",
+       plotId: finalPlotId || "",  // ← chỉ dùng những gì user chọn
     };
 
     const validation = createTaskSchema.safeParse(payload);
