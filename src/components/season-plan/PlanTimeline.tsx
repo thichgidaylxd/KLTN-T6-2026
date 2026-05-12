@@ -1108,16 +1108,11 @@ export const PlanTimeline = React.forwardRef<{ scrollToDate: (dateStr: string) =
                       }}>
                       {statusLabel(r.item.status)}
                     </span>
-                    {r.item.actualStartDate && (
-                      <span className="ml-1 text-[9px] text-indigo-500 font-bold bg-indigo-50 px-1 rounded">
-                        ACTUAL: {r.item.actualStartDate.split('-').slice(1).reverse().join('/')}
-                      </span>
-                    )}
-                    {r.item.actualStartDate && (
-                      <span className="ml-1 text-[8px] text-indigo-400 font-mono">
-                        A: {r.item.actualStartDate.split('-').slice(1).join('/')}
-                      </span>
-                    )}
+{r.item.actualStartDate && (
+  <span className="ml-1 flex-shrink-0 text-[9px] text-indigo-500 font-bold bg-indigo-50 px-1.5 py-0.5 rounded">
+    ▶ {new Date(r.item.actualStartDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+  </span>
+)}
 
                   </div>
                 </AnimatedRow>

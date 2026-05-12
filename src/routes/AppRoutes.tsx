@@ -44,6 +44,7 @@ const SKUListPage = lazy(() => import('../pages/SKU/SKUListPage').then(module =>
 const FarmTransactionPage = lazy(() => import('../pages/Warehouse/FarmTransactionPage').then(module => ({ default: module.FarmTransactionPage })));
 const UserManagementPage = lazy(() => import('../pages/Admin/UserManagementPage'));
 
+
 // Layouts
 const DashboardLayout = lazy(() => import('../layouts/DashboardLayout'));
 const AdminLayout = lazy(() => import('../layouts/AdminLayout'));
@@ -104,6 +105,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="transactions" element={<Suspense fallback={<LoadingPage />}><FarmTransactionPage /></Suspense>} />
             <Route path="suppliers" element={<Suspense fallback={<LoadingPage />}><SupplierListPage /></Suspense>} />
             <Route path="skus" element={<Suspense fallback={<LoadingPage />}><SKUListPage /></Suspense>} />
+
           </Route>
         </Route>
 

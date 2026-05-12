@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  GripVertical,
   Users,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -125,6 +126,42 @@ export function PlanDetailPanel({
   const { members, fetchMembers, loadingMembers } = useMembers();
 
   const [activeTab, setActiveTab] = useState<'INFO' | 'MEMBERS' | 'MATERIALS' | 'LOGS' | 'HISTORY'>('INFO');
+
+  const PANEL_MIN = 280;
+const PANEL_MAX = 640;
+const [panelWidth, setPanelWidth] = useState(340);
+const panelResizing = useRef(false);
+const panelStartX = useRef(0);
+const panelStartW = useRef(340);
+const startPanelResize = useCallback((e: React.MouseEvent) => {
+  e.preventDefault();
+  panelResizing.current = true;
+  panelStartX.current = e.clientX;
+  panelStartW.current = panelWidth;
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+}, [panelWidth]);
+
+useEffect(() => {
+  const onMove = (e: MouseEvent) => {
+    if (!panelResizing.current) return;
+    // Panel nằm bên phải, kéo sang trái = tăng width
+    const delta = panelStartX.current - e.clientX;
+    setPanelWidth(Math.min(PANEL_MAX, Math.max(PANEL_MIN, panelStartW.current + delta)));
+  };
+  const onUp = () => {
+    if (!panelResizing.current) return;
+    panelResizing.current = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  };
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  return () => {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  };
+}, []);
   // Use dedicated hooks for management, using selection prop directly to avoid sync lag
   const {
     taskMaterials,
@@ -449,6 +486,7 @@ export function PlanDetailPanel({
     };
 
     const validation = createTaskSchema.safeParse(payload);
+    console.log("DEBUG: Payload for creating task:", payload, "Validation result:", validation);
     if (!validation.success) {
       toast.error(validation.error.errors[0].message);
       return;
@@ -557,9 +595,21 @@ export function PlanDetailPanel({
           initial={{ x: '100%', opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: '100%', opacity: 0 }}
+          style={{ width: panelWidth }}
           transition={{ type: 'spring', stiffness: 360, damping: 36 }}
-          className="w-[340px] flex-shrink-0 bg-white border-l border-slate-200 flex flex-col z-40 shadow-xl overflow-hidden"
+          className="relative flex-shrink-0 bg-white border-l border-slate-200 flex flex-col z-40 shadow-xl overflow-hidden"
         >
+            {/* Resize handle - đặt ở cạnh trái */}
+  <div
+    className="absolute left-0 top-0 bottom-0 w-1 group z-50 flex-shrink-0"
+    style={{ cursor: 'col-resize' }}
+    onMouseDown={startPanelResize}
+  >
+    <div className="absolute inset-y-0 left-0 w-px bg-slate-200 group-hover:bg-indigo-400 group-active:bg-indigo-500 transition-colors" />
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+      <GripVertical size={14} className="text-indigo-400" />
+    </div>
+  </div>
           <DetailHeader
             selection={sel as any}
             isEditing={isEditing}

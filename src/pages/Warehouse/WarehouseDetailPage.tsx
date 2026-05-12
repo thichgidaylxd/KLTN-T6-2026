@@ -5,35 +5,31 @@ import {
   Plus,
   Loader2,
   Search,
+  Tag,
   Trash2,
-  Edit2,
-  ChevronRight,
-  Building,
-  MapPin,
-  Grid3X3,
-  List,
-  Eye,
-  X,
   TrendingDown,
-  Boxes,
   Warehouse,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ArrowLeft,
+  Boxes,
   CheckCircle2,
   Clock,
-  Tag,
-  ArrowLeft,
-  ArrowDownCircle,
-  ArrowUpCircle,
+  Edit2,
+  Eye,
   History,
-  ChevronLeft,
-  ChevronRight as ChevronRightIcon,
+  MapPin,
+  Building,
+  Grid3X3,
+  List,
 } from "lucide-react";
 import {
-  useTransactionsByWarehouse,
   useTransactionsByItem,
+  useTransactionsByWarehouse,
 } from "../../hooks/warehouseTransactions/useWarehouseTransactions";
 import type {
   WarehouseTransaction,
-  TransactionType,
 } from "../../types/warehouseTransaction/warehouseTransaction";
 import { PageableParams } from "../../types/common";
 import { toast } from "sonner";
@@ -67,7 +63,7 @@ import {
   LocationDetailModal,
 } from "../../components/warehouse";
 
-type ActiveTab = "items" | "locations" | "transactions";
+type ActiveTab = "items" | "locations" | "transactions" | "item-history";
 
 const LOCATION_COLORS = [
   {
@@ -160,40 +156,6 @@ const inputCls =
 const selectCls =
   "w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all";
 
-function TransactionTypeBadge({ type }: { type: TransactionType }) {
-  const configs: Record<string, { label: string; className: string }> = {
-    IMPORT_MANUAL: {
-      label: "NHẬP VẬT TƯ THỦ CÔNG",
-      className: "bg-emerald-100 text-emerald-700",
-    },
-  };
-  const config = configs[type] || {
-    label: type,
-    className: "bg-slate-100 text-slate-600",
-  };
-  return (
-    <span
-      className={cn(
-        "text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap",
-        config.className,
-      )}
-    >
-      {config.label}
-    </span>
-  );
-}
-
-function sanitizeTransactionNote(note?: string | null) {
-  if (!note) return null;
-  const normalized = note.trim().toUpperCase();
-  if (
-    normalized === "IMPORT WAREHOUSE ITEM MANUAL" ||
-    normalized === "IMPORT_WAREHOUSE_ITEM_MANUAL"
-  ) {
-    return null;
-  }
-  return note;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -209,14 +171,15 @@ export function WarehouseDetailPage() {
     useWarehouseItems(farmId, warehouseId);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("items");
-  const [filterItemId, setFilterItemId] = useState<string | null>(null);
+  const [logItemId, setLogItemId] = useState<string | null>(searchParams.get("itemId"));
 
   // Conditionally fetch transactions based on filter
-  const warehouseTx = useTransactionsByWarehouse(farmId, warehouseId, undefined, { 
-    enabled: activeTab === "transactions" 
+  const warehouseTx = useTransactionsByWarehouse(farmId, warehouseId!, undefined, {
+    enabled: activeTab === "transactions"
   });
-  const itemTx = useTransactionsByItem(filterItemId, undefined, { 
-    enabled: activeTab === "transactions" 
+
+  const itemTx = useTransactionsByItem(logItemId, undefined, {
+    enabled: activeTab === "item-history" && !!logItemId
   });
 
   const {
@@ -227,7 +190,7 @@ export function WarehouseDetailPage() {
     setPageable: txSetPageable,
     setPageSize: txSetPageSize,
     goToPage: txGoToPage,
-  } = filterItemId ? itemTx : warehouseTx;
+  } = activeTab === "item-history" ? itemTx : warehouseTx;
 
   // ── Sync pagination with URL query params ───────────────────────────────────
   const sortParam = searchParams.get('sort');
@@ -256,7 +219,7 @@ export function WarehouseDetailPage() {
     setSearchParams(params, { replace: true });
   };
 
-  const setPageSize = (s: number) => {
+  const updatePageSize = (s: number) => {
     txSetPageSize(s);
     const params = new URLSearchParams(searchParams);
     params.set('size', String(s));
@@ -264,10 +227,10 @@ export function WarehouseDetailPage() {
     setSearchParams(params, { replace: true });
   };
 
-  const setSort = (sortKey: string) => {
-    txSetPageable({ page: 0, size: txPageable.size, sort: [sortKey] });
+  const updateSort = (sort: string) => {
+    txSetPageable(prev => ({ ...prev, sort: [sort], page: 0 }));
     const params = new URLSearchParams(searchParams);
-    params.set('sort', sortKey);
+    params.set('sort', sort);
     params.set('page', '0');
     setSearchParams(params, { replace: true });
   };
@@ -306,8 +269,8 @@ export function WarehouseDetailPage() {
   const [selectedLoc, setSelectedLoc] = useState<WarehouseLocation | null>(
     null,
   );
-  const [isDetailLocModalOpen, setIsDetailLocModalOpen] = useState(false);
   const [selectedLocId, setSelectedLocId] = useState<string | null>(null);
+  const [isDetailLocModalOpen, setIsDetailLocModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentWarehouse = useMemo(
@@ -773,18 +736,28 @@ export function WarehouseDetailPage() {
                       return (
                         <tr
                           key={item.id}
-                          className="hover:bg-slate-50/60 transition-colors group"
+                          className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
+                          onClick={() => {
+                            setLogItemId(item.id);
+                            setActiveTab("item-history");
+                            const params = new URLSearchParams(searchParams);
+                            params.set("itemId", item.id);
+                            params.set("tab", "item-history");
+                            params.set("page", "0");
+                            setSearchParams(params, { replace: true });
+                          }}
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 shrink-0">
+                              <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 shrink-0 group-hover:bg-emerald-100 transition-colors">
                                 <Package size={14} />
                               </div>
-                              <div>
-                                <p className="text-[13px] font-semibold text-slate-800 leading-tight">
+                              <div className="group/name relative">
+                                <p className="text-[13px] font-semibold text-slate-800 leading-tight group-hover/name:text-emerald-600 transition-colors flex items-center gap-1.5">
                                   {item.name}
+                                  <ChevronRight size={12} className="opacity-0 group-hover/name:opacity-100 group-hover/name:translate-x-0.5 transition-all text-emerald-400" />
                                 </p>
-                                <p className="text-[11px] text-emerald-600 font-mono mt-0.5">
+                                <p className="text-[11px] text-emerald-600 font-mono mt-0.5 group-hover/name:underline underline-offset-2 transition-all">
                                   {item.sku?.sku || "N/A"}
                                 </p>
                               </div>
@@ -848,6 +821,24 @@ export function WarehouseDetailPage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  setLogItemId(item.id);
+                                  setActiveTab("item-history");
+                                  const params = new URLSearchParams(searchParams);
+                                  params.set("itemId", item.id);
+                                  params.set("tab", "item-history");
+                                  params.set("page", "0");
+                                  setSearchParams(params, { replace: true });
+                                }}
+                                className="p-1.5 text-emerald-500 hover:text-white hover:bg-emerald-600 rounded-lg transition-all shadow-sm border border-emerald-100 flex items-center gap-1.5 group/log h-8 px-2"
+                                title="Xem chi tiết biến động"
+                              >
+                                <History size={13} className="group-hover/log:rotate-12 transition-transform" />
+                                <span className="text-[11px] font-bold uppercase tracking-wider">Chi tiết</span>
+                              </button>
+                              <div className="w-px h-4 bg-slate-100 mx-0.5" />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   handleEditItem(item);
                                 }}
                                 className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
@@ -855,7 +846,10 @@ export function WarehouseDetailPage() {
                                 <Edit2 size={13} />
                               </button>
                               <button
-                                onClick={() => handleDeleteItem(item)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteItem(item);
+                                }}
                                 disabled={loading}
                                 className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50"
                               >
@@ -960,13 +954,13 @@ export function WarehouseDetailPage() {
                       <div className="flex items-start justify-between">
                         <div
                           className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            "w-8 h-8 rounded-lg flex items-center justify-center bg-opacity-10",
                             c.badge,
                           )}
                         >
                           <MapPin size={15} />
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                           {canManage && (
                             <button
                               onClick={(e) => {
@@ -991,8 +985,8 @@ export function WarehouseDetailPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-[13px] font-bold text-slate-800 leading-tight">
+                      <div className="flex-1 min-h-[40px]">
+                        <p className="text-[14px] font-black text-slate-800 leading-tight">
                           {loc.name}
                         </p>
                         {loc.description && (
@@ -1001,20 +995,20 @@ export function WarehouseDetailPage() {
                           </p>
                         )}
                       </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-                          <div className="flex items-center gap-1.5">
-                            <div
-                              className={cn("w-1.5 h-1.5 rounded-full", c.dot)}
-                            />
-                            <span className="text-[11px] font-mono font-semibold text-slate-500">
-                              {loc.code}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 text-[10px] font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg shadow-sm border border-violet-100/50 transition-all hover:bg-violet-100">
-                            <span>Chi tiết</span>
-                            <ChevronRight size={10} />
-                          </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                        <div className="flex items-center gap-1.5">
+                          <div
+                            className={cn("w-1.5 h-1.5 rounded-full", c.dot)}
+                          />
+                          <span className="text-[11px] font-mono font-semibold text-slate-500">
+                            {loc.code}
+                          </span>
                         </div>
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-violet-600 bg-violet-50 px-2 h-6 rounded-lg shadow-sm border border-violet-100/50 transition-all hover:bg-violet-100 shrink-0">
+                          <span className="leading-none">Chi tiết</span>
+                          <ChevronRight size={10} />
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
@@ -1102,7 +1096,7 @@ export function WarehouseDetailPage() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-1">
-                              <button 
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleViewLocationDetail(loc.id);
@@ -1112,19 +1106,14 @@ export function WarehouseDetailPage() {
                               >
                                 <Eye size={13} />
                               </button>
-                              <button 
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  // logic sửa nếu có
+                                  handleDeleteLocation(loc);
                                 }}
-                                className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                              >
-                                <Edit2 size={13} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteLocation(loc)}
                                 disabled={locLoading}
                                 className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50"
+                                title="Xóa vị trí"
                               >
                                 <Trash2 size={13} />
                               </button>
@@ -1140,265 +1129,359 @@ export function WarehouseDetailPage() {
           </div>
         )}
 
-        {/* ══ TRANSACTIONS tab ══ */}
+        {/* ══ TRANSACTIONS tab (Farm Wide) ══ */}
         {activeTab === "transactions" && (
           <div className="flex flex-col h-full space-y-4 min-h-0">
-            {/* Header */}
             <div className="flex items-center justify-between">
-              <p className="text-[13px] text-slate-600">
-                <span className="font-bold text-slate-900">
-                  {txData?.totalElements ?? 0}
-                </span>{" "}
-                giao dịch
-                {txData && txData.totalPages > 1 && (
-                  <span className="text-slate-400 ml-2">
-                    · Trang {(txData.pageNumber ?? 0) + 1}/{txData.totalPages}
-                  </span>
-                )}
-              </p>
+              <div className="flex items-center gap-2">
+                <History size={16} className="text-emerald-500" />
+                <span className="text-[14px] font-bold text-slate-700">Lịch sử giao dịch chung</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <p className="text-[13px] text-slate-600">
+                  <span className="font-bold text-slate-900">{txData?.totalElements ?? 0}</span> giao dịch
+                </p>
+              </div>
             </div>
 
-            {/* Table Area (Scrollable) */}
-            <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
+            <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden shadow-sm">
               <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
-                <div className="flex items-center gap-2">
-                  <History size={16} className="text-slate-400" />
-                  <span className="text-[14px] font-bold text-slate-700">
-                    Chi tiết giao dịch
-                  </span>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sắp xếp:</span>
+                    <select
+                      value={txPageable.sort?.[0] || "createdAt,desc"}
+                      onChange={(e) => updateSort(e.target.value)}
+                      className="text-[12px] border-slate-200 rounded-lg py-1 px-2 bg-white shadow-sm outline-none focus:border-emerald-400"
+                    >
+                      <option value="createdAt,desc">Mới nhất</option>
+                      <option value="createdAt,asc">Cũ nhất</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Lọc theo vật tư:
-                  </span>
-                  <select
-                    value={filterItemId || ""}
-                    onChange={(e) => {
-                      const newItemId = e.target.value || null;
-                      setFilterItemId(newItemId);
-                      // Reset cả hai hook để tránh lệch trang khi switch filter
-                      warehouseTx.goToPage(0);
-                      itemTx.goToPage(0);
-                      const params = new URLSearchParams(searchParams);
-                      params.set('page', '0');
-                      setSearchParams(params, { replace: true });
-                    }}
-                    className="text-[12px] border-slate-200 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 py-1 pl-3 pr-8 min-w-[200px] bg-white shadow-sm"
-                  >
-                    <option value="">— Tất cả vật tư —</option>
-                    {items.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
 
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Size:</span>
                   <select
-                    value={txPageable.size ?? 20}
-                    onChange={(e) => setPageSize(Number(e.target.value))}
-                    className="text-[12px] border-slate-200 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 py-1 pl-3 pr-8 bg-white shadow-sm"
-                    title="Số dòng mỗi trang"
+                    value={txPageable.size}
+                    onChange={(e) => updatePageSize(Number(e.target.value))}
+                    className="text-[12px] border-slate-200 rounded-lg py-1 px-2 bg-white shadow-sm outline-none focus:border-emerald-400"
                   >
-                    <option value={10}>10 / trang</option>
-                    <option value={20}>20 / trang</option>
-                    <option value={50}>50 / trang</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
                   </select>
-
-                  <select
-                    value={txPageable.sort?.[0] ?? "createdAt,desc"}
-                    onChange={(e) => setSort(e.target.value)}
-                    className="text-[12px] border-slate-200 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 py-1 pl-3 pr-8 bg-white shadow-sm"
-                    title="Sắp xếp"
-                  >
-                    <option value="createdAt,desc">Mới nhất</option>
-                    <option value="createdAt,asc">Cũ nhất</option>
-                  </select>
-
-                  {txData && txData.totalElements > 0 && (
-                    <div className="ml-2 pl-4 border-l border-slate-200 py-1">
-                      <p className="text-[12px] text-slate-500">
-                        Hiển thị{" "}
-                        <span className="font-bold text-slate-700">
-                          {transactions.length}
-                        </span>{" "}
-                        /{" "}
-                        <span className="font-bold text-slate-700">
-                          {txData.totalElements}
-                        </span>
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
 
               {txLoading ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <Loader2
-                    size={28}
-                    className="animate-spin text-emerald-500"
-                  />
-                  <p className="text-[12px] text-slate-400">
-                    Đang tải giao dịch...
-                  </p>
+                <div className="flex-1 flex flex-col items-center justify-center py-16 gap-3">
+                  <Loader2 size={32} className="animate-spin text-emerald-500" />
+                  <p className="text-[13px] text-slate-400 font-medium">Đang truy xuất nhật ký...</p>
                 </div>
               ) : transactions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                  <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center">
-                    <History size={24} className="text-slate-300" />
+                <div className="flex-1 flex flex-col items-center justify-center py-16 gap-3 text-center">
+                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-2">
+                    <History size={32} className="text-slate-200" />
                   </div>
-                  <div>
-                    <p className="text-[14px] font-semibold text-slate-700">
-                      Chưa có giao dịch nào
-                    </p>
-                    <p className="text-[12px] text-slate-400 mt-1">
-                      Giao dịch sẽ xuất hiện khi nhập/xuất vật tư
-                    </p>
+                  <p className="text-[15px] font-bold text-slate-700">Chưa có giao dịch</p>
+                  <p className="text-[12px] text-slate-400">Hiện tại chưa có biến động kho nào</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1 overflow-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-100">
+                        <tr>
+                          <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vật tư</th>
+                          <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Biến động</th>
+                          <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Đơn vị</th>
+                          <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Đơn giá</th>
+                          <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Giá trị</th>
+                          <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Từ Vị trí</th>
+                          <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đến Vị trí</th>
+                          <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Người thực hiện</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {transactions.map((tx: WarehouseTransaction) => {
+                          const isImport = tx.qtyChange > 0;
+                          const itemPrice = tx.warehouseItem.unitPrice ?? 0;
+                          const totalValue = Math.abs(tx.qtyChange) * itemPrice;
+
+                          return (
+                            <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="px-6 py-4">
+                                <span className="text-[13px] font-bold text-slate-700">{tx.warehouseItem.name}</span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex flex-col items-end">
+                                  <span className={cn(
+                                    "text-[14px] font-black",
+                                    isImport ? "text-emerald-600" : "text-rose-600"
+                                  )}>
+                                    {isImport ? "+" : "-"} {Math.abs(tx.qtyChange).toLocaleString("vi-VN")}
+                                  </span>
+                                  <span className={cn(
+                                    "text-[9px] font-bold px-1.5 rounded uppercase tracking-tighter w-fit",
+                                    isImport ? "bg-emerald-50 text-emerald-500" : "bg-rose-50 text-rose-500"
+                                  )}>
+                                    {isImport ? "Nhập kho" : "Xuất kho"}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <span className="text-[12px] font-medium text-slate-600">{tx.warehouseItem.unit.name}</span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <span className="text-[13px] font-medium text-slate-600">
+                                  {itemPrice > 0 ? itemPrice.toLocaleString("vi-VN") + " ₫" : "—"}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <span className={cn(
+                                  "text-[13px] font-bold",
+                                  isImport ? "text-emerald-700" : "text-rose-700"
+                                )}>
+                                  {totalValue > 0 ? (isImport ? "+" : "-") + totalValue.toLocaleString("vi-VN") + " ₫" : "—"}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className="text-[12px] text-slate-500 font-medium truncate max-w-[120px] block">
+                                  {tx.fromLocation?.name || "—"}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className="text-[12px] text-slate-700 font-bold truncate max-w-[120px] block">
+                                  {tx.toLocation?.name || "—"}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex flex-col">
+                                  <span className="text-[12px] font-bold text-slate-700 whitespace-nowrap">
+                                    {tx.performedBy?.fullName || "Hệ thống"}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 truncate max-w-[150px]">
+                                    {tx.performedBy?.email || "N/A"}
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
+
+                  {/* Pagination */}
+                  {txData && (
+                    <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-white shrink-0">
+                      <div className="text-[12px] text-slate-500">
+                        Hiển thị trang <span className="font-bold text-slate-700">{txData.pageNumber + 1}</span> / {txData.totalPages || 1}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => goToPage(txData.pageNumber - 1)}
+                          disabled={txData.first || txData.totalPages <= 1}
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 transition-all"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, txData.totalPages) }).map(
+                            (_, i) => {
+                              const pageNum = i;
+                              const isActive = txData.pageNumber === pageNum;
+                              return (
+                                <button
+                                  key={pageNum}
+                                  onClick={() => goToPage(pageNum)}
+                                  className={cn(
+                                    "w-8 h-8 rounded-lg text-[12px] font-semibold transition-all",
+                                    isActive
+                                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
+                                      : "text-slate-500 hover:bg-slate-100"
+                                  )}
+                                >
+                                  {pageNum + 1}
+                                </button>
+                              );
+                            },
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => goToPage(txData.pageNumber + 1)}
+                          disabled={txData.last || txData.totalPages <= 1}
+                          className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all border border-slate-200"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ══ ITEM HISTORY tab ══ */}
+        {activeTab === "item-history" && logItemId && (
+          <div className="flex flex-col h-full space-y-4 min-h-0">
+            {/* Header with Back Button */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setActiveTab("items");
+                    setLogItemId(null);
+                    const params = new URLSearchParams(searchParams);
+                    params.delete("itemId");
+                    params.delete("tab");
+                    setSearchParams(params, { replace: true });
+                  }}
+                  className="p-2 hover:bg-white rounded-xl text-slate-500 hover:text-slate-900 transition-all border border-transparent hover:border-slate-200 shadow-sm hover:shadow-md"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <div>
+                  <h3 className="text-[16px] font-bold text-slate-900 flex items-center gap-2">
+                    <History size={18} className="text-emerald-500" />
+                    Chi tiết: <span className="text-emerald-600">{items.find(i => i.id === logItemId)?.name || "Vật tư"}</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-medium">Chi tiết lịch sử biến động kho của vật tư này</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <p className="text-[13px] text-slate-600">
+                  <span className="font-bold text-slate-900">{txData?.totalElements ?? 0}</span> giao dịch
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden shadow-sm">
+              {/* Toolbar */}
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sắp xếp:</span>
+                    <select
+                      value={txPageable.sort?.[0] || "createdAt,desc"}
+                      onChange={(e) => updateSort(e.target.value)}
+                      className="text-[12px] border-slate-200 rounded-lg py-1 px-2 bg-white shadow-sm outline-none focus:border-emerald-400"
+                    >
+                      <option value="createdAt,desc">Mới nhất</option>
+                      <option value="createdAt,asc">Cũ nhất</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Size:</span>
+                  <select
+                    value={txPageable.size}
+                    onChange={(e) => updatePageSize(Number(e.target.value))}
+                    className="text-[12px] border-slate-200 rounded-lg py-1 px-2 bg-white shadow-sm outline-none focus:border-emerald-400"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+              </div>
+
+              {txLoading ? (
+                <div className="flex-1 flex flex-col items-center justify-center py-16 gap-3">
+                  <Loader2 size={32} className="animate-spin text-emerald-500" />
+                  <p className="text-[13px] text-slate-400 font-medium">Đang truy xuất nhật ký...</p>
+                </div>
+              ) : transactions.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center py-16 gap-3 text-center">
+                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-2">
+                    <History size={32} className="text-slate-200" />
+                  </div>
+                  <p className="text-[15px] font-bold text-slate-700">Chưa có giao dịch</p>
+                  <p className="text-[12px] text-slate-400">Vật tư này hiện chưa có biến động kho nào</p>
                 </div>
               ) : (
                 <div className="flex-1 overflow-auto">
                   <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 z-10">
-                      <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Loại
-                        </th>
-                        <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Vật tư
-                        </th>
-                        <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">
-                          SL thay đổi
-                        </th>
-                        <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Từ vị trí
-                        </th>
-                        <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Đến vị trí
-                        </th>
-                        <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Người thực hiện
-                        </th>
-                        <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Thời gian
-                        </th>
+                    <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-100">
+                      <tr>
+                        <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vật tư</th>
+                        <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Biến động</th>
+                        <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Đơn vị</th>
+                        <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Đơn giá</th>
+                        <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Giá trị</th>
+                        <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Từ Vị trí</th>
+                        <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đến Vị trí</th>
+                        <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Người thực hiện</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {transactions.map((tx: WarehouseTransaction) => {
                         const isImport = tx.qtyChange > 0;
-                        const safeNote = sanitizeTransactionNote(tx.notes);
+                        const itemPrice = tx.warehouseItem.unitPrice ?? 0;
+                        const totalValue = Math.abs(tx.qtyChange) * itemPrice;
+
                         return (
-                          <tr
-                            key={tx.id}
-                            className="hover:bg-slate-50/60 transition-colors"
-                          >
-                            <td className="px-4 py-3">
-                              <TransactionTypeBadge type={tx.type} />
+                          <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-6 py-4">
+                              <span className="text-[13px] font-bold text-slate-700">{tx.warehouseItem.name}</span>
                             </td>
-                            <td className="px-4 py-3">
-                              <div>
-                                <p className="text-[13px] font-semibold text-slate-800 leading-tight">
-                                  {tx.warehouseItem.name}
-                                </p>
-                                {tx.warehouseItem.sku && (
-                                  <p className="text-[11px] text-emerald-600 font-mono mt-0.5">
-                                    {tx.warehouseItem.sku.sku}
-                                  </p>
-                                )}
-                                {(safeNote ||
-                                  tx.refHavestId ||
-                                  tx.refTaskId ||
-                                  tx.refTransferId ||
-                                  tx.refWorkLogId) && (
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {safeNote && (
-                                      <span className="text-[10px] text-slate-400 italic">
-                                        "{safeNote}"
-                                      </span>
-                                    )}
-                                    {tx.refHavestId && (
-                                      <span className="text-[9px] font-bold bg-indigo-50 text-indigo-500 px-1 rounded uppercase">
-                                        Ref: Harvest
-                                      </span>
-                                    )}
-                                    {tx.refTaskId && (
-                                      <span className="text-[9px] font-bold bg-emerald-50 text-emerald-500 px-1 rounded uppercase">
-                                        Ref: Task
-                                      </span>
-                                    )}
-                                    {tx.refTransferId && (
-                                      <span className="text-[9px] font-bold bg-amber-50 text-amber-500 px-1 rounded uppercase">
-                                        Ref: Transfer
-                                      </span>
-                                    )}
-                                    {tx.refWorkLogId && (
-                                      <span className="text-[9px] font-bold bg-blue-50 text-blue-500 px-1 rounded uppercase">
-                                        Ref: WorkLog
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                {isImport ? (
-                                  <ArrowDownCircle
-                                    size={13}
-                                    className="text-emerald-500"
-                                  />
-                                ) : (
-                                  <ArrowUpCircle
-                                    size={13}
-                                    className="text-rose-500"
-                                  />
-                                )}
-                                <span
-                                  className={cn(
-                                    "text-[13px] font-bold",
-                                    isImport
-                                      ? "text-emerald-700"
-                                      : "text-rose-600",
-                                  )}
-                                >
-                                  {isImport ? "+" : ""}
-                                  {tx.qtyChange.toLocaleString("vi-VN")}
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex flex-col items-end">
+                                <span className={cn(
+                                  "text-[14px] font-black",
+                                  isImport ? "text-emerald-600" : "text-rose-600"
+                                )}>
+                                  {isImport ? "+" : "-"} {Math.abs(tx.qtyChange).toLocaleString("vi-VN")}
                                 </span>
-                                <span className="text-[11px] text-slate-400">
-                                  {tx.warehouseItem.unit.code}
+                                <span className={cn(
+                                  "text-[9px] font-bold px-1.5 rounded uppercase tracking-tighter w-fit",
+                                  isImport ? "bg-emerald-50 text-emerald-500" : "bg-rose-50 text-rose-500"
+                                )}>
+                                  {isImport ? "Nhập kho" : "Xuất kho"}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 py-3">
-                              {tx.fromLocation ? (
-                                <span className="text-[12px] font-mono font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                                  {tx.fromLocation.code}
-                                </span>
-                              ) : (
-                                <span className="text-slate-300">—</span>
-                              )}
+                            <td className="px-6 py-4 text-center">
+                              <span className="text-[12px] font-medium text-slate-600">{tx.warehouseItem.unit.name}</span>
                             </td>
-                            <td className="px-4 py-3">
-                              {tx.toLocation ? (
-                                <span className="text-[12px] font-mono font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                                  {tx.toLocation.code}
-                                </span>
-                              ) : (
-                                <span className="text-slate-300">—</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="text-[12px] text-slate-600">
-                                {tx.performedBy?.fullName ?? "—"}
+                            <td className="px-6 py-4 text-right">
+                              <span className="text-[13px] font-medium text-slate-600">
+                                {itemPrice > 0 ? itemPrice.toLocaleString("vi-VN") + " ₫" : "—"}
                               </span>
                             </td>
-                            <td className="px-4 py-3">
-                              <span className="text-[11px] text-slate-400">
-                                {new Date(tx.createdAt).toLocaleString(
-                                  "vi-VN",
-                                  { dateStyle: "short", timeStyle: "short" },
-                                )}
+                            <td className="px-6 py-4 text-right">
+                              <span className={cn(
+                                "text-[13px] font-bold",
+                                isImport ? "text-emerald-700" : "text-rose-700"
+                              )}>
+                                {totalValue > 0 ? (isImport ? "+" : "-") + totalValue.toLocaleString("vi-VN") + " ₫" : "—"}
                               </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="text-[12px] text-slate-500 font-medium truncate max-w-[120px] block">
+                                {tx.fromLocation?.name || "—"}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="text-[12px] text-slate-700 font-bold truncate max-w-[120px] block">
+                                {tx.toLocation?.name || "—"}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                <span className="text-[12px] font-bold text-slate-700 whitespace-nowrap">
+                                  {tx.performedBy?.fullName || "Hệ thống"}
+                                </span>
+                                <span className="text-[10px] text-slate-400 truncate max-w-[150px]">
+                                  {tx.performedBy?.email || "N/A"}
+                                </span>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1407,66 +1490,56 @@ export function WarehouseDetailPage() {
                   </table>
                 </div>
               )}
-            </div>
 
-            {/* Pagination Area (Fixed at bottom) */}
-            {txData && (
-              <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 shrink-0">
-                <div className="flex items-center justify-between">
-                  <p className="text-[12px] text-slate-500">
-                    Trang <span className="font-semibold text-slate-700">{(txData.pageNumber ?? 0) + 1}</span> /{" "}
-                    <span className="font-semibold text-slate-700">{Math.max(txData.totalPages, 1)}</span>
-                  </p>
-                  <div className="flex items-center gap-1">
+              {/* Pagination */}
+              {txData && (
+                <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-white shrink-0">
+                  <div className="text-[12px] text-slate-500">
+                    Hiển thị trang <span className="font-bold text-slate-700">{txData.pageNumber + 1}</span> / {txData.totalPages || 1}
+                  </div>
+                  <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => goToPage((txData.pageNumber ?? 0) - 1)}
+                      onClick={() => goToPage(txData.pageNumber - 1)}
                       disabled={txData.first || txData.totalPages <= 1}
-                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 transition-all"
                     >
-                      <ChevronLeft size={15} />
+                      <ChevronLeft size={16} />
                     </button>
-                    {Array.from(
-                      { length: Math.min(Math.max(txData.totalPages, 1), 5) },
-                      (_, i) => {
-                        const currentPage = txData.pageNumber ?? 0;
-                        const total = Math.max(txData.totalPages, 1);
-                        let pageNum: number;
-                        if (total <= 5) {
-                          pageNum = i;
-                        } else if (currentPage < 3) {
-                          pageNum = i;
-                        } else if (currentPage >= total - 2) {
-                          pageNum = total - 5 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => goToPage(pageNum)}
-                            className={cn(
-                              "w-7 h-7 text-[12px] font-semibold rounded-lg transition-all",
-                              currentPage === pageNum
-                                ? "bg-emerald-600 text-white"
-                                : "text-slate-600 hover:bg-slate-100",
-                            )}
-                          >
-                            {pageNum + 1}
-                          </button>
-                        );
-                      },
-                    )}
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, txData.totalPages) }).map(
+                        (_, i) => {
+                          const pageNum = i;
+                          const isActive = txData.pageNumber === pageNum;
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => goToPage(pageNum)}
+                              className={cn(
+                                "w-8 h-8 rounded-lg text-[12px] font-semibold transition-all",
+                                isActive
+                                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
+                                  : "text-slate-500 hover:bg-slate-100"
+                              )}
+                            >
+                              {pageNum + 1}
+                            </button>
+                          );
+                        },
+                      )}
+                    </div>
+
                     <button
-                      onClick={() => goToPage((txData.pageNumber ?? 0) + 1)}
+                      onClick={() => goToPage(txData.pageNumber + 1)}
                       disabled={txData.last || txData.totalPages <= 1}
-                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all border border-slate-200"
                     >
-                      <ChevronRightIcon size={15} />
+                      <ChevronRight size={16} />
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -1486,112 +1559,112 @@ export function WarehouseDetailPage() {
               onSubmit={handleCreateItem}
               className="space-y-4"
             >
-               <div>
-                 <FieldLabel required>Tên vật tư</FieldLabel>
-                 <input
-                   // required
-                   value={itemForm.name}
-                   onChange={(e) =>
-                     setItemForm((p) => ({ ...p, name: e.target.value }))
-                   }
-                   className={inputCls}
-                   placeholder="VD: Phân bón NPK 20-20-15"
-                 />
-               </div>
+              <div>
+                <FieldLabel required>Tên vật tư</FieldLabel>
+                <input
+                  // required
+                  value={itemForm.name}
+                  onChange={(e) =>
+                    setItemForm((p) => ({ ...p, name: e.target.value }))
+                  }
+                  className={inputCls}
+                  placeholder="VD: Phân bón NPK 20-20-15"
+                />
+              </div>
 
-               <div className="grid grid-cols-2 gap-3">
-                 <div>
-                   <FieldLabel required>Đơn vị tính</FieldLabel>
-                   <select
-                     // required
-                     value={itemForm.unitId}
-                     onChange={(e) =>
-                       setItemForm((p) => ({ ...p, unitId: e.target.value }))
-                     }
-                     className={selectCls}
-                   >
-                     <option value="">Chọn đơn vị</option>
-                     {units.map((u: Unit) => (
-                       <option key={u.id} value={u.id}>
-                         {u.name} ({u.code})
-                       </option>
-                     ))}
-                   </select>
-                 </div>
-                 <div>
-                   <FieldLabel required>Mã SKU</FieldLabel>
-                   <select
-                     // required
-                     value={itemForm.sku}
-                     onChange={(e) =>
-                       setItemForm((p) => ({ ...p, sku: e.target.value }))
-                     }
-                     className={selectCls}
-                   >
-                     <option value="">Chọn SKU</option>
-                     {skus.map((s: Sku) => (
-                       <option key={s.sku} value={s.sku}>
-                         {s.sku}
-                       </option>
-                     ))}
-                   </select>
-                 </div>
-               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel required>Đơn vị tính</FieldLabel>
+                  <select
+                    // required
+                    value={itemForm.unitId}
+                    onChange={(e) =>
+                      setItemForm((p) => ({ ...p, unitId: e.target.value }))
+                    }
+                    className={selectCls}
+                  >
+                    <option value="">Chọn đơn vị</option>
+                    {units.map((u: Unit) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <FieldLabel required>Mã SKU</FieldLabel>
+                  <select
+                    // required
+                    value={itemForm.sku}
+                    onChange={(e) =>
+                      setItemForm((p) => ({ ...p, sku: e.target.value }))
+                    }
+                    className={selectCls}
+                  >
+                    <option value="">Chọn SKU</option>
+                    {skus.map((s: Sku) => (
+                      <option key={s.sku} value={s.sku}>
+                        {s.sku}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-               <div className="grid grid-cols-2 gap-3">
-                 <div>
-                   <FieldLabel>Nhà cung cấp</FieldLabel>
-                   <select
-                     value={itemForm.supplierId}
-                     onChange={(e) =>
-                       setItemForm((p) => ({ ...p, supplierId: e.target.value }))
-                     }
-                     className={selectCls}
-                   >
-                     <option value="">Chọn nhà cung cấp</option>
-                     {suppliers.map((s: Supplier) => (
-                       <option key={s.id} value={s.id}>
-                         {s.name}
-                       </option>
-                     ))}
-                   </select>
-                 </div>
-                 <div>
-                   <FieldLabel required>Vị trí trong kho</FieldLabel>
-                   <select
-                     // required
-                     value={itemForm.toLocationId}
-                     onChange={(e) =>
-                       setItemForm((p) => ({
-                         ...p,
-                         toLocationId: e.target.value,
-                       }))
-                     }
-                     className={selectCls}
-                   >
-                     <option value="">Chọn vị trí</option>
-                     {locations
-                       .filter((l: WarehouseLocation) => l.isActive)
-                       .map((l: WarehouseLocation) => (
-                         <option key={l.id} value={l.id}>
-                           {l.name} [{l.code}]
-                         </option>
-                       ))}
-                   </select>
-                 </div>
-               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel>Nhà cung cấp</FieldLabel>
+                  <select
+                    value={itemForm.supplierId}
+                    onChange={(e) =>
+                      setItemForm((p) => ({ ...p, supplierId: e.target.value }))
+                    }
+                    className={selectCls}
+                  >
+                    <option value="">Chọn nhà cung cấp</option>
+                    {suppliers.map((s: Supplier) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <FieldLabel required>Vị trí trong kho</FieldLabel>
+                  <select
+                    // required
+                    value={itemForm.toLocationId}
+                    onChange={(e) =>
+                      setItemForm((p) => ({
+                        ...p,
+                        toLocationId: e.target.value,
+                      }))
+                    }
+                    className={selectCls}
+                  >
+                    <option value="">Chọn vị trí</option>
+                    {locations
+                      .filter((l: WarehouseLocation) => l.isActive)
+                      .map((l: WarehouseLocation) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name} [{l.code}]
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
 
-               <div className="grid grid-cols-3 gap-3">
-                 <div>
-                   <FieldLabel required>Số lượng tồn</FieldLabel>
-                   <input
-                     // required
-                     {...numericInput(itemForm.stock, (v) =>
-                       setItemForm((p) => ({ ...p, stock: v })),
-                     )}
-                     className={cn(inputCls, "font-bold text-emerald-700")}
-                   />
-                 </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <FieldLabel required>Số lượng tồn</FieldLabel>
+                  <input
+                    // required
+                    {...numericInput(itemForm.stock, (v) =>
+                      setItemForm((p) => ({ ...p, stock: v })),
+                    )}
+                    className={cn(inputCls, "font-bold text-emerald-700")}
+                  />
+                </div>
                 <div>
                   <FieldLabel>Đơn giá (₫)</FieldLabel>
                   <input
@@ -1650,40 +1723,40 @@ export function WarehouseDetailPage() {
             onClose={() => setIsLocationModalOpen(false)}
           />
 
-           <form
-             id="create-location-form"
-             onSubmit={handleCreateLocation}
-             className="px-6 py-5 space-y-4"
-           >
-             <div className="grid grid-cols-2 gap-3">
-               <div>
-                 <FieldLabel required>Mã vị trí</FieldLabel>
-                 <input
-                   // required
-                   value={locationForm.code}
-                   onChange={(e) =>
-                     setLocationForm((p) => ({
-                       ...p,
-                       code: e.target.value.toUpperCase(),
-                     }))
-                   }
-                   className={cn(inputCls, "font-mono uppercase")}
-                   placeholder="VD: A1, KEL-01"
-                   maxLength={20}
-                 />
-               </div>
-               <div>
-                 <FieldLabel required>Tên vị trí</FieldLabel>
-                 <input
-                   // required
-                   value={locationForm.name}
-                   onChange={(e) =>
-                     setLocationForm((p) => ({ ...p, name: e.target.value }))
-                   }
-                   className={inputCls}
-                   placeholder="VD: Kệ A hàng 1"
-                 />
-               </div>
+          <form
+            id="create-location-form"
+            onSubmit={handleCreateLocation}
+            className="px-6 py-5 space-y-4"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <FieldLabel required>Mã vị trí</FieldLabel>
+                <input
+                  // required
+                  value={locationForm.code}
+                  onChange={(e) =>
+                    setLocationForm((p) => ({
+                      ...p,
+                      code: e.target.value.toUpperCase(),
+                    }))
+                  }
+                  className={cn(inputCls, "font-mono uppercase")}
+                  placeholder="VD: A1, KEL-01"
+                  maxLength={20}
+                />
+              </div>
+              <div>
+                <FieldLabel required>Tên vị trí</FieldLabel>
+                <input
+                  // required
+                  value={locationForm.name}
+                  onChange={(e) =>
+                    setLocationForm((p) => ({ ...p, name: e.target.value }))
+                  }
+                  className={inputCls}
+                  placeholder="VD: Kệ A hàng 1"
+                />
+              </div>
             </div>
 
             <div>

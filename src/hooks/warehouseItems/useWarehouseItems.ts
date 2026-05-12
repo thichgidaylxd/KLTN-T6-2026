@@ -12,7 +12,11 @@ const ITEM_KEYS = {
 const withUnwrap = <T,>(promise: Promise<T>) =>
   Object.assign(promise, { unwrap: () => promise });
 
-export const useWarehouseItems = (farmId?: string | null, warehouseId?: string | null) => {
+export const useWarehouseItems = (
+  farmId?: string | null, 
+  warehouseId?: string | null,
+  options: { enabled?: boolean } = {}
+) => {
   const queryClient = useQueryClient();
 
   const itemsQuery = useQuery({
@@ -30,7 +34,7 @@ export const useWarehouseItems = (farmId?: string | null, warehouseId?: string |
       // Nếu không có warehouseId, lấy tất cả vật tư của farm thông qua API chuyên dụng
       return warehouseItemService.getFarmWarehouseItems(farmId);
     },
-    enabled: !!farmId,
+    enabled: options.enabled !== undefined ? options.enabled && !!farmId : !!farmId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 

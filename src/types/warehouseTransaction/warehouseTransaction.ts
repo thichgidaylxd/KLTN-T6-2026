@@ -14,7 +14,8 @@ export type TransactionType =
 export interface TransactionWarehouseItem {
   id: string;
   name: string;
-  sku: {
+  unitPrice?: number;
+  sku?: {
     sku: string;
     description: string;
     createdAt: string;

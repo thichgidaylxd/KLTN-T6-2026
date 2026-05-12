@@ -78,6 +78,7 @@ export default function DashboardLayout() {
     if (p.includes("/warehouses")) return "warehouses";
     if (p.includes("/suppliers")) return "suppliers";
     if (p.includes("/skus")) return "skus";
+    if (p.includes("/sessions")) return "sessions";
     if (p.includes("/change-password")) return "settings";
 
     // If URL is /farms/:id/actions, maybe highlight 'tree' or nothing?

@@ -21,7 +21,7 @@ import {
   Link2,
   Zap,
   Calendar,
-  GitBranch,
+  Clock,
 } from 'lucide-react';
 
 import { toast } from 'sonner';
@@ -37,6 +37,7 @@ import { CreatePlanModal } from '@/components/season-plan/CreatePlanModal';
 import { ClonePlanModal } from '@/components/season-plan/ClonePlanModal';
 import { PlanDetailPanel } from '@/components/season-plan/PlanDetailPanel';
 import { AttendanceManagement } from '@/components/work-log/AttendanceManagement';
+import { OpenSessionTable } from '@/components/work-log/OpenSessionTable';
 import { extractErrorMessage, extractDeleteTaskErrorMessage, extractDeletePhaseErrorMessage } from '@/utils/errorUtils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ const NAV_TABS = [
   { key: 'summary', label: 'Tổng quan', icon: LayoutGrid },
   { key: 'timeline', label: 'Timeline', icon: CalendarDays },
   { key: 'backlog', label: 'Backlog', icon: List },
-  { key: 'board', label: 'Bảng', icon: GitBranch },
+  { key: 'board', label: 'Phiên làm việc', icon: Clock },
   { key: 'calendar', label: 'Lịch', icon: CalendarDays },
   { key: 'goals', label: 'Mục tiêu', icon: Target },
   { key: 'code', label: 'Phát triển', icon: Code2 },
@@ -751,8 +752,19 @@ export function SeasonPlanPage() {
           </div>
         )}
 
+        {/* ── Tab: Board (Open Sessions) ── */}
+        {activeTab === 'board' && (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-slate-50/30">
+            <div className="mb-6">
+              <h3 className="text-lg font-black text-slate-900">Phiên làm việc đang mở</h3>
+              <p className="text-sm text-slate-500">Danh sách nhân viên đang trong phiên làm việc tại nông trại</p>
+            </div>
+            <OpenSessionTable />
+          </div>
+        )}
+
         {/* ── Other tabs: placeholder ── */}
-        {activeTab !== 'timeline' && activeTab !== 'backlog' && (
+        {activeTab !== 'timeline' && activeTab !== 'backlog' && activeTab !== 'board' && (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-slate-50/50">
             <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
               {(() => {

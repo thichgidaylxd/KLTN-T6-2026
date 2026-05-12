@@ -251,7 +251,7 @@ export const createTaskSchema = z.object({
   description: z.string().optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày bắt đầu không hợp lệ (YYYY-MM-DD)'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày kết thúc không hợp lệ (YYYY-MM-DD)'),
-  plotId: z.string().uuid().nullable().optional(),
+  plotId: z.string().nullable().optional(),
 }).refine(
   (data) => data.startDate <= data.endDate,
   {
