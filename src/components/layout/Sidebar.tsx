@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   Home,
   BarChart3,
-  History,
+
   Map as MapIcon,
   Grid3X3,
   Users,
@@ -52,7 +52,6 @@ const NAV_GROUPS = [
     items: [
 
       { key: "wallet", label: "Ví & Thanh toán", icon: Wallet, roles: ["owner", "admin"] },
-      { key: "activity", label: "Hoạt động", icon: History, roles: ["owner", "admin"] },
       { key: "task", label: "Nhiệm vụ", icon: GitFork, roles: ["owner", "admin", "employee"] },
       { key: "gemini", label: "Trợ lý AI", icon: Sparkles, roles: ["owner", "admin"] },
     ],

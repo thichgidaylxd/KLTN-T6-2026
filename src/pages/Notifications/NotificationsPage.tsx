@@ -45,9 +45,9 @@ export const NotificationsPage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/farms')}
               className="p-2 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-200 hover:shadow-sm text-slate-400 hover:text-indigo-600 group"
-              title="Quay lại Dashboard"
+              title="Quay lại Quản lý trang trại"
             >
               <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
             </button>

@@ -64,7 +64,7 @@ export function MaterialsSection({
               <option value="">Chọn loại vật tư...</option>
               {warehouseItems.map(item => (
                 <option key={item.id} value={item.id}>
-                  {item.name} (Tồn: {item.stock} {item.unit?.name})
+                  {item.name} (Tồn: {item.stock - item.reservedQty} {item.unit?.name})
                 </option>
               ))}
             </select>

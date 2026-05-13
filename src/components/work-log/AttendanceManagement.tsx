@@ -144,7 +144,7 @@ export function AttendanceManagement({ plan: initialPlan }: AttendanceManagement
                   <Users size={22} className="text-white" />
                 </div>
                 <h2 className="text-[22px] font-black text-slate-900 tracking-tight">
-                  Quản lý lao động
+                  Quản lý chấm công
                 </h2>
               </div>
               <p className="text-[13px] text-slate-500 font-medium ml-[52px]">

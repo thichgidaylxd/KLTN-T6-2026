@@ -16,14 +16,15 @@ const withNavigationAndAuth = (Component: any) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (props: any) => {
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
-    return <Component {...props} navigate={navigate} isAuthenticated={isAuthenticated} />;
+    const { isAuthenticated, user } = useAuth();
+    return <Component {...props} navigate={navigate} isAuthenticated={isAuthenticated} user={user} />;
   };
 };
 
 interface HeroSectionProps {
   navigate: (path: string) => void;
   isAuthenticated: boolean;
+  user: any;
 }
 
 interface HeroSectionState {
@@ -55,11 +56,17 @@ class HeroSection extends React.Component<HeroSectionProps, HeroSectionState> {
 
   render() {
     const { heroMounted } = this.state;
-    const { navigate, isAuthenticated } = this.props;
+    const { navigate, isAuthenticated, user } = this.props;
 
     const handleCTAClick = () => {
       if (isAuthenticated) {
-        navigate("/farms");
+        if (user?.role === 'admin') {
+          navigate("/admin/dashboard");
+        } else if (user?.role === 'employee') {
+          navigate("/task");
+        } else {
+          navigate("/farms");
+        }
       } else {
         navigate("/register");
       }

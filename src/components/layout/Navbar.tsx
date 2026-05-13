@@ -123,6 +123,16 @@ export function Navbar({
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const handleEnterSystem = () => {
+    if (user?.role === 'admin') {
+      navigate("/admin/dashboard");
+    } else if (user?.role === 'employee') {
+      navigate("/task");
+    } else {
+      navigate("/farms");
+    }
+  };
+
   const handleLogout = () => {
     // Clear auth state
     logout();
@@ -249,7 +259,7 @@ export function Navbar({
                 <>
                   {variant === "dashboard" ? (
                     <Button
-                      onClick={() => navigate("/farms")}
+                      onClick={handleEnterSystem}
                       variant={scrolled ? "outline-dark" : "outline-yellow"}
                       size="sm"
                       className="flex flex-col items-start gap-0.5 px-3 py-1.5 rounded-lg font-roboto"
@@ -269,7 +279,7 @@ export function Navbar({
                     </Button>
                   ) : (
                     <Button
-                      onClick={() => navigate("/farms")}
+                      onClick={handleEnterSystem}
                       variant={scrolled ? "outline-dark" : "outline-yellow"}
                       size="sm"
                       className="flex items-center justify-center gap-1 rounded-lg font-roboto font-medium text-xs"

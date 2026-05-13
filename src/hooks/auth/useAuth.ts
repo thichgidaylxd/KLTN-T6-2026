@@ -27,11 +27,18 @@ export const useAuth = () => {
     
     if (!contextUser) return null;
 
-    return {
+    const userObj = {
       ...(identityUser || {}), // Giữ id, email, fullName từ hubToken
       ...contextUser,           // Cập nhật role từ farmToken
       fullName: identityUser?.fullName || contextUser?.fullName // Ưu tiên tên từ hubToken
     };
+
+    // Nếu là Admin hệ thống thì luôn giữ role admin
+    if (identityUser?.role === 'admin') {
+      userObj.role = 'admin';
+    }
+
+    return userObj;
   }, [auth.accessToken, auth.hubToken]);
 
   return {
