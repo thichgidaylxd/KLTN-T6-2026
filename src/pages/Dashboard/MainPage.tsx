@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/auth/useAuth';
 import { usePlots } from '../../hooks/plots/usePlots';
 import { useCrops } from '../../hooks/crops/useCrops';
 import { useSeasonPlans } from '../../hooks/seasonPlans/useSeasonPlans';
+import { useWarehouses } from '../../hooks/warehouses/useWarehouses';
 import { useAssignedTasks } from '../../hooks/tasks/useAssignedTasks';
 import {
   StatCard,
@@ -20,8 +21,9 @@ import {
  */
 function useDashboardData(farmId?: string) {
   const [isSyncing, setIsSyncing] = useState(false);
-  
-  const { plots, plotsLoading, clearPlots } = usePlots(farmId);
+
+  const { plots, plotsLoading, clearPlots, fetchPlots } = usePlots(farmId);
+  const { warehouses, loading: warehousesLoading, fetchWarehouses } = useWarehouses();
   const { crops, systemCrops, cropTypes, loading: cropsLoading, cropTypesLoading, fetchFarmCrops } = useCrops();
   const { plans, loading: plansLoading, fetchPlans } = useSeasonPlans(farmId);
 
@@ -34,10 +36,12 @@ function useDashboardData(farmId?: string) {
 
       setIsSyncing(true);
       try {
-        // Fetch farm-specific data that might not be auto-fetching or needs explicit trigger
+        // Fetch all data in parallel
         await Promise.allSettled([
           fetchFarmCrops(),
-          fetchPlans()
+          fetchPlans(),
+          fetchPlots(),
+          fetchWarehouses(farmId)
         ]);
       } catch (error) {
         console.error("Dashboard farm sync error:", error);
@@ -47,9 +51,10 @@ function useDashboardData(farmId?: string) {
     };
 
     syncFarmData();
-  }, [farmId, fetchFarmCrops, fetchPlans, clearPlots]);
+  }, [farmId, fetchFarmCrops, fetchPlans, fetchPlots, fetchWarehouses, clearPlots]);
 
-  const isLoading = (farmId && (plotsLoading || cropsLoading || plansLoading)) || cropTypesLoading || isSyncing;
+  // Dashboard is "truly" loading only on initial mount or when crucial data is missing
+  const isLoading = (farmId && (plotsLoading || cropsLoading || plansLoading || warehousesLoading)) || cropTypesLoading;
 
   // Tính toán tiến trình trung bình dựa trên status của plans
   const calculatePerformance = () => {
@@ -67,15 +72,18 @@ function useDashboardData(farmId?: string) {
   return {
     stats: {
       totalPlots: farmId ? plots.length : 0,
-      totalCrops: cropTypes.length > 0 ? cropTypes.length : (farmId ? Array.from(new Set(crops.map(c => c.cropType.id))).length : 0), 
-      totalArea: farmId 
+      totalCrops: cropTypes.length > 0 ? cropTypes.length : (farmId ? Array.from(new Set(crops.map(c => c.cropType.id))).length : 0),
+      totalArea: farmId
         ? plots.reduce((acc, p) => acc + (Number(p.areaHa) || 0), 0)
         : 0,
-      totalPlants: farmId ? crops.length : systemCrops.length, 
-      performancePct: calculatePerformance(), 
+      totalPlants: farmId ? crops.length : systemCrops.length,
+      performancePct: calculatePerformance(),
     },
-    npkData: [], 
-    isLoading
+    plots,
+    warehouses,
+    npkData: [],
+    isLoading,
+    isSyncing
   };
 }
 
@@ -84,7 +92,7 @@ export default function MainPage() {
   const navigate = useNavigate();
   const { user, currentFarmId } = useAuth();
   const { tasks: assignedTasks, loading: assignedLoading } = useAssignedTasks(user?.id);
-  
+
   // Ưu tiên farmId từ URL, nếu không có thì lấy farmId hiện tại từ context
   const farmId = routeFarmId || currentFarmId || undefined;
 
@@ -96,7 +104,7 @@ export default function MainPage() {
     }
   }, [user, navigate]);
 
-  const { stats, npkData, isLoading: dashboardLoading } = useDashboardData(farmId);
+  const { stats, npkData, plots, warehouses, isLoading: dashboardLoading } = useDashboardData(farmId);
   const isLoading = dashboardLoading || assignedLoading;
 
   // Tính toán số lượng task hoàn thành và chưa hoàn thành cho riêng user hiện tại
@@ -146,7 +154,7 @@ export default function MainPage() {
 
       {/* Map Panel */}
       <div className="hidden lg:block w-[380px] xl:w-[440px] shrink-0 h-full overflow-hidden rounded-2xl bg-gray-50 border border-gray-100 shadow-sm">
-        <MapPanel />
+        <MapPanel plots={plots} warehouses={warehouses} />
       </div>
     </div>
   );

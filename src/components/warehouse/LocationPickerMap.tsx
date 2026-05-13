@@ -1,7 +1,8 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import { GoogleMap, Marker, Polygon, OverlayView } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/providers/GoogleMapsProvider";
-import { Maximize2, Minimize2, Map as MapIcon, X, Check } from "lucide-react";
+import { Maximize2, Minimize2, Map as MapIcon, X } from "lucide-react";
+import { Fragment } from "react";
 import { Plot } from "@/types/plot/plot";
 import { Warehouse } from "@/types/warehouse/warehouse";
 import { cn } from "@/utils/cn";
@@ -39,23 +40,52 @@ export default function LocationPickerMap({ value, onChange, plots = [], warehou
   const handleMapClick = useCallback(
     (e: google.maps.MapMouseEvent) => {
       if (!e.latLng) return;
-      setTempValue({
+      const coords = {
         lat: parseFloat(e.latLng.lat().toFixed(6)),
         lng: parseFloat(e.latLng.lng().toFixed(6)),
-      });
+      };
+      setTempValue(coords);
+      onChange(coords); // Tự động lưu vị trí khi click
     },
-    []
+    [onChange]
   );
 
-  const handleConfirm = () => {
-    onChange(tempValue);
-    setIsFullscreen(false); // Tự động thu nhỏ bản đồ sau khi xác nhận
+  const handleCancel = () => {
+    // Xóa vị trí đã chọn
+    setTempValue(null);
+    onChange(null);
   };
 
-  const handleCancel = () => {
-    // Chỉ hủy thao tác chọn tạm thời, quay về giá trị đã xác nhận trước đó (nếu có)
-    setTempValue(value);
-  };
+  // Tự động căn chỉnh bản đồ khi dữ liệu plots/warehouses thay đổi
+  useEffect(() => {
+    if (!map || (!plots.length && !warehouses.length)) return;
+
+    const bounds = new google.maps.LatLngBounds();
+    let hasPoint = false;
+
+    plots.forEach(plot => {
+      const path = getPlotPath(plot);
+      path.forEach(p => {
+        bounds.extend(p);
+        hasPoint = true;
+      });
+    });
+
+    warehouses.forEach(wh => {
+      if (wh.latitude && wh.longitude) {
+        bounds.extend({ lat: Number(wh.latitude), lng: Number(wh.longitude) });
+        hasPoint = true;
+      }
+    });
+
+    if (hasPoint && !value) {
+      map.fitBounds(bounds, 50);
+      // Nếu zoom quá gần (chỉ có 1 điểm), thu nhỏ lại một chút
+      google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+        if (map.getZoom()! > 18) map.setZoom(17);
+      });
+    }
+  }, [map, plots, warehouses, value]);
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
@@ -68,6 +98,18 @@ export default function LocationPickerMap({ value, onChange, plots = [], warehou
       if (map) google.maps.event.trigger(map, 'resize');
     }, 300);
   };
+
+  // Tính toán vị trí trung tâm của farm để dùng làm fallback khi chưa chọn vị trí
+  const farmCenter = useMemo(() => {
+    if (plots.length > 0) {
+      const path = getPlotPath(plots[0]);
+      if (path.length > 0) return { lat: path[0].lat, lng: path[0].lng };
+    }
+    if (warehouses.length > 0 && warehouses[0].latitude && warehouses[0].longitude) {
+      return { lat: Number(warehouses[0].latitude), lng: Number(warehouses[0].longitude) };
+    }
+    return DEFAULT_CENTER;
+  }, [plots, warehouses]);
 
   if (loadError) {
     return (
@@ -93,10 +135,10 @@ export default function LocationPickerMap({ value, onChange, plots = [], warehou
       )}
     >
       {/* Overlay info */}
-   <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-md text-[9px] font-bold tracking-wide text-slate-500 px-3 py-1 rounded-xl shadow-md border border-slate-100 pointer-events-none flex items-center gap-1.5 whitespace-nowrap">
-  <MapIcon size={10} className="text-emerald-500" />
-  Click để chọn vị trí kho hàng
-</div>
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-md text-[9px] font-bold tracking-wide text-slate-500 px-3 py-1 rounded-xl shadow-md border border-slate-100 pointer-events-none flex items-center gap-1.5 whitespace-nowrap">
+        <MapIcon size={10} className="text-emerald-500" />
+        Click để chọn vị trí kho hàng
+      </div>
 
       {/* Custom Controls */}
       <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
@@ -112,8 +154,8 @@ export default function LocationPickerMap({ value, onChange, plots = [], warehou
 
       <GoogleMap
         mapContainerStyle={{ width: "100%", height: "100%" }}
-        center={tempValue || (plots.length > 0 && getPlotPath(plots[0])[0] ? { lat: getPlotPath(plots[0])[0].lat, lng: getPlotPath(plots[0])[0].lng } : DEFAULT_CENTER)}
-        zoom={tempValue ? 17 : 15}
+        center={tempValue || farmCenter}
+        zoom={17}
         onClick={handleMapClick}
         onLoad={onLoad}
         options={{
@@ -132,50 +174,60 @@ export default function LocationPickerMap({ value, onChange, plots = [], warehou
           const color = getColorFromId(plot.id);
 
           return (
-            <div key={plot.id}>
+            <Fragment key={plot.id}>
               <Polygon
                 paths={path}
                 options={{
                   fillColor: color,
-                  fillOpacity: 0.15,
+                  fillOpacity: 0.25,
                   strokeColor: color,
-                  strokeOpacity: 0.8,
+                  strokeOpacity: 0.9,
                   strokeWeight: 2,
                 }}
               />
-              <OverlayView
+              <Marker
                 position={center}
-                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-              >
-                <div 
-                  className="text-white font-black whitespace-nowrap -translate-x-1/2 -translate-y-1/2 text-sm plot-label-shadow"
-                >
-                  {plot.name}
-                </div>
-              </OverlayView>
-            </div>
+                label={{
+                  text: plot.name,
+                  color: "white",
+                  fontSize: "14px",
+                  fontWeight: "900",
+                }}
+                icon={{
+                  path: 'M 0,0',
+                  scale: 0
+                }}
+              />
+            </Fragment>
           );
         })}
 
         {/* Render Existing Warehouses */}
         {warehouses.map((wh) => {
           if (wh.latitude === null || wh.longitude === null) return null;
+          const pos = { lat: wh.latitude!, lng: wh.longitude! };
           return (
-            <Marker
-              key={wh.id}
-              position={{ lat: wh.latitude!, lng: wh.longitude! }}
-              icon={{
-                url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-                scaledSize: new google.maps.Size(32, 32)
-              }}
-              label={{
-                text: wh.name,
-                color: "white",
-                fontSize: "10px",
-                fontWeight: "bold",
-                className: "bg-slate-800/80 px-1.5 py-0.5 rounded text-[8px] border border-slate-700 -translate-y-8"
-              }}
-            />
+            <Fragment key={wh.id}>
+              <Marker
+                position={pos}
+                icon={{
+                  path: 'M 0,0 L -8,-16 L 8,-16 z',
+                  fillColor: '#ef4444',
+                  fillOpacity: 1,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2,
+                  scale: 1,
+                }}
+              />
+              <OverlayView
+                position={pos}
+                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+              >
+                <div className="text-white font-black whitespace-nowrap -translate-x-1/2 -translate-y-[40px] text-[11px] plot-label-shadow px-1 bg-red-600/20 rounded">
+                  {wh.name}
+                </div>
+              </OverlayView>
+            </Fragment>
           );
         })}
 
@@ -203,15 +255,7 @@ export default function LocationPickerMap({ value, onChange, plots = [], warehou
                     className="flex-1 h-8 bg-slate-50 hover:bg-slate-100 text-slate-500 text-[9px] font-bold rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-1"
                   >
                     <X size={10} />
-                    Hủy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleConfirm}
-                    className="flex-[2] h-8 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold rounded-lg border border-emerald-500 shadow-sm transition-all flex items-center justify-center gap-1"
-                  >
-                    <Check size={10} />
-                    Xác nhận vị trí
+                    Xóa vị trí đã chọn
                   </button>
                 </div>
                 {/* Triangle Arrow */}

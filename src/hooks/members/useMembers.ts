@@ -21,12 +21,14 @@ export const useMembers = () => {
     queryKey: farmId ? MEMBER_KEYS.members(farmId) : ['members', 'inactive'],
     queryFn: async () => (await memberService.getMembers(farmId as string)).data ?? [],
     enabled: !!farmId,
+    refetchInterval: 30000, // Tự động cập nhật mỗi 30 giây
   });
 
   const invitationsQuery = useQuery({
     queryKey: farmId ? MEMBER_KEYS.invitations(farmId) : ['members', 'invitations', 'inactive'],
     queryFn: async () => (await memberService.getInvitations(farmId as string)).data ?? [],
     enabled: !!farmId,
+    refetchInterval: 30000, // Tự động cập nhật mỗi 30 giây
   });
 
   const inviteMutation = useMutation({
@@ -34,9 +36,12 @@ export const useMembers = () => {
       await memberService.inviteMember(targetFarmId, payload);
       return targetFarmId;
     },
-    onSuccess: (targetFarmId) => {
-      void queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.members(targetFarmId) });
-      void queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.invitations(targetFarmId) });
+    onSuccess: async (targetFarmId) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.members(targetFarmId) }),
+        queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.invitations(targetFarmId) }),
+        queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.all }),
+      ]);
     },
   });
 
@@ -45,8 +50,11 @@ export const useMembers = () => {
       await memberService.cancelInvitation(targetFarmId, invitationId);
       return { farmId: targetFarmId, invitationId };
     },
-    onSuccess: ({ farmId: targetFarmId }) => {
-      void queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.invitations(targetFarmId) });
+    onSuccess: async ({ farmId: targetFarmId }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.invitations(targetFarmId) }),
+        queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.all }),
+      ]);
     },
   });
 
@@ -55,8 +63,11 @@ export const useMembers = () => {
       await memberService.removeMember(targetFarmId, memberId);
       return { farmId: targetFarmId, memberId };
     },
-    onSuccess: ({ farmId: targetFarmId }) => {
-      void queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.members(targetFarmId) });
+    onSuccess: async ({ farmId: targetFarmId }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.members(targetFarmId) }),
+        queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.all }),
+      ]);
     },
   });
 
@@ -73,8 +84,11 @@ export const useMembers = () => {
       await memberService.changeRole(targetFarmId, memberId, payload);
       return { farmId: targetFarmId, memberId };
     },
-    onSuccess: ({ farmId: targetFarmId }) => {
-      void queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.members(targetFarmId) });
+    onSuccess: async ({ farmId: targetFarmId }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.members(targetFarmId) }),
+        queryClient.invalidateQueries({ queryKey: MEMBER_KEYS.all }),
+      ]);
     },
   });
 
@@ -100,8 +114,10 @@ export const useMembers = () => {
   return {
     members: membersQuery.data ?? [],
     invitations: invitationsQuery.data ?? [],
-    loadingMembers: membersQuery.isLoading || membersQuery.isFetching,
-    loadingInvitations: invitationsQuery.isLoading || invitationsQuery.isFetching,
+    loadingMembers: membersQuery.isLoading,
+    loadingInvitations: invitationsQuery.isLoading,
+    isFetchingMembers: membersQuery.isFetching,
+    isFetchingInvitations: invitationsQuery.isFetching,
     submitting:
       inviteMutation.isPending ||
       cancelInvitationMutation.isPending ||

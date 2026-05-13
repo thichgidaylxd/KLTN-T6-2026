@@ -12,10 +12,10 @@ interface Props {
   selectedWarehouse: Warehouse | null;
   onSelectPlot: (plot: Plot) => void;
   onSelectWarehouse: (wh: Warehouse) => void;
-  onEditPlot: (plot: Plot) => void;
-  onEditBoundaries: (plot: Plot) => void;
-  onStartDraw: (plot: Plot) => void;
-  onDeletePlot: (plot: Plot) => void;
+  onEditPlot?: (plot: Plot) => void;
+  onEditBoundaries?: (plot: Plot) => void;
+  onStartDraw?: (plot: Plot) => void;
+  onDeletePlot?: (plot: Plot) => void;
 }
 
 export function MapSidebar({ plots, warehouses, selectedPlot, selectedWarehouse, ...handlers }: Props) {
@@ -32,8 +32,7 @@ export function MapSidebar({ plots, warehouses, selectedPlot, selectedWarehouse,
 
   return (
     <div
-      className="absolute top-4 left-4 z-20 w-72 flex flex-col rounded-2xl border border-gray-200 bg-white/95 backdrop-blur-md shadow-xl"
-      style={{ maxHeight: 'calc(100% - 2rem)' }}
+      className="relative w-full h-full flex flex-col bg-white/95 backdrop-blur-md"
     >
       {/* Tab switcher */}
       <div className="px-3 py-2.5 border-b border-gray-100 shrink-0">

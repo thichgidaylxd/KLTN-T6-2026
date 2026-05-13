@@ -79,9 +79,9 @@ export const useTaskDependencies = (
   }, [planId, stageId, taskId, fetchDependencies, updatePlansCache]);
 
   const deleteDependency = useCallback(async (dependsOnTaskId: string) => {
-    if (!taskId) return;
+    if (!taskId || !planId || !stageId) return;
     try {
-      await seasonPlanTaskService.deleteTaskDependency(taskId, dependsOnTaskId);
+      await seasonPlanTaskService.deleteTaskDependency(planId, stageId, taskId, dependsOnTaskId);
       
       // Optimistic update local state
       setDependencies(prev => prev.filter(id => id !== dependsOnTaskId));

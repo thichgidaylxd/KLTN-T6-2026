@@ -3,6 +3,7 @@ import { farmConfigService, workShiftService, wageConfigService } from '@/servic
 import type {
   UpdateFarmConfigRequest,
   CreateWorkShiftRequest,
+  UpdateWorkShiftRequest,
   CreateWageConfigRequest,
 } from '@/types/farmConfig';
 
@@ -56,6 +57,15 @@ export function useDeleteWorkShift(farmId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (shiftId: string) => workShiftService.delete(farmId, shiftId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: farmConfigKeys.shifts(farmId) }),
+  });
+}
+
+export function useUpdateWorkShift(farmId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ shiftId, data }: { shiftId: string; data: UpdateWorkShiftRequest }) =>
+      workShiftService.update(farmId, shiftId, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: farmConfigKeys.shifts(farmId) }),
   });
 }

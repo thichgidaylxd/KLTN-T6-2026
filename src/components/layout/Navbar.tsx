@@ -203,7 +203,7 @@ export function Navbar({
                   // TODO: navigate to news page when available
                   console.log("Tin tức clicked");
                 } else if (item === "Triển khai") {
-                  navigate("/dashboard");
+                  navigate("/farms");
                 } else if (item === "Kế Hoạch") {
                   // TODO: navigate to season plans when available
                   console.log("Kế Hoạch clicked");
@@ -249,7 +249,7 @@ export function Navbar({
                 <>
                   {variant === "dashboard" ? (
                     <Button
-                      onClick={() => navigate("/dashboard")}
+                      onClick={() => navigate("/farms")}
                       variant={scrolled ? "outline-dark" : "outline-yellow"}
                       size="sm"
                       className="flex flex-col items-start gap-0.5 px-3 py-1.5 rounded-lg font-roboto"
@@ -269,7 +269,7 @@ export function Navbar({
                     </Button>
                   ) : (
                     <Button
-                      onClick={() => navigate("/dashboard")}
+                      onClick={() => navigate("/farms")}
                       variant={scrolled ? "outline-dark" : "outline-yellow"}
                       size="sm"
                       className="flex items-center justify-center gap-1 rounded-lg font-roboto font-medium text-xs"

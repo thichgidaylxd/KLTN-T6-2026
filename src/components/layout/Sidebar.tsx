@@ -22,11 +22,13 @@ import {
   ChevronDown,
   PanelLeftClose,
   PanelLeftOpen,
+  Bell,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../utils/cn";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { useFarms } from "../../hooks/farms/useFarms";
+import { useNotifications } from "../../hooks/notifications/useNotifications";
 import { ConfirmModal } from "../ui/ConfirmModal";
 
 interface SidebarProps {
@@ -41,12 +43,14 @@ const NAV_GROUPS = [
     items: [
       { key: "dashboard", label: "Bảng điều khiển", icon: Home },
       { key: "tree", label: "Trang trại của tôi", icon: Trees, roles: ["owner", "admin", "manager", "employee"] },
-      { key: "metrics", label: "Theo dõi chỉ số", icon: BarChart3, roles: ["owner", "admin"] },
+      { key: "metrics", label: "Theo dõi chỉ số", icon: BarChart3, roles: ["owner", "admin", "manager", "employee"] },
+      { key: "notifications", label: "Thông báo", icon: Bell },
     ],
   },
   {
     title: "Tiện ích",
     items: [
+
       { key: "wallet", label: "Ví & Thanh toán", icon: Wallet, roles: ["owner", "admin"] },
       { key: "activity", label: "Hoạt động", icon: History, roles: ["owner", "admin"] },
       { key: "task", label: "Nhiệm vụ", icon: GitFork, roles: ["owner", "admin", "employee"] },
@@ -87,6 +91,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const { user, currentFarmId, logout } = useAuth();
   const { farmSummary, farms } = useFarms();
+  const { unreadCount } = useNotifications();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
@@ -103,7 +108,7 @@ export default function Sidebar({
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
       const next = !prev;
-      try { localStorage.setItem(COLLAPSED_KEY, String(next)); } catch {}
+      try { localStorage.setItem(COLLAPSED_KEY, String(next)); } catch { }
       return next;
     });
   };
@@ -112,7 +117,7 @@ export default function Sidebar({
 
   const currentFarm = currentFarmId
     ? farms.find((f: any) => f.id === currentFarmId) ||
-      farmSummary.find((f: any) => f.farmId === currentFarmId)
+    farmSummary.find((f: any) => f.farmId === currentFarmId)
     : null;
 
   const myFarmRole = currentFarm
@@ -142,8 +147,14 @@ export default function Sidebar({
   }, [effectiveRole, currentFarmId, active, collapsed]);
 
   const filterItem = (item: { key: string; roles?: string[] }) => {
-    if (!currentFarmId) {
-      return ["dashboard", "tree", "wallet", "gemini"].includes(item.key);
+    if (!currentFarmId || location.pathname === "/notifications") {
+      const dashboardItems = ["tree", "notifications"];
+      return dashboardItems.includes(item.key);
+    }
+    
+    // Hide Global items in Farm context
+    if (["wallet", "dashboard", "notifications"].includes(item.key)) {
+      return false;
     }
     if (!item.roles) return true;
     if (!effectiveRole) return false;
@@ -171,6 +182,8 @@ export default function Sidebar({
     icon: React.ElementType;
   }) => {
     const isActive = active === itemKey;
+    const isNotify = itemKey === "notifications" && unreadCount > 0;
+
     return (
       <div className="relative group/item">
         <button
@@ -179,12 +192,28 @@ export default function Sidebar({
             "flex items-center gap-3 w-full rounded-full text-sm font-semibold transition-all duration-200",
             collapsed ? "px-2.5 py-2 justify-center" : "px-4 py-1.5",
             isActive
-              ? "bg-emerald-50 text-emerald-700 shadow-sm"
+              ? "bg-emerald-100 text-emerald-700 shadow-sm"
               : "text-slate-600 hover:bg-emerald-50/40 hover:text-emerald-700"
           )}
         >
-          <Icon size={16} className="shrink-0 text-emerald-600" />
-          {!collapsed && <span className="truncate">{label}</span>}
+          <div className="relative">
+            <Icon size={16} className="shrink-0 text-emerald-600" />
+            {isNotify && collapsed && (
+              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </div>
+            )}
+          </div>
+          {!collapsed && (
+            <div className="flex-1 flex items-center justify-between min-w-0">
+              <span className="truncate">{label}</span>
+              {isNotify && (
+                <span className="ml-2 px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-black rounded-full min-w-[18px] text-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </div>
+          )}
         </button>
 
         {/* Tooltip khi collapsed */}
@@ -200,109 +229,117 @@ export default function Sidebar({
 
   /* ── COMPACT variant (không có toggle, dùng compact layout cũ) ── */
   /* ── COMPACT variant ── */
-if (variant === "compact") {
-  const allNavItems = NAV_GROUPS.flatMap((g) => g.items).filter(filterItem);
-  const allFooterItems = FOOTER_ITEMS.flatMap((g) => g.items).filter(filterItem);
+  if (variant === "compact") {
+    const allNavItems = NAV_GROUPS.flatMap((g) => g.items).filter(filterItem);
+    const allFooterItems = FOOTER_ITEMS.flatMap((g) => g.items).filter(filterItem);
 
-  return (
-    <>
-      <aside className="flex flex-col items-center h-full w-16 bg-white shrink-0 rounded-3xl shadow-sm border border-slate-100 py-6 px-2 relative">
-        <div
-          ref={scrollRef}
-          onScroll={checkScroll}
-          className="flex flex-col items-center gap-2 w-full flex-1 min-h-0 overflow-y-auto no-scrollbar pb-4"
-        >
-          {allNavItems.map((item) => (
-            <Button
-              key={item.key}
-              onClick={() => setActive(item.key)}
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "w-10 h-10 rounded-xl transition-all duration-200 shrink-0",
-                active === item.key
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "text-slate-600 hover:bg-emerald-50/40"
-              )}
-            >
-              <item.icon size={20} className="text-emerald-600" />
-            </Button>
-          ))}
-
-          {allFooterItems.length > 0 && (
-            <div className="w-full flex flex-col items-center gap-2 pt-2 border-t border-slate-100 mt-2 shrink-0">
-              {allFooterItems.map((item) => (
+    return (
+      <>
+        <aside className="flex flex-col items-center h-full w-16 bg-white shrink-0 rounded-3xl shadow-sm border border-slate-100 py-6 px-2 relative">
+          <div
+            ref={scrollRef}
+            onScroll={checkScroll}
+            className="flex flex-col items-center gap-2 w-full flex-1 min-h-0 overflow-y-auto no-scrollbar pb-4"
+          >
+            {allNavItems.map((item) => {
+              const isNotify = item.key === "notifications" && unreadCount > 0;
+              return (
                 <Button
                   key={item.key}
                   onClick={() => setActive(item.key)}
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "w-10 h-10 rounded-xl transition-all duration-200 shrink-0",
+                    "w-10 h-10 rounded-xl transition-all duration-200 shrink-0 relative",
                     active === item.key
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "text-slate-600 hover:bg-emerald-50/40 hover:text-emerald-700"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "text-slate-600 hover:bg-emerald-50/40"
                   )}
                 >
                   <item.icon size={20} className="text-emerald-600" />
+                  {isNotify && (
+                    <div className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </div>
+                  )}
                 </Button>
-              ))}
-            </div>
-          )}
-        </div>
+              );
+            })}
 
-        {/* ── Settings button + popup ── */}
-        {!currentFarmId && (
-          <div className="relative shrink-0 mt-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsSettingsOpen((p) => !p)}
-              className={cn(
-                "w-10 h-10 rounded-xl transition-all duration-200",
-                isSettingsOpen
-                  ? "bg-slate-100 text-slate-700"
-                  : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
-              )}
-            >
-              <Settings size={18} />
-            </Button>
-
-            {isSettingsOpen && (
-              <div className="absolute bottom-full left-full ml-2 mb-1 w-44 rounded-2xl border border-slate-200 bg-white shadow-xl p-1.5 z-50">
-                <button
-                  onClick={handleChangePassword}
-                  className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  <Key size={15} className="text-slate-400" />
-                  Đổi mật khẩu
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-                >
-                  <LogOut size={15} />
-                  Đăng xuất
-                </button>
+            {allFooterItems.length > 0 && (
+              <div className="w-full flex flex-col items-center gap-2 pt-2 border-t border-slate-100 mt-2 shrink-0">
+                {allFooterItems.map((item) => (
+                  <Button
+                    key={item.key}
+                    onClick={() => setActive(item.key)}
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "w-10 h-10 rounded-xl transition-all duration-200 shrink-0",
+                      active === item.key
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "text-slate-600 hover:bg-emerald-50/40 hover:text-emerald-700"
+                    )}
+                  >
+                    <item.icon size={20} className="text-emerald-600" />
+                  </Button>
+                ))}
               </div>
             )}
           </div>
-        )}
-      </aside>
 
-      <ConfirmModal
-        isOpen={isLogoutConfirmOpen}
-        onClose={() => setIsLogoutConfirmOpen(false)}
-        onConfirm={() => { logout(); setIsLogoutConfirmOpen(false); }}
-        title="Xác nhận đăng xuất"
-        message="Bạn có chắc chắn muốn thoát khỏi phiên làm việc hiện tại?"
-        confirmLabel="Đăng xuất ngay"
-        cancelLabel="Quay lại"
-        type="danger"
-      />
-    </>
-  );
-}
+          {/* ── Settings button + popup ── */}
+          {!currentFarmId && (
+            <div className="relative shrink-0 mt-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSettingsOpen((p) => !p)}
+                className={cn(
+                  "w-10 h-10 rounded-xl transition-all duration-200",
+                  isSettingsOpen
+                    ? "bg-slate-100 text-slate-700"
+                    : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                )}
+              >
+                <Settings size={18} />
+              </Button>
+
+              {isSettingsOpen && (
+                <div className="absolute bottom-full left-full ml-2 mb-1 w-44 rounded-2xl border border-slate-200 bg-white shadow-xl p-1.5 z-50">
+                  <button
+                    onClick={handleChangePassword}
+                    className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    <Key size={15} className="text-slate-400" />
+                    Đổi mật khẩu
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut size={15} />
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </aside>
+
+        <ConfirmModal
+          isOpen={isLogoutConfirmOpen}
+          onClose={() => setIsLogoutConfirmOpen(false)}
+          onConfirm={() => { logout(); setIsLogoutConfirmOpen(false); }}
+          title="Xác nhận đăng xuất"
+          message="Bạn có chắc chắn muốn thoát khỏi phiên làm việc hiện tại?"
+          confirmLabel="Đăng xuất ngay"
+          cancelLabel="Quay lại"
+          type="danger"
+        />
+      </>
+    );
+  }
   /* ── WIDE variant với toggle collapse ── */
   const sidebarWidth = collapsed ? "w-[60px]" : "w-[260px]";
 
@@ -418,55 +455,55 @@ if (variant === "compact") {
 
             {/* Settings popup — wide only, hidden when collapsed */}
             {/* Settings — luôn hiển thị khi không có farmId */}
-{!currentFarmId && (
-  <div className="relative mt-0">
-    <button
-      onClick={() => setIsSettingsOpen((p) => !p)}
-      className={cn(
-        "flex items-center gap-3 w-full rounded-full text-sm font-semibold transition-all duration-150",
-        collapsed ? "px-2.5 py-2 justify-center" : "px-4 py-1.5",
-        isSettingsOpen
-          ? "bg-slate-100 text-slate-700 shadow-sm"
-          : "text-slate-500 hover:bg-slate-50"
-      )}
-    >
-      <Settings size={15} className="shrink-0 text-slate-400" />
-      {!collapsed && <span>Cài đặt</span>}
-    </button>
+            {!currentFarmId && (
+              <div className="relative mt-0">
+                <button
+                  onClick={() => setIsSettingsOpen((p) => !p)}
+                  className={cn(
+                    "flex items-center gap-3 w-full rounded-full text-sm font-semibold transition-all duration-150",
+                    collapsed ? "px-2.5 py-2 justify-center" : "px-4 py-1.5",
+                    isSettingsOpen
+                      ? "bg-slate-100 text-slate-700 shadow-sm"
+                      : "text-slate-500 hover:bg-slate-50"
+                  )}
+                >
+                  <Settings size={15} className="shrink-0 text-slate-400" />
+                  {!collapsed && <span>Cài đặt</span>}
+                </button>
 
-    {/* Tooltip khi collapsed */}
-    {collapsed && (
-      <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-[11px] font-semibold rounded-lg whitespace-nowrap pointer-events-none opacity-0 group-hover/item:opacity-100 transition-opacity duration-150 z-50 shadow-xl">
-        Cài đặt
-        <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
-      </div>
-    )}
+                {/* Tooltip khi collapsed */}
+                {collapsed && (
+                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-[11px] font-semibold rounded-lg whitespace-nowrap pointer-events-none opacity-0 group-hover/item:opacity-100 transition-opacity duration-150 z-50 shadow-xl">
+                    Cài đặt
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
+                  </div>
+                )}
 
-    {isSettingsOpen && (
-      <div className={cn(
-        "absolute mb-2 rounded-2xl border border-slate-200 bg-white shadow-xl p-1.5 z-50",
-        collapsed
-          ? "left-full bottom-0 ml-2 w-44"   // collapsed: popup bay sang phải
-          : "bottom-full left-0 w-full"        // wide: popup bay lên trên
-      )}>
-        <button
-          onClick={handleChangePassword}
-          className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          <Key size={15} className="text-slate-400" />
-          Đổi mật khẩu
-        </button>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-        >
-          <LogOut size={15} />
-          Đăng xuất
-        </button>
-      </div>
-    )}
-  </div>
-)}
+                {isSettingsOpen && (
+                  <div className={cn(
+                    "absolute mb-2 rounded-2xl border border-slate-200 bg-white shadow-xl p-1.5 z-50",
+                    collapsed
+                      ? "left-full bottom-0 ml-2 w-44"   // collapsed: popup bay sang phải
+                      : "bottom-full left-0 w-full"        // wide: popup bay lên trên
+                  )}>
+                    <button
+                      onClick={handleChangePassword}
+                      className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      <Key size={15} className="text-slate-400" />
+                      Đổi mật khẩu
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                    >
+                      <LogOut size={15} />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Settings icon only when collapsed */}
             {!currentFarmId && collapsed && (

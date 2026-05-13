@@ -23,7 +23,7 @@ interface Props {
 
 export function CreateWarehouseModal({ farmId, isOpen, onClose, onSuccess }: Props) {
   const { warehouses, fetchWarehouses, createWarehouse, submitting } = useWarehouses();
-  const { plots, fetchPlots } = usePlots();
+  const { plots, fetchPlots } = usePlots(farmId);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   const {

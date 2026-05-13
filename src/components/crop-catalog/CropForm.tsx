@@ -87,7 +87,7 @@ export const CropForm: React.FC<CropFormProps> = ({
       description: data.description,
       imageUrl: base64Image || data.imageUrl, // Ưu tiên ảnh upload từ máy (dưới dạng string base64)
     };
-    
+
     onSave(payload);
   };
 
@@ -106,7 +106,7 @@ export const CropForm: React.FC<CropFormProps> = ({
     else if (errors.stages) setActiveTab('stages');
     else if (errors.soil) setActiveTab('soil');
     else if (errors.diseases) setActiveTab('diseases');
-    
+
     toast.error('Vui lòng kiểm tra lại các trường thông tin còn thiếu hoặc sai định dạng.');
   };
 
@@ -259,10 +259,10 @@ export const CropForm: React.FC<CropFormProps> = ({
                   />
                   {previewUrl || imageUrl ? (
                     <div className="relative w-full aspect-video rounded-[24px] overflow-hidden bg-slate-100 ring-4 ring-slate-50 shadow-inner">
-                      <img 
-                        src={previewUrl || imageUrl} 
-                        alt="Crop Preview" 
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+                      <img
+                        src={previewUrl || imageUrl}
+                        alt="Crop Preview"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       />
                       <button
                         type="button"
@@ -277,7 +277,7 @@ export const CropForm: React.FC<CropFormProps> = ({
                       </button>
                     </div>
                   ) : (
-                    <div 
+                    <div
                       onClick={() => document.getElementById('crop-image-upload')?.click()}
                       className="w-full aspect-video border-4 border-dashed border-slate-100 rounded-[24px] flex flex-col items-center justify-center bg-slate-50/50 hover:bg-white hover:border-green-300 transition-all cursor-pointer group"
                     >
@@ -289,7 +289,7 @@ export const CropForm: React.FC<CropFormProps> = ({
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
                   <ImageIcon className="w-4 h-4 text-slate-400" />
                   <input

@@ -37,6 +37,14 @@ export interface CreateWorkShiftRequest {
   coefficient: number;
 }
 
+export interface UpdateWorkShiftRequest {
+  name?: string;
+  startTime?: string;
+  endTime?: string;
+  coefficient?: number;
+  isActive?: boolean;
+}
+
 // ─── Wage Config ──────────────────────────────────────────────────────────────
 
 export interface WageConfig {

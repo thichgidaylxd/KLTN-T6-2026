@@ -9,10 +9,12 @@ import {
   useWorkShifts,
   useCreateWorkShift,
   useDeleteWorkShift,
+  useUpdateWorkShift,
   useWageConfigs,
   useCreateWageConfig,
   useDeleteWageConfig,
 } from '@/hooks/farm/useFarmConfig';
+import { useFarmMembers } from '@/hooks/farm/useFarmMembers';
 import type {
   FarmConfig,
   CreateWorkShiftRequest,
@@ -24,33 +26,33 @@ import type {
 type Tab = 'config' | 'shift' | 'wage';
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: 'config', label: 'Cấu hình Farm',  icon: '⚙' },
-  { key: 'shift',  label: 'Ca làm việc',    icon: '⏱' },
-  { key: 'wage',   label: 'Cấu hình lương', icon: '₫' },
+  { key: 'config', label: 'Cấu hình trang trại của bạn', icon: '⚙' },
+  { key: 'shift', label: 'Ca làm việc', icon: '⏱' },
+  { key: 'wage', label: 'Cấu hình lương', icon: '₫' },
 ];
 
 // ─── Design tokens (AWS-style) ─────────────────────────────────────────────
 
 const aws = {
   // Surfaces
-  pageBg:       'bg-[#f2f3f3]',
-  navBg:        'bg-[#232f3e]',
-  cardBg:       'bg-white',
-  sectionBg:    'bg-[#f8f9f9]',
+  pageBg: 'bg-[#f2f3f3]',
+  navBg: 'bg-[#232f3e]',
+  cardBg: 'bg-white',
+  sectionBg: 'bg-[#f8f9f9]',
 
   // Borders
-  border:       'border border-[#c6c6c6]',
-  borderLight:  'border border-[#e9ebed]',
+  border: 'border border-[#c6c6c6]',
+  borderLight: 'border border-[#e9ebed]',
   borderBottom: 'border-b border-[#c6c6c6]',
 
   // Text
-  textPrimary:  'text-[#0d1117]',
-  textMuted:    'text-[#545b64]',
-  textLink:     'text-[#0073bb]',
+  textPrimary: 'text-[#0d1117]',
+  textMuted: 'text-[#545b64]',
+  textLink: 'text-[#0073bb]',
 
   // Interactive
-  orange:       '#ff9900',
-  blue:         '#0073bb',
+  orange: '#ff9900',
+  blue: '#0073bb',
 
   // Input
   input: [
@@ -221,11 +223,11 @@ function FarmConfigTab({ farmId }: { farmId: string }) {
     if (!config) return;
     try {
       await updateMutation.mutateAsync({
-        version:               config.version,
-        timezone:              form.timezone,
-        locale:                form.locale,
-        currency:              form.currency,
-        allowCropClone:        form.allowCropClone,
+        version: config.version,
+        timezone: form.timezone,
+        locale: form.locale,
+        currency: form.currency,
+        allowCropClone: form.allowCropClone,
         taskOverdueNotifyDays: form.taskOverdueNotifyDays,
       });
       toast.success('Cập nhật cấu hình thành công');
@@ -336,24 +338,49 @@ function FarmConfigTab({ farmId }: { farmId: string }) {
 function WorkShiftTab({ farmId }: { farmId: string }) {
   const { data: shifts = [], isLoading } = useWorkShifts(farmId);
   const createMutation = useCreateWorkShift(farmId);
+  const updateMutation = useUpdateWorkShift(farmId);
   const deleteMutation = useDeleteWorkShift(farmId);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<CreateWorkShiftRequest>({
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<CreateWorkShiftRequest & { isActive?: boolean }>({
     name: '',
     startTime: '',
     endTime: '',
     coefficient: 1.0,
+    isActive: true,
   });
 
-  const handleCreate = async () => {
+  const resetForm = () => {
+    setForm({ name: '', startTime: '', endTime: '', coefficient: 1.0, isActive: true });
+    setEditingId(null);
+    setShowForm(false);
+  };
+
+  const handleSave = async () => {
     try {
-      await createMutation.mutateAsync(form);
-      toast.success('Tạo ca làm việc thành công');
-      setForm({ name: '', startTime: '', endTime: '', coefficient: 1.0 });
-      setShowForm(false);
+      if (editingId) {
+        await updateMutation.mutateAsync({ shiftId: editingId, data: form });
+        toast.success('Cập nhật ca làm việc thành công');
+      } else {
+        await createMutation.mutateAsync(form);
+        toast.success('Tạo ca làm việc thành công');
+      }
+      resetForm();
     } catch (err) {
       toast.error(extractErrorMessage(err));
     }
+  };
+
+  const handleEdit = (s: any) => {
+    setForm({
+      name: s.name,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      coefficient: s.coefficient,
+      isActive: s.isActive,
+    });
+    setEditingId(s.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -371,10 +398,10 @@ function WorkShiftTab({ farmId }: { farmId: string }) {
       {/* Create form */}
       {showForm && (
         <Section
-          title="Thêm ca làm việc mới"
+          title={editingId ? 'Chỉnh sửa ca làm việc' : 'Thêm ca làm việc mới'}
           action={
             <button
-              onClick={() => setShowForm(false)}
+              onClick={resetForm}
               className="text-[12px] text-[#0073bb] hover:underline"
             >
               Đóng ✕
@@ -415,16 +442,33 @@ function WorkShiftTab({ farmId }: { farmId: string }) {
               value={form.endTime}
               onChange={(e) => setForm((p) => ({ ...p, endTime: e.target.value }))}
             />
+            {editingId && (
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.isActive}
+                    onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
+                    className="w-4 h-4 accent-[#0073bb]"
+                  />
+                  <span className="text-[13px] text-[#0d1117]">Kích hoạt ca làm việc này</span>
+                </label>
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
             <Btn
               variant="primary"
-              onClick={handleCreate}
-              disabled={createMutation.isPending || shifts.length >= 24}
+              onClick={handleSave}
+              disabled={createMutation.isPending || updateMutation.isPending}
             >
-              {createMutation.isPending ? 'Đang tạo...' : 'Tạo ca làm việc'}
+              {createMutation.isPending || updateMutation.isPending
+                ? 'Đang lưu...'
+                : editingId
+                  ? 'Cập nhật ca'
+                  : 'Tạo ca làm việc'}
             </Btn>
-            <Btn variant="normal" onClick={() => setShowForm(false)}>
+            <Btn variant="normal" onClick={resetForm}>
               Hủy
             </Btn>
           </div>
@@ -475,9 +519,8 @@ function WorkShiftTab({ farmId }: { farmId: string }) {
                 {shifts.map((s, idx) => (
                   <tr
                     key={s.id}
-                    className={`hover:bg-[#f5f5f5] transition-colors ${
-                      idx !== shifts.length - 1 ? 'border-b border-[#e9ebed]' : ''
-                    }`}
+                    className={`hover:bg-[#f5f5f5] transition-colors ${idx !== shifts.length - 1 ? 'border-b border-[#e9ebed]' : ''
+                      }`}
                   >
                     <td className="px-4 py-3 font-medium text-[#0d1117]">{s.name}</td>
                     <td className="px-4 py-3 text-[#0d1117] font-mono text-[12px]">
@@ -491,13 +534,18 @@ function WorkShiftTab({ farmId }: { farmId: string }) {
                       <StatusBadge active={s.isActive} />
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Btn
-                        variant="danger"
-                        onClick={() => handleDelete(s.id)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        Xóa
-                      </Btn>
+                      <div className="flex justify-end gap-2">
+                        <Btn variant="normal" onClick={() => handleEdit(s)}>
+                          Sửa
+                        </Btn>
+                        <Btn
+                          variant="danger"
+                          onClick={() => handleDelete(s.id)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          Xóa
+                        </Btn>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -514,6 +562,7 @@ function WorkShiftTab({ farmId }: { farmId: string }) {
 
 function WageConfigTab({ farmId }: { farmId: string }) {
   const { data: wages = [], isLoading } = useWageConfigs(farmId);
+  const { members, loading: loadingMembers } = useFarmMembers(farmId);
   const createMutation = useCreateWageConfig(farmId);
   const deleteMutation = useDeleteWageConfig(farmId);
   const [showForm, setShowForm] = useState(false);
@@ -567,13 +616,20 @@ function WageConfigTab({ farmId }: { farmId: string }) {
           }
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <Field
-              label="User ID nhân viên"
+            <Drop
+              label="Nhân viên"
               required
-              placeholder="Nhập ID của nhân viên"
               value={form.userId}
               onChange={(e) => setForm((p) => ({ ...p, userId: e.target.value }))}
-            />
+              hint={loadingMembers ? 'Đang tải danh sách nhân viên...' : 'Chọn nhân viên cần thiết lập lương'}
+            >
+              <option value="">Chọn nhân viên </option>
+              {members.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.fullName}
+                </option>
+              ))}
+            </Drop>
             <Field
               label="Lương ngày (VND)"
               type="number"
@@ -668,9 +724,8 @@ function WageConfigTab({ farmId }: { farmId: string }) {
                 {wages.map((w, idx) => (
                   <tr
                     key={w.id}
-                    className={`hover:bg-[#f5f5f5] transition-colors ${
-                      idx !== wages.length - 1 ? 'border-b border-[#e9ebed]' : ''
-                    }`}
+                    className={`hover:bg-[#f5f5f5] transition-colors ${idx !== wages.length - 1 ? 'border-b border-[#e9ebed]' : ''
+                      }`}
                   >
                     <td className="px-4 py-3 font-medium text-[#0073bb]">
                       {w.userFullName}
@@ -721,21 +776,6 @@ export function ConfigPage() {
 
   return (
     <div className="min-h-screen bg-[#f2f3f3] font-['Amazon_Ember',Arial,sans-serif]">
-      {/* Top navigation bar */}
-      <div className="bg-[#232f3e] border-b-2 border-[#ff9900]">
-        <div className="max-w-5xl mx-auto px-5 h-11 flex items-center gap-4">
-          <span className="text-white text-[15px] font-bold tracking-tight">
-            🌿 FarmConsole
-          </span>
-          <nav className="flex items-center gap-1 text-[#9dadb8] text-[12px]">
-            <span className="cursor-pointer hover:text-white transition-colors">Trang chủ</span>
-            <span className="mx-1.5 opacity-40">/</span>
-            <span className="cursor-pointer hover:text-white transition-colors">Farm Nguyễn</span>
-            <span className="mx-1.5 opacity-40">/</span>
-            <span className="text-[#c9d2d8]">Cấu hình hệ thống</span>
-          </nav>
-        </div>
-      </div>
 
       {/* Page header */}
       <div className="bg-white border-b border-[#c6c6c6]">
@@ -771,8 +811,8 @@ export function ConfigPage() {
       {/* Main content */}
       <div className="max-w-5xl mx-auto px-5 py-5">
         {tab === 'config' && <FarmConfigTab farmId={currentFarmId} />}
-        {tab === 'shift'  && <WorkShiftTab  farmId={currentFarmId} />}
-        {tab === 'wage'   && <WageConfigTab farmId={currentFarmId} />}
+        {tab === 'shift' && <WorkShiftTab farmId={currentFarmId} />}
+        {tab === 'wage' && <WageConfigTab farmId={currentFarmId} />}
       </div>
     </div>
   );

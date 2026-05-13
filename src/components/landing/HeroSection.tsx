@@ -59,7 +59,7 @@ class HeroSection extends React.Component<HeroSectionProps, HeroSectionState> {
 
     const handleCTAClick = () => {
       if (isAuthenticated) {
-        navigate("/dashboard");
+        navigate("/farms");
       } else {
         navigate("/register");
       }

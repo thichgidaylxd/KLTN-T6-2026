@@ -14,11 +14,6 @@ import {
   LayoutGrid,
   List,
   CalendarDays,
-  Target,
-  Code2,
-  Archive,
-  BookOpen,
-  Link2,
   Zap,
   Calendar,
   Clock,
@@ -54,16 +49,10 @@ export interface SelectionState {
 // ─── Nav tabs (Jira-style project nav) ────────────────────────────────────────
 
 const NAV_TABS = [
-  { key: 'summary', label: 'Tổng quan', icon: LayoutGrid },
-  { key: 'timeline', label: 'Timeline', icon: CalendarDays },
-  { key: 'backlog', label: 'Backlog', icon: List },
+  { key: 'timeline', label: 'Tiến độ', icon: CalendarDays },
+  { key: 'backlog', label: 'Nhật ký công', icon: List },
   { key: 'board', label: 'Phiên làm việc', icon: Clock },
-  { key: 'calendar', label: 'Lịch', icon: CalendarDays },
-  { key: 'goals', label: 'Mục tiêu', icon: Target },
-  { key: 'code', label: 'Phát triển', icon: Code2 },
-  { key: 'archive', label: 'Lưu trữ', icon: Archive },
-  { key: 'pages', label: 'Trang', icon: BookOpen },
-  { key: 'shortcuts', label: 'Phím tắt', icon: Link2 },
+
 ] as const;
 
 type NavTab = typeof NAV_TABS[number]['key'];
@@ -130,6 +119,14 @@ export function SeasonPlanPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean; planId: string | null; isDeleting: boolean;
   }>({ isOpen: false, planId: null, isDeleting: false });
+
+  const [phaseDeleteConfirm, setPhaseDeleteConfirm] = useState<{
+    isOpen: boolean; planId: string | null; stageId: string | null; isDeleting: boolean;
+  }>({ isOpen: false, planId: null, stageId: null, isDeleting: false });
+
+  const [taskDeleteConfirm, setTaskDeleteConfirm] = useState<{
+    isOpen: boolean; planId: string | null; stageId: string | null; taskId: string | null; isDeleting: boolean;
+  }>({ isOpen: false, planId: null, stageId: null, taskId: null, isDeleting: false });
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const farmPlans = plans.filter((p: SeasonPlan) => p.farmId === farmId || p.farmId === '');
@@ -392,7 +389,16 @@ useEffect(() => {
     }
   };
 
-  const handleDeletePhase = async (planId: string, stageId: string) => {
+  const handleDeletePhase = (planId: string, stageId: string) => {
+    setPhaseDeleteConfirm({ isOpen: true, planId, stageId, isDeleting: false });
+  };
+
+  const confirmDeletePhase = async () => {
+    const { planId, stageId } = phaseDeleteConfirm;
+    if (!planId || !stageId) return;
+
+    setPhaseDeleteConfirm(prev => ({ ...prev, isDeleting: true }));
+
     const cachedPhase = plans
       .find(p => p.id === planId)
       ?.phases?.find(ph => ph.id === stageId);
@@ -403,7 +409,10 @@ useEffect(() => {
     try {
       await removePhase(planId, stageId).unwrap();
       setSelectedItem(null);
+      setPhaseDeleteConfirm({ isOpen: false, planId: null, stageId: null, isDeleting: false });
+      toast.success('Xóa giai đoạn thành công');
     } catch (err: any) {
+      setPhaseDeleteConfirm(prev => ({ ...prev, isDeleting: false, isOpen: false }));
       setNotification({
         isOpen: true,
         type: 'error',
@@ -413,7 +422,16 @@ useEffect(() => {
     }
   };
 
-  const handleDeleteTask = async (planId: string, stageId: string, taskId: string) => {
+  const handleDeleteTask = (planId: string, stageId: string, taskId: string) => {
+    setTaskDeleteConfirm({ isOpen: true, planId, stageId, taskId, isDeleting: false });
+  };
+
+  const confirmDeleteTask = async () => {
+    const { planId, stageId, taskId } = taskDeleteConfirm;
+    if (!planId || !stageId || !taskId) return;
+
+    setTaskDeleteConfirm(prev => ({ ...prev, isDeleting: true }));
+
     const cachedTask = plans
       .find(p => p.id === planId)
       ?.phases?.find(ph => ph.id === stageId)
@@ -425,7 +443,10 @@ useEffect(() => {
     try {
       await removeSeasonTask(planId, stageId, taskId).unwrap();
       setSelectedItem(null);
+      setTaskDeleteConfirm({ isOpen: false, planId: null, stageId: null, taskId: null, isDeleting: false });
+      toast.success('Xóa công việc thành công');
     } catch (err: any) {
+      setTaskDeleteConfirm(prev => ({ ...prev, isDeleting: false, isOpen: false }));
       setNotification({
         isOpen: true,
         type: 'error',
@@ -520,7 +541,7 @@ useEffect(() => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white">
+    <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-white">
 
       <div className="flex items-center gap-3 px-5 py-2.5 border-b border-slate-200 bg-white shrink-0">
         {currentPlan && (
@@ -616,9 +637,6 @@ useEffect(() => {
             </button>
           );
         })}
-        <button className="flex items-center gap-1 px-3 py-2.5 text-[12px] text-slate-400 hover:text-slate-700 border-b-2 border-transparent whitespace-nowrap ml-1">
-          <span className="text-lg leading-none">+</span>
-        </button>
       </div>
 
       {activeTab === 'timeline' && !currentPlan && (
@@ -779,13 +797,13 @@ useEffect(() => {
               {NAV_TABS.find(t => t.key === activeTab)?.label}
             </p>
             <p className="text-[12px] text-slate-400 max-w-xs">
-              Tính năng này đang được phát triển. Chuyển sang tab <strong>Timeline</strong> để quản lý kế hoạch mùa vụ.
+              Tính năng này đang được phát triển. Chuyển sang tab <strong>Tiến độ</strong> để quản lý kế hoạch mùa vụ.
             </p>
             <button
               className="mt-4 px-4 py-1.5 text-[12px] font-bold text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors"
               onClick={() => setActiveTab('timeline')}
             >
-              Xem Timeline
+              Xem Tiến độ
             </button>
           </div>
         )}
@@ -854,7 +872,6 @@ useEffect(() => {
         </div>
       </Modal>
 
-      {/* Confirm delete */}
       <ConfirmModal
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm(prev => ({ ...prev, isOpen: false }))}
@@ -863,6 +880,30 @@ useEffect(() => {
         title="Xóa kế hoạch?"
         message="Bạn có chắc chắn muốn xóa kế hoạch mùa vụ này? Tất cả giai đoạn và công việc liên quan sẽ bị loại bỏ vĩnh viễn."
         confirmLabel="Xóa ngay"
+        type="danger"
+      />
+
+      {/* Confirm delete phase */}
+      <ConfirmModal
+        isOpen={phaseDeleteConfirm.isOpen}
+        onClose={() => setPhaseDeleteConfirm(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDeletePhase}
+        loading={phaseDeleteConfirm.isDeleting}
+        title="Xóa giai đoạn?"
+        message="Hành động này sẽ xóa vĩnh viễn giai đoạn này và tất cả các công việc liên quan. Bạn có chắc chắn muốn tiếp tục?"
+        confirmLabel="Xóa giai đoạn"
+        type="danger"
+      />
+
+      {/* Confirm delete task */}
+      <ConfirmModal
+        isOpen={taskDeleteConfirm.isOpen}
+        onClose={() => setTaskDeleteConfirm(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDeleteTask}
+        loading={taskDeleteConfirm.isDeleting}
+        title="Xóa công việc?"
+        message="Hành động này sẽ xóa vĩnh viễn công việc này. Bạn có chắc chắn muốn tiếp tục?"
+        confirmLabel="Xóa công việc"
         type="danger"
       />
     </div>

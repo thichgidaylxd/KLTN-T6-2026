@@ -43,6 +43,7 @@ const SupplierListPage = lazy(() => import('../pages/Supplier/SupplierListPage')
 const SKUListPage = lazy(() => import('../pages/SKU/SKUListPage').then(module => ({ default: module.SKUListPage })));
 const FarmTransactionPage = lazy(() => import('../pages/Warehouse/FarmTransactionPage').then(module => ({ default: module.FarmTransactionPage })));
 const UserManagementPage = lazy(() => import('../pages/Admin/UserManagementPage'));
+const NotificationsPage = lazy(() => import('../pages/Notifications/NotificationsPage').then(module => ({ default: module.NotificationsPage })));
 
 
 // Layouts
@@ -77,7 +78,8 @@ export const AppRoutes: React.FC = () => {
           <Route path="/activity" element={<Suspense fallback={<LoadingPage />}><ActivityPage /></Suspense>} />
           <Route path="/task" element={<Suspense fallback={<LoadingPage />}><TasksPage /></Suspense>} />
           <Route path="/gemini" element={<Suspense fallback={<LoadingPage />}><GeminiPage /></Suspense>} />
-          <Route path="/config" element={<Suspense fallback={<LoadingPage />}><ConfigPage /></Suspense>} />
+          <Route path="/notifications" element={<Suspense fallback={<LoadingPage />}><NotificationsPage /></Suspense>} />
+          {/* <Route path="/config" element={<Suspense fallback={<LoadingPage />}><ConfigPage /></Suspense>} /> */}
           <Route path="/subscription/pricing" element={<Suspense fallback={<LoadingPage />}><SubscriptionPage /></Suspense>} />
 
           {/* Farm selection — no farmId */}
@@ -88,7 +90,9 @@ export const AppRoutes: React.FC = () => {
             <Route path="actions" element={<Suspense fallback={<LoadingPage />}><FarmActionsPage /></Suspense>} />
             <Route path="wallet" element={<Suspense fallback={<LoadingPage />}><WalletPage /></Suspense>} />
             <Route path="activity" element={<Suspense fallback={<LoadingPage />}><ActivityPage /></Suspense>} />
-            <Route path="metrics" element={<Suspense fallback={<LoadingPage />}><ActivityPage /></Suspense>} />
+            <Route path="dashboard" element={<Suspense fallback={<LoadingPage />}><MainPage /></Suspense>} />
+            <Route path="dashboard/notifications" element={<Suspense fallback={<LoadingPage />}><NotificationsPage /></Suspense>} />
+            <Route path="metrics" element={<Suspense fallback={<LoadingPage />}><MainPage /></Suspense>} />
             <Route path="task" element={<Suspense fallback={<LoadingPage />}><TasksPage /></Suspense>} />
             <Route path="season-plans" element={<Suspense fallback={<LoadingPage />}><SeasonPlanListPage /></Suspense>} />
             <Route path="season-plans/:planId" element={<Suspense fallback={<LoadingPage />}><SeasonPlanPage /></Suspense>} />
@@ -98,6 +102,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="subscription" element={<Navigate to="subscription/history" replace />} />
             <Route path="subscription/history" element={<Suspense fallback={<LoadingPage />}><SubscriptionHistoryPage /></Suspense>} />
             <Route path="subscription/pricing" element={<Suspense fallback={<LoadingPage />}><SubscriptionPage /></Suspense>} />
+            <Route path="notifications" element={<Suspense fallback={<LoadingPage />}><NotificationsPage /></Suspense>} />
             <Route path="gemini" element={<Suspense fallback={<LoadingPage />}><GeminiPage /></Suspense>} />
             <Route path="crop-catalog" element={<Suspense fallback={<LoadingPage />}><CropCatalogPage /></Suspense>} />
             <Route path="warehouses" element={<Suspense fallback={<LoadingPage />}><WarehousePage /></Suspense>} />
@@ -105,6 +110,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="transactions" element={<Suspense fallback={<LoadingPage />}><FarmTransactionPage /></Suspense>} />
             <Route path="suppliers" element={<Suspense fallback={<LoadingPage />}><SupplierListPage /></Suspense>} />
             <Route path="skus" element={<Suspense fallback={<LoadingPage />}><SKUListPage /></Suspense>} />
+            <Route path="config" element={<Suspense fallback={<LoadingPage />}><ConfigPage /></Suspense>} />
 
           </Route>
         </Route>

@@ -87,9 +87,9 @@ export interface Task {
   id: string;
   version?: number;
   planStageId: string;
-  farmId?: string;
-  farmName?: string;
-  plotId: string | null;
+  farmId?: string | null;
+  farmName?: string | null;
+  plotId?: string | null;
   name: string;
   description?: string | null;
   startDate: string; // YYYY-MM-DD
@@ -98,10 +98,10 @@ export interface Task {
   actualEndDate?: string | null;   // YYYY-MM-DD — thực tế kết thúc
   status: TaskStatusObject;
   progressPercent: number;
-  acceptedAt?: string;
-  completedAt?: string;
-  createdBy?: string;
-  createdAt?: string;
+  acceptedAt?: string | null;
+  completedAt?: string | null;
+  createdBy?: string | null;
+  createdAt?: string | null;
   dependencies?: any[]; // Quan hệ phụ thuộc
   // Local/Extended fields for resource management
   assignedMembers?: string[];
@@ -212,8 +212,8 @@ export interface TaskAssignee {
     status: string;
     isLocked: boolean;
     createdAt: string;
-  };
-  removedAt?: string;
+  } | null;
+  removedAt?: string | null;
 }
 
 export interface CreateTaskAssigneeRequest {

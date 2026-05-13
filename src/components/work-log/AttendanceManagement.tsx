@@ -133,7 +133,7 @@ export function AttendanceManagement({ plan: initialPlan }: AttendanceManagement
   }, [summary]);
 
   return (
-    <div className="flex-1 flex flex-col bg-[#F8FAFC]">
+    <div className="flex-1 flex flex-col min-h-0 bg-[#F8FAFC]">
       {/* Header Section */}
       <div className="bg-white border-b border-slate-200/60 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-8 pt-8 pb-0">
@@ -163,22 +163,54 @@ export function AttendanceManagement({ plan: initialPlan }: AttendanceManagement
                   className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-[13px] focus:ring-2 focus:ring-indigo-500/20 w-[260px] font-medium focus:outline-none"
                 />
               </div>
-              <div className="flex bg-white shadow-sm rounded-lg border border-slate-200 overflow-hidden">
-                <div className="relative flex items-center gap-2 px-3 py-2 hover:bg-slate-50 transition-colors">
-                  <Calendar size={14} className="text-slate-400" />
-                  <span className="text-[12px] font-bold text-slate-700">{filters.from ? formatDate(filters.from) : 'Bắt đầu'}</span>
-                  <input type="date" value={filters.from} onChange={(e) => handleDateChange('from', e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer" />
+              
+              <div className="flex items-center gap-2">
+                <div className="flex bg-white shadow-sm rounded-xl border border-slate-200 overflow-hidden h-10">
+                  <div 
+                    className="relative flex items-center gap-2 px-3 hover:bg-slate-50 transition-colors border-r border-slate-100 cursor-pointer"
+                    onClick={(e) => {
+                      const input = e.currentTarget.querySelector('input');
+                      if (input) {
+                        try { (input as any).showPicker(); } catch (err) { input.focus(); }
+                      }
+                    }}
+                  >
+                    <Calendar size={14} className="text-slate-400" />
+                    <span className="text-[12px] font-bold text-slate-700 whitespace-nowrap">
+                      {filters.from ? formatDate(filters.from) : 'Bắt đầu'}
+                    </span>
+                    <input 
+                      type="date" 
+                      value={filters.from} 
+                      onChange={(e) => handleDateChange('from', e.target.value)} 
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full z-10" 
+                    />
+                  </div>
+                  <div 
+                    className="relative flex items-center gap-2 px-3 hover:bg-slate-50 transition-colors cursor-pointer"
+                    onClick={(e) => {
+                      const input = e.currentTarget.querySelector('input');
+                      if (input) {
+                        try { (input as any).showPicker(); } catch (err) { input.focus(); }
+                      }
+                    }}
+                  >
+                    <span className="text-[12px] font-bold text-slate-700 whitespace-nowrap">
+                      {filters.to ? formatDate(filters.to) : 'Kết thúc'}
+                    </span>
+                    <Calendar size={14} className="text-slate-400" />
+                    <input 
+                      type="date" 
+                      value={filters.to} 
+                      onChange={(e) => handleDateChange('to', e.target.value)} 
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full z-10" 
+                    />
+                  </div>
                 </div>
-                <div className="w-[1px] bg-slate-200 self-stretch my-2" />
-                <div className="relative flex items-center gap-2 px-3 py-2 hover:bg-slate-50 transition-colors">
-                  <span className="text-[12px] font-bold text-slate-700">{filters.to ? formatDate(filters.to) : 'Kết thúc'}</span>
-                  <Calendar size={14} className="text-slate-400" />
-                  <input type="date" value={filters.to} onChange={(e) => handleDateChange('to', e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer" />
-                </div>
+                <button className="flex items-center gap-2 h-10 px-4 bg-white text-slate-700 rounded-xl border border-slate-200 text-[13px] font-bold hover:bg-slate-50 transition-all shadow-sm">
+                  <Download size={16} />
+                </button>
               </div>
-              <button className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-700 rounded-2xl border border-slate-200 text-[13px] font-bold hover:bg-slate-50 transition-all">
-                <Download size={16} /> Xuất
-              </button>
             </div>
           </div>
 
@@ -205,7 +237,7 @@ export function AttendanceManagement({ plan: initialPlan }: AttendanceManagement
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-hide">
+      <div className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-8 py-8">
           <AnimatePresence mode="wait">
             {viewMode === 'SUMMARY' ? (
@@ -216,27 +248,27 @@ export function AttendanceManagement({ plan: initialPlan }: AttendanceManagement
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-8"
               >
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Stats Grid - Shrunk */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[
                     { label: 'Thời gian', title: 'Tổng ngày công', value: `${totalStats.workDays} ngày`, icon: Clock, color: 'indigo' },
                     { label: 'Năng suất', title: 'Giờ tăng ca', value: `${totalStats.overtime} giờ`, icon: TrendingUp, color: 'amber' },
                     { label: 'Tài chính', title: 'Dự kiến chi trả', value: formatCurrency(totalStats.wage), icon: DollarSign, color: 'emerald' },
                   ].map((stat, i) => (
-                    <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-200/60 shadow-sm relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
-                        <stat.icon size={80} />
+                    <div key={i} className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
+                        <stat.icon size={60} />
                       </div>
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className={`w-12 h-12 bg-${stat.color}-50 text-${stat.color}-600 rounded-2xl flex items-center justify-center`}>
-                          <stat.icon size={24} />
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-8 h-8 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg flex items-center justify-center`}>
+                          <stat.icon size={16} />
                         </div>
                         <div>
-                          <p className="text-[11px] font-black text-slate-400 uppercase tracking-[2px]">{stat.label}</p>
-                          <h4 className="text-[14px] font-bold text-slate-900">{stat.title}</h4>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{stat.label}</p>
+                          <h4 className="text-[12px] font-bold text-slate-900">{stat.title}</h4>
                         </div>
                       </div>
-                      <div className={cn("text-[32px] font-black tracking-tight", stat.color === 'emerald' ? 'text-emerald-600' : 'text-slate-900')}>
+                      <div className={cn("text-[20px] font-black tracking-tight", stat.color === 'emerald' ? 'text-emerald-600' : 'text-slate-900')}>
                         {stat.value}
                       </div>
                     </div>

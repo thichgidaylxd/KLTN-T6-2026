@@ -2,7 +2,7 @@ import {
   useCallback, useMemo, Fragment, useRef, useEffect,
   forwardRef, useImperativeHandle,
 } from 'react'
-import { GoogleMap, Polygon, Marker, InfoWindow } from '@react-google-maps/api'
+import { GoogleMap, Polygon, Marker, InfoWindow, OverlayView } from '@react-google-maps/api'
 import { useGoogleMaps } from '@/providers/GoogleMapsProvider'
 import { Plot, GeoPoint } from '@/types/plot'
 import { PlotInfoPopup } from './PlotInfoPopup'
@@ -293,63 +293,60 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
     mapRef.current = map
     onMapLoad?.(map)
   }, [onMapLoad])
-  const onUnmount = useCallback(() => { mapRef.current = null }, [])
+
+  const onUnmount = useCallback(() => { 
+    mapRef.current = null 
+  }, [])
 
   useEffect(() => {
-    if (!mapRef.current || !window.google) return
+    if (!mapRef.current || !window.google || (plots.length === 0 && warehouses.length === 0)) return
+    
     const bounds = new window.google.maps.LatLngBounds()
-    let has = false
+    let hasPoint = false
 
     if (selectedPlot) {
-      // Zoom vào lô được chọn
       const pts = selectedPlot.geometry ? toLatLng(selectedPlot.geometry) : (selectedPlot.boundaries ?? [])
       pts.forEach(p => {
-        const lat = Number(p.lat), lng = Number(p.lng)
-        if (isFinite(lat) && isFinite(lng)) {
-          bounds.extend({ lat, lng })
-          has = true
+        if (isFinite(p.lat) && isFinite(p.lng)) {
+          bounds.extend({ lat: Number(p.lat), lng: Number(p.lng) })
+          hasPoint = true
         }
       })
     } else if (selectedWarehouseId) {
       const wh = warehouses.find(w => w.id === selectedWarehouseId)
-      if (wh) {
-        const lat = Number(wh.latitude), lng = Number(wh.longitude)
-        // Chỉ zoom nếu tọa độ khác 0,0
-        if (isFinite(lat) && isFinite(lng) && (lat !== 0 || lng !== 0)) {
-          bounds.extend({ lat, lng })
-          has = true
-        }
+      if (wh && isFinite(Number(wh.latitude)) && isFinite(Number(wh.longitude)) && (Number(wh.latitude) !== 0)) {
+        bounds.extend({ lat: Number(wh.latitude), lng: Number(wh.longitude) })
+        hasPoint = true
       }
     } else {
-      // Không có lô nào được chọn — fit tất cả các lô hiện có
       plots.forEach(plot => {
         const pts = plot.geometry ? toLatLng(plot.geometry) : (plot.boundaries ?? [])
         pts.forEach(p => {
-          const lat = Number(p.lat), lng = Number(p.lng)
-          if (isFinite(lat) && isFinite(lng)) {
-            bounds.extend({ lat, lng })
-            has = true
+          if (isFinite(p.lat) && isFinite(p.lng)) {
+            bounds.extend({ lat: Number(p.lat), lng: Number(p.lng) })
+            hasPoint = true
           }
         })
       })
       warehouses.forEach(wh => {
-        const lat = Number(wh.latitude), lng = Number(wh.longitude)
-        if (isFinite(lat) && isFinite(lng) && (lat !== 0 || lng !== 0)) {
-          bounds.extend({ lat, lng })
-          has = true
+        if (isFinite(Number(wh.latitude)) && isFinite(Number(wh.longitude)) && (Number(wh.latitude) !== 0)) {
+          bounds.extend({ lat: Number(wh.latitude), lng: Number(wh.longitude) })
+          hasPoint = true
         }
       })
     }
 
-    if (has) {
-      if (selectedWarehouseId) {
-        const center = bounds.getCenter()
+    if (hasPoint) {
+      const center = bounds.getCenter()
+      const ne = bounds.getNorthEast()
+      const sw = bounds.getSouthWest()
+      const isPoint = Math.abs(ne.lat() - sw.lat()) < 0.0001 && Math.abs(ne.lng() - sw.lng()) < 0.0001
+      
+      if (isPoint || selectedWarehouseId) {
         mapRef.current.panTo(center)
         mapRef.current.setZoom(18)
-      } else if (selectedPlot) {
-        mapRef.current.fitBounds(bounds, 80)
       } else {
-        mapRef.current.fitBounds(bounds, 80)
+        mapRef.current.fitBounds(bounds, 50)
       }
     }
   }, [selectedPlot, selectedWarehouseId, plots, warehouses])
@@ -376,66 +373,89 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
       {/* ── 1. Tất cả lô đất ── */}
       {plots.map((plot) => {
         const path = plot.geometry ? toLatLng(plot.geometry) : (plot.boundaries ?? [])
-        if (path.length < 3) return null
+        const centroid = path.length >= 3 
+          ? calculateCentroid(path.map(p => ({ lat: p.lat, lng: p.lng })))
+          : (path.length > 0 ? path[0] : null);
+
+        if (centroid && isNaN(centroid.lat)) return null;
+
         const isBeingEdited = isEditing && selectedPlotId === plot.id
         return (
           <Fragment key={plot.id}>
-            <Polygon
-              path={path}
-              onClick={() => !isDrawing && onPlotSelect(plot)}
-              options={{
-                fillColor: getColorFromId(plot.id),
-                fillOpacity: isBeingEdited ? 0 : selectedPlotId === plot.id ? 0.55 : 0.25,
-                strokeColor: getColorFromId(plot.id),
-                strokeOpacity: isBeingEdited ? 0 : 0.9,
-                strokeWeight: selectedPlotId === plot.id ? 4 : 2,
-                zIndex: selectedPlotId === plot.id ? 2 : 1,
-                clickable: !isDrawing,
-              }}
-            />
-            {!isBeingEdited && path.length > 0 && (
-              (() => {
-                const centroid = calculateCentroid(path.map(p => ({ lat: p.lat, lng: p.lng })));
-                if (isNaN(centroid.lat) || isNaN(centroid.lng)) return null;
-                return (
-                  <Marker
-                    key={`label-${plot.id}`}
-                    position={centroid}
-                    label={{ text: plot.name, color: '#fff', fontSize: '12px', fontWeight: '700' }}
-                    icon={{ path: window.google.maps.SymbolPath.CIRCLE, scale: 0 }}
-                  />
-                );
-              })()
+            {path.length >= 3 && (
+              <Polygon
+                path={path}
+                onClick={() => !isDrawing && onPlotSelect(plot)}
+                options={{
+                  fillColor: getColorFromId(plot.id),
+                  fillOpacity: isBeingEdited ? 0 : selectedPlotId === plot.id ? 0.55 : 0.25,
+                  strokeColor: getColorFromId(plot.id),
+                  strokeOpacity: isBeingEdited ? 0 : 0.9,
+                  strokeWeight: selectedPlotId === plot.id ? 4 : 2,
+                  zIndex: selectedPlotId === plot.id ? 2 : 1,
+                  clickable: !isDrawing,
+                }}
+              />
+            )}
+            
+            {/* Luôn hiển thị tên lô đất nếu có vị trí */}
+            {!isBeingEdited && centroid && (
+              <Marker
+                key={`label-${plot.id}`}
+                position={centroid}
+                label={{ 
+                  text: plot.name, 
+                  color: '#ffffff', 
+                  fontSize: '14px', 
+                  fontWeight: '900',
+                }}
+                icon={{
+                  path: 'M 0,0', // Empty path
+                  scale: 0,
+                }}
+                zIndex={10}
+                onClick={() => !isDrawing && onPlotSelect(plot)}
+              />
             )}
           </Fragment>
         )
       })}
 
       {/* ── 1b. Tất cả kho hàng ── */}
-      {warehouses.map((wh) => {
-        const lat = Number(wh.latitude), lng = Number(wh.longitude)
-        // Không vẽ marker nếu tọa độ là 0,0
-        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;
+        {warehouses.map((wh) => {
+          const lat = Number(wh.latitude), lng = Number(wh.longitude)
+          if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;
+          const pos = { lat, lng };
 
-        return (
-          <Marker
-            key={`wh-${wh.id}`}
-            position={{ lat, lng }}
-            onClick={() => !isDrawing && onWarehouseSelect(wh)}
-            icon={{
-              url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-              scaledSize: selectedWarehouseId === wh.id ? new window.google.maps.Size(40, 40) : new window.google.maps.Size(32, 32)
-            }}
-            label={{
-              text: wh.name,
-              color: '#fff',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              className: 'mt-8 bg-blue-600/80 px-2 py-0.5 rounded shadow-sm border border-blue-400'
-            }}
-          />
-        );
-      })}
+          return (
+            <Fragment key={`wh-${wh.id}`}>
+              <Marker
+                position={pos}
+                onClick={() => !isDrawing && onWarehouseSelect(wh)}
+                icon={{
+                  path: 'M 0,0 L -8,-16 L 8,-16 z',
+                  fillColor: '#ef4444',
+                  fillOpacity: 1,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2,
+                  scale: 1,
+                }}
+                zIndex={5}
+              />
+              <OverlayView
+                position={pos}
+                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+              >
+                <div 
+                  className="text-white font-black whitespace-nowrap -translate-x-1/2 -translate-y-[40px] text-[11px] plot-label-shadow px-1 bg-red-600/20 rounded cursor-pointer"
+                  onClick={() => !isDrawing && onWarehouseSelect(wh)}
+                >
+                  {wh.name}
+                </div>
+              </OverlayView>
+            </Fragment>
+          );
+        })}
 
       {/* ── 2. DRAWING: handled entirely by CanvasOverlay ── */}      {/* ── 3. EDITING: polygon kéo được ── */}
       {isEditing && selectedPlot && currentPath.length >= 3 && (

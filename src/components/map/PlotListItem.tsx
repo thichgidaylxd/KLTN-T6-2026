@@ -5,14 +5,23 @@ interface Props {
   plot: Plot;
   isActive: boolean;
   onSelect: (plot: Plot) => void;
-  onEdit: (plot: Plot) => void;
-  onEditBoundaries: (plot: Plot) => void;
-  onStartDraw: (plot: Plot) => void;
-  onDelete: (plot: Plot) => void;
+  onEdit?: (plot: Plot) => void;
+  onEditBoundaries?: (plot: Plot) => void;
+  onStartDraw?: (plot: Plot) => void;
+  onDelete?: (plot: Plot) => void;
 }
 
-export function PlotListItem({ plot, isActive, onSelect, onEdit, onEditBoundaries, onStartDraw, onDelete }: Props) {
+export function PlotListItem({ 
+  plot, 
+  isActive, 
+  onSelect, 
+  onEdit, 
+  onEditBoundaries, 
+  onStartDraw, 
+  onDelete 
+}: Props) {
   const hasGeometry = !!plot.geometry?.coordinates?.[0]?.length;
+  const isReadonly = !onEdit && !onEditBoundaries && !onStartDraw && !onDelete;
 
   return (
     <div className={`px-3 py-2.5 border-b border-gray-50 last:border-b-0 transition-all ${
@@ -44,35 +53,47 @@ export function PlotListItem({ plot, isActive, onSelect, onEdit, onEditBoundarie
           <MapPinIcon className="w-2.5 h-2.5" /> Vị trí
         </button>
 
-        {hasGeometry ? (
-          <button
-            onClick={() => onEditBoundaries(plot)}
-            className="text-[9px] font-bold px-2 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 flex-1 justify-center transition-colors"
-          >
-            <MousePointer2Icon className="w-2.5 h-2.5" /> Sửa ranh giới
-          </button>
-        ) : (
-          <button
-            onClick={() => onStartDraw(plot)}
-            className="text-[9px] font-bold px-2 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 flex-1 justify-center transition-colors"
-          >
-            <PencilIcon className="w-2.5 h-2.5" /> Vẽ mới
-          </button>
+        {!isReadonly && (
+          <>
+            {hasGeometry ? (
+              onEditBoundaries && (
+                <button
+                  onClick={() => onEditBoundaries(plot)}
+                  className="text-[9px] font-bold px-2 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 flex-1 justify-center transition-colors"
+                >
+                  <MousePointer2Icon className="w-2.5 h-2.5" /> Sửa ranh giới
+                </button>
+              )
+            ) : (
+              onStartDraw && (
+                <button
+                  onClick={() => onStartDraw(plot)}
+                  className="text-[9px] font-bold px-2 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 flex-1 justify-center transition-colors"
+                >
+                  <PencilIcon className="w-2.5 h-2.5" /> Vẽ mới
+                </button>
+              )
+            )}
+
+            {onEdit && (
+              <button
+                onClick={() => onEdit(plot)}
+                className="text-[9px] font-bold px-2 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center gap-1 transition-colors"
+              >
+                <PencilIcon className="w-2.5 h-2.5" />
+              </button>
+            )}
+
+            {onDelete && (
+              <button
+                onClick={() => onDelete(plot)}
+                className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <Trash2Icon className="w-3 h-3" />
+              </button>
+            )}
+          </>
         )}
-
-        <button
-          onClick={() => onEdit(plot)}
-          className="text-[9px] font-bold px-2 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center gap-1 transition-colors"
-        >
-          <PencilIcon className="w-2.5 h-2.5" />
-        </button>
-
-        <button
-          onClick={() => onDelete(plot)}
-          className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-        >
-          <Trash2Icon className="w-3 h-3" />
-        </button>
       </div>
     </div>
   );

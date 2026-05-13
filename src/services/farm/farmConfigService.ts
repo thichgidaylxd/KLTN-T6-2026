@@ -5,6 +5,7 @@ import type {
   UpdateFarmConfigRequest,
   WorkShift,
   CreateWorkShiftRequest,
+  UpdateWorkShiftRequest,
   WageConfig,
   CreateWageConfigRequest,
 } from '@/types/farmConfig';
@@ -52,6 +53,12 @@ export const workShiftService = {
   delete(farmId: string, shiftId: string): Promise<ApiResponse<void>> {
     return axiosInstance
       .delete<ApiResponse<void>>(`/api/v1/farms/${farmId}/work-shifts/${shiftId}`, { headers: farmHeaders() })
+      .then((r) => r.data);
+  },
+  
+  update(farmId: string, shiftId: string, data: UpdateWorkShiftRequest): Promise<ApiResponse<WorkShift>> {
+    return axiosInstance
+      .patch<ApiResponse<WorkShift>>(`/api/v1/farms/${farmId}/work-shifts/${shiftId}`, data, { headers: farmHeaders() })
       .then((r) => r.data);
   },
 };

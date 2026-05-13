@@ -1,109 +1,120 @@
-import { useRef, useCallback } from "react";
-import { GoogleMap } from "@react-google-maps/api";
-import { ChevronDown, Maximize2, RefreshCw, Plus, Minus } from "lucide-react";
-import { Button } from "../ui/button";
+import { useRef, useCallback, useState } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { useGoogleMaps } from "../../providers/GoogleMapsProvider";
+import { FarmMap } from "../map/FarmMap";
+import { Plot } from "../../types/plot";
+import { Warehouse } from "../../types/warehouse/warehouse";
 
-const DEFAULT_CENTER = { lat: 16.0544, lng: 108.2022 };
-const DEFAULT_ZOOM = 13;
+interface MapPanelProps {
+  plots: Plot[];
+  warehouses: Warehouse[];
+}
 
-export default function MapPanel() {
+export default function MapPanel({ plots, warehouses }: MapPanelProps) {
   const mainMapRef = useRef<google.maps.Map | null>(null);
   const { isLoaded } = useGoogleMaps();
+  
+  const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const onMainMapLoad = useCallback((map: google.maps.Map) => {
     mainMapRef.current = map;
   }, []);
 
-  const onMainMapIdle = useCallback(() => {
-    // No-op or handle main map idle
+  const handleSelectPlot = useCallback((plot: Plot | null) => {
+    setSelectedPlot(plot);
+    setSelectedWarehouse(null);
+    if (plot && plot.geometry?.type === 'Polygon' && mainMapRef.current && window.google) {
+      const coords = plot.geometry.coordinates[0];
+      const bounds = new window.google.maps.LatLngBounds();
+      coords.forEach(coord => bounds.extend({ lat: coord[1], lng: coord[0] }));
+      mainMapRef.current.fitBounds(bounds);
+    }
   }, []);
 
-  const handleZoomIn = useCallback(() => {
-    const map = mainMapRef.current;
-    if (!map) return;
-    map.setZoom((map.getZoom() ?? DEFAULT_ZOOM) + 1);
+  const handleSelectWarehouse = useCallback((wh: Warehouse | null) => {
+    setSelectedWarehouse(wh);
+    setSelectedPlot(null);
+    if (wh && wh.latitude && wh.longitude && mainMapRef.current) {
+      mainMapRef.current.panTo({ lat: Number(wh.latitude), lng: Number(wh.longitude) });
+      mainMapRef.current.setZoom(16);
+    }
   }, []);
 
-  const handleZoomOut = useCallback(() => {
-    const map = mainMapRef.current;
-    if (!map) return;
-    map.setZoom((map.getZoom() ?? DEFAULT_ZOOM) - 1);
+  const handleToggleFullscreen = useCallback(() => {
+    setIsFullscreen(prev => !prev);
+    // Kích hoạt resize event sau khi transition kết thúc để map hiển thị đúng
+    setTimeout(() => {
+      if (mainMapRef.current) {
+        window.google.maps.event.trigger(mainMapRef.current, 'resize');
+      }
+    }, 300);
   }, []);
-
-  const handleRefresh = useCallback(() => {
-    const map = mainMapRef.current;
-    if (!map) return;
-    map.setCenter(DEFAULT_CENTER);
-    map.setZoom(DEFAULT_ZOOM);
-  }, []);
-
-  const mapOptions: google.maps.MapOptions = {
-    disableDefaultUI: true,
-    gestureHandling: "greedy",
-  };
 
   return (
-    <div className="relative w-full h-full rounded-[22px] overflow-hidden shrink-0 shadow-md">
+    <div className={`transition-all duration-500 shadow-md bg-white overflow-hidden ${
+      isFullscreen 
+        ? "!fixed !inset-0 !z-[9999] m-0 !rounded-none" 
+        : "relative w-full h-full rounded-[32px] shrink-0 border border-gray-100"
+    }`}>
       {isLoaded ? (
-        <GoogleMap
-          mapContainerStyle={{ width: "100%", height: "100%" }}
-          center={DEFAULT_CENTER}
-          zoom={DEFAULT_ZOOM}
-          options={mapOptions}
-          onLoad={onMainMapLoad}
-          onIdle={onMainMapIdle}
+        <FarmMap
+          plots={plots}
+          warehouses={warehouses}
+          selectedPlot={selectedPlot}
+          selectedPlotId={selectedPlot?.id}
+          selectedWarehouseId={selectedWarehouse?.id}
+          onPlotSelect={handleSelectPlot}
+          onWarehouseSelect={handleSelectWarehouse}
+          onMapLoad={onMainMapLoad}
+          isDrawing={false}
+          isEditing={false}
+          currentPath={[]}
+          onPathChange={() => {}}
         />
       ) : (
-        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-          <span className="text-sm text-gray-400">Loading map...</span>
+        <div className="absolute inset-0 bg-slate-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+            <span className="text-sm font-medium text-slate-400">Đang khởi tạo bản đồ...</span>
+          </div>
         </div>
       )}
 
-      {/* Map label */}
-      <div className="absolute top-5 left-8 z-20 bg-white rounded-full px-4 py-1.5 flex items-center gap-1.5 shadow-sm">
-        <span className="text-sm font-medium text-black">Map</span>
-        <ChevronDown size={13} color="#000" />
+      {/* Small Summary Panel - Top Right */}
+      <div className={`absolute top-6 right-8 z-20 flex items-center gap-2 transition-all duration-500`}>
+        <div className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-md border border-white/50 flex items-center gap-4">
+          <div className="flex flex-col items-center border-r border-gray-100 pr-4">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Lô đất</span>
+            <span className="text-sm font-black text-emerald-600 leading-none">{plots.length}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Kho hàng</span>
+            <span className="text-sm font-black text-blue-600 leading-none">{warehouses.length}</span>
+          </div>
+        </div>
       </div>
 
-      {/* Maximize button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-[22px] right-8 z-20 shadow-sm rounded-[10px] bg-white hover:bg-gray-50"
-      >
-        <Maximize2 size={18} />
-      </Button>
-
-      {/* Zoom controls */}
-      <div className="absolute bottom-[85px] right-8 z-20 bg-white rounded-[20px] w-9 h-[72px] flex flex-col items-center justify-center gap-2 shadow-sm">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleZoomIn}
-          className="h-6 w-6 p-1"
+      {/* Fullscreen/Minimize Toggle Button */}
+      <div className="absolute top-6 left-8 z-[100]">
+        <button
+          type="button"
+          onClick={handleToggleFullscreen}
+          className="shadow-xl rounded-xl bg-white/95 backdrop-blur-md hover:bg-white h-11 w-11 flex items-center justify-center text-slate-700 transition-all active:scale-90 border border-white/50 group"
+          title={isFullscreen ? "Thu nhỏ" : "Toàn màn hình"}
         >
-          <Plus size={16} />
-        </Button>
-        <div className="w-5 h-px bg-gray-200" />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleZoomOut}
-          className="h-6 w-6 p-1"
-        >
-          <Minus size={16} />
-        </Button>
-      </div>
-
-      {/* Refresh button - moved from mini-map to main map controls area if needed, 
-          or just keep it as is but without the mini-map wrapper */}
-      <div 
-        className="absolute bottom-5 right-8 z-20 w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm cursor-pointer hover:bg-gray-50"
-        onClick={handleRefresh}
-      >
-        <RefreshCw size={18} className="text-slate-600" />
+          {isFullscreen ? (
+            <Minimize2 size={22} strokeWidth={2.5} className="group-hover:text-emerald-600 transition-colors" />
+          ) : (
+            <Maximize2 size={22} strokeWidth={2.5} className="group-hover:text-emerald-600 transition-colors" />
+          )}
+        </button>
       </div>
     </div>
   );
 }
+
+
+

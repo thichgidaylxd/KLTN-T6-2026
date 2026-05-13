@@ -79,8 +79,8 @@ export const useCrops = (farmId?: string) => {
     },
   });
 
-  const loading = systemCropsQuery.isFetching || farmCropsQuery.isFetching || cropTypesQuery.isLoading;
-  const cropTypesLoading = cropTypesQuery.isLoading || cropTypesQuery.isFetching;
+  const loading = systemCropsQuery.isLoading || farmCropsQuery.isLoading || cropTypesQuery.isLoading;
+  const cropTypesLoading = cropTypesQuery.isLoading;
 
   const error = useMemo(
     () =>

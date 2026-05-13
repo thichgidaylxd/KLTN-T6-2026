@@ -61,7 +61,10 @@ export default function DashboardLayout() {
 
   const getActive = () => {
     const p = location.pathname;
+    if (p.includes("/notifications")) return "notifications";
+    if (p.includes("/farms/") && p.includes("/dashboard/notifications")) return "notifications";
     if (p.includes("/actions")) return "home";
+    if (p.includes("/farms/") && p.includes("/dashboard")) return "metrics";
     if (p.includes("/dashboard")) return "dashboard";
     // Check for farm list or any farm-scoped page to highlight the 'tree' icon if needed, 
     // but specific farm pages usually have their own keys.
@@ -80,6 +83,8 @@ export default function DashboardLayout() {
     if (p.includes("/suppliers")) return "suppliers";
     if (p.includes("/skus")) return "skus";
     if (p.includes("/sessions")) return "sessions";
+    if (p.includes("/config")) return "config";
+    if (p.includes("/dashboard/notifications")) return "notifications";
     if (p.includes("/change-password")) return "settings";
 
     // If URL is /farms/:id/actions, maybe highlight 'tree' or nothing?
@@ -111,7 +116,7 @@ export default function DashboardLayout() {
 
     // Navigation logic for specialized keys
     if (key === "metrics") {
-      navigate(currentFarmId ? `/farms/${currentFarmId}/metrics` : '/farms');
+      navigate(currentFarmId ? `/farms/${currentFarmId}/dashboard` : '/farms');
       return;
     }
     if (key === "wallet") {
@@ -130,6 +135,10 @@ export default function DashboardLayout() {
       navigate(currentFarmId ? `/farms/${currentFarmId}/task` : '/task');
       return;
     }
+    if (key === "notifications") {
+      navigate(currentFarmId ? `/farms/${currentFarmId}/dashboard/notifications` : "/notifications");
+      return;
+    }
 
     if (key === "subscription") {
       navigate(currentFarmId ? `/farms/${currentFarmId}/subscription/history` : '/subscription/pricing');
@@ -138,8 +147,8 @@ export default function DashboardLayout() {
 
     // Farm management routes (require farm selection)
     const farmSpecificKeys = [
-      "map", "land-plots", "crop-catalog", "season-plans", 
-      "warehouses", "suppliers", "skus", "members"
+      "map", "land-plots", "crop-catalog", "season-plans",
+      "warehouses", "suppliers", "skus", "members", "config"
     ];
 
     if (farmSpecificKeys.includes(key)) {
@@ -173,11 +182,6 @@ export default function DashboardLayout() {
       return;
     }
 
-    if (key === "config") {
-      navigate("/config");
-      return;
-    }
-
     if (key === "settings") {
       // Handled by Sidebar internally for sub-menu
       return;
@@ -192,14 +196,14 @@ export default function DashboardLayout() {
         // Map 'task' key to 'tasks' route
         let routePart = key;
         if (key === "subscription") routePart = "subscription/history";
-        
+
         navigate(`/farms/${currentFarmId}/${routePart}`);
       } else {
         // Navigate to global route if no farm selected
         let routePart = key;
         if (key === "task") routePart = "task";
         if (key === "subscription") routePart = "subscription/history";
-        
+
         navigate(`/${routePart}`);
       }
       return;
@@ -217,7 +221,7 @@ export default function DashboardLayout() {
       return;
     }
 
-    navigate("/dashboard");
+    navigate("/farms");
   };
 
 
@@ -231,7 +235,7 @@ export default function DashboardLayout() {
       />
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col bg-white rounded-[32px] shadow-sm border border-slate-200 ${location.pathname.includes('/map') ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+      <div className={`flex-1 flex flex-col min-h-0 bg-white rounded-[32px] shadow-sm border border-slate-200 ${location.pathname.includes('/map') || location.pathname.includes('/season-plans') ? 'overflow-hidden' : 'overflow-y-auto'}`}>
         {isSyncing ? (
           <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 gap-4">
             <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />

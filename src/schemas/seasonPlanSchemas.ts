@@ -283,7 +283,7 @@ export const taskAssigneeSchema = z.object({
   user: userObjectSchema,
   assigneeBy: userObjectSchema,
   assigneeAt: z.string(),
-  removedBy: userObjectSchema.optional(),
+  removedBy: userObjectSchema.nullable().optional(),
   removedAt: z.string().nullable().optional(),
 });
 

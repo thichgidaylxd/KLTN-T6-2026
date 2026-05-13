@@ -51,11 +51,6 @@ function extractIdFromItem(item: unknown): string | null {
   return null;
 }
 
-/** Chuẩn hóa danh sách ID công việc phụ thuộc (đi ra) từ GET /api/v1/tasks/{id}/dependencies.
- *  Hỗ trợ cả hai dạng response:
- *  - Mảng trực tiếp: [id, ...] hoặc [{dependsOnTaskId,...}, ...]
- *  - Envelope mới:   { task: {...}, dependsOnTasks: [...] }
- */
 function parseDependencyIds(raw: unknown): string[] {
   // Envelope mới: { task, dependsOnTasks }
   if (raw && !Array.isArray(raw) && typeof raw === 'object') {
@@ -84,10 +79,26 @@ async function fetchTaskDependencyIds(taskId: string): Promise<string[]> {
   }
 }
 
-async function deleteTaskDependencyEdge(taskId: string, dependsOnTaskId: string): Promise<string> {
+async function deleteTaskDependencyEdge(taskId: string, dependsOnTaskId: string, _planId?: string, _stageId?: string): Promise<string> {
+  // Dựa trên thực tế và tài liệu, DELETE chỉ hỗ trợ endpoint global
   const response = await axiosInstance.delete(`/api/v1/tasks/${taskId}/dependencies/${dependsOnTaskId}`);
-  const validated = deleteTaskDependencyResponseSchema.parse(response.data);
-  return validated.data;
+
+  // Backend trả về ApiResponse<string> với data là string (ID của dependency hoặc message)
+  if (typeof response.data === 'string') {
+    return response.data;
+  }
+
+  const result = deleteTaskDependencyResponseSchema.safeParse(response.data);
+  if (result.success) {
+    return result.data.data;
+  }
+
+  // Fallback nếu không khớp schema nhưng có data
+  if (response.data && typeof response.data === 'object') {
+    return (response.data as any).data || (response.data as any).id || JSON.stringify(response.data);
+  }
+
+  return String(response.data);
 }
 
 export const seasonPlanTaskService = {
@@ -126,7 +137,7 @@ export const seasonPlanTaskService = {
     const outgoing = await fetchTaskDependencyIds(taskId);
     for (const depId of outgoing) {
       try {
-        await deleteTaskDependencyEdge(taskId, depId);
+        await deleteTaskDependencyEdge(taskId, depId, planId, stageId);
       } catch {
         /* endpoint có thể khác phiên bản — tiếp tục */
       }
@@ -143,7 +154,7 @@ export const seasonPlanTaskService = {
       const deps = await fetchTaskDependencyIds(t.id);
       if (!deps.includes(taskId)) continue;
       try {
-        await deleteTaskDependencyEdge(t.id, taskId);
+        await deleteTaskDependencyEdge(t.id, taskId, planId, stageId);
       } catch {
         /* */
       }
@@ -162,8 +173,8 @@ export const seasonPlanTaskService = {
   },
 
   /** Xóa quan hệ phụ thuộc giữa hai công việc */
-  async deleteTaskDependency(taskId: string, dependsOnTaskId: string): Promise<string> {
-    return deleteTaskDependencyEdge(taskId, dependsOnTaskId);
+  async deleteTaskDependency(planId: string, stageId: string, taskId: string, dependsOnTaskId: string): Promise<string> {
+    return deleteTaskDependencyEdge(taskId, dependsOnTaskId, planId, stageId);
   },
 
   /** Lấy danh sách dependency của một Task (full objects) */

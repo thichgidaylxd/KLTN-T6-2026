@@ -7,15 +7,17 @@ import {
   MapPin,
   CalendarDays,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  Users
 } from 'lucide-react';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useAssignedTasks } from '@/hooks/tasks/useAssignedTasks';
+import { useMembers } from '@/hooks/members/useMembers';
 import { cn } from '@/utils/cn';
 import { useSearchParams } from 'react-router-dom';
 
 export default function TasksPage() {
-  const { user } = useAuth();
+  const { user, currentFarmId } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   
   const filter = (searchParams.get('filter') as 'ALL' | 'TODAY' | 'DATE') || 'ALL';
@@ -25,13 +27,27 @@ export default function TasksPage() {
   const pageSize = Number(searchParams.get('size')) || 10;
   const sort = searchParams.get('sort') || 'createdAt,desc';
 
-  const { tasks, pagedData, todayTasks, loading, refresh, refreshToday, fetchByDate } = useAssignedTasks(user?.id);
+  const { members, fetchMembers } = useMembers();
+
+  // Load members for filtering
+  useEffect(() => {
+    if (currentFarmId) {
+      fetchMembers(currentFarmId);
+    }
+  }, [currentFarmId, fetchMembers]);
+
+  const selectedUserId = searchParams.get('userId') || user?.id || '';
+  
+  const { tasks, pagedData, todayTasks, loading, refresh, refreshToday, fetchByDate } = useAssignedTasks(selectedUserId);
+
+  const currentSelectedMember = members.find(m => m.userId === selectedUserId);
+  const isViewingSelf = selectedUserId === user?.id;
 
   const displayTasks = filter === 'TODAY' ? todayTasks : tasks;
 
   // Sync with URL changes
   useEffect(() => {
-    if (user?.id) {
+    if (selectedUserId) {
       if (filter === 'ALL') {
         refresh({ page: currentPage, size: pageSize, sort: [sort] });
       } else if (filter === 'DATE') {
@@ -40,7 +56,7 @@ export default function TasksPage() {
         refreshToday();
       }
     }
-  }, [user?.id, filter, selectedDate, currentPage, pageSize, sort, refresh, refreshToday, fetchByDate]);
+  }, [selectedUserId, filter, selectedDate, currentPage, pageSize, sort, refresh, refreshToday, fetchByDate]);
 
   const updateParams = (newParams: Record<string, string | number>) => {
     const current = Object.fromEntries(searchParams.entries());
@@ -90,10 +106,10 @@ export default function TasksPage() {
             <div className="flex flex-col">
               <div className="flex items-center gap-2 text-indigo-600 font-bold text-[10px] uppercase tracking-[0.2em]">
                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
-                Công việc của tôi
+                {isViewingSelf ? 'Công việc của tôi' : `Công việc của ${currentSelectedMember?.fullName || 'thành viên'}`}
               </div>
               <span className="text-[10px] text-slate-400 font-medium ml-3.5">
-                {user?.email}
+                {isViewingSelf ? user?.email : currentSelectedMember?.email}
               </span>
             </div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">
@@ -102,6 +118,28 @@ export default function TasksPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
+            {/* Member Filter - Only for Owner/Manager or if user has access to other members */}
+            {members.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200">
+                <Users size={14} className="text-slate-400" />
+                <select 
+                  value={selectedUserId}
+                  onChange={(e) => updateParams({ userId: e.target.value, page: 0 })}
+                  className="bg-transparent border-none text-xs font-black text-slate-900 p-0 outline-none focus:ring-0 min-w-[120px]"
+                >
+                  <option value={user?.id}>Của tôi</option>
+                  {members
+                    .filter(m => m.userId !== user?.id)
+                    .map(member => (
+                      <option key={member.userId} value={member.userId}>
+                        {member.fullName || member.email}
+                      </option>
+                    ))
+                  }
+                </select>
+              </div>
+            )}
+
             {/* Filter Group */}
             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button 

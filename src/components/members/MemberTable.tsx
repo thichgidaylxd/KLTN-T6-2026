@@ -32,12 +32,9 @@ export function MemberTable() {
 
   useEffect(() => {
     if (!farmId) return
-    if (tab === 'members') {
-      fetchMembers(farmId)
-      return
-    }
+    fetchMembers(farmId)
     fetchInvitations(farmId)
-  }, [fetchMembers, fetchInvitations, farmId, tab])
+  }, [fetchMembers, fetchInvitations, farmId])
 
   useEffect(() => {
     const handleClickOutside = () => setOpenActionMemberId(null)

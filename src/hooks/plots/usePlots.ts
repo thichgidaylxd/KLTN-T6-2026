@@ -37,8 +37,8 @@ export function usePlots(farmId?: string) {
       const response = await plotService.createPlot(data);
       return response.data;
     },
-    onSuccess: () => {
-      void invalidate();
+    onSuccess: async () => {
+      await invalidate();
     },
     onError: () => {
       // Handled by component
@@ -50,8 +50,8 @@ export function usePlots(farmId?: string) {
       const response = await plotService.updatePlot(plotId, data);
       return response.data;
     },
-    onSuccess: () => {
-      void invalidate();
+    onSuccess: async () => {
+      await invalidate();
     },
     onError: () => {
       // Handled by component
@@ -63,8 +63,8 @@ export function usePlots(farmId?: string) {
       const response = await plotService.deletePlot(plotId);
       return response.data;
     },
-    onSuccess: () => {
-      void invalidate();
+    onSuccess: async () => {
+      await invalidate();
     },
     onError: () => {
       // Handled by component
@@ -73,7 +73,7 @@ export function usePlots(farmId?: string) {
 
   return {
     plots: plotsQuery.data ?? [],
-    plotsLoading: plotsQuery.isLoading || plotsQuery.isFetching,
+    plotsLoading: plotsQuery.isLoading,
     error: plotsQuery.error,
     fetchPlots: useCallback(() => {
       void invalidate();

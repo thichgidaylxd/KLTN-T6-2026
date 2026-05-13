@@ -37,7 +37,7 @@ const IntroSection = forwardRef<HTMLDivElement, {}>((_, ref) => {
           <Button
             variant="cta-yellow"
             size="md"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/farms")}
           >
             Tạo mùa vụ ngay <ArrowUpRightIcon className="w-5 h-5" />
           </Button>

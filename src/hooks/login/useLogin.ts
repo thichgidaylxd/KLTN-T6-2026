@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { loginSchema } from '../../schemas/authSchemas';
 import { authService } from '../../services/auth/authService';
 import { loginSuccess } from '../../store/authSlice';
 import { LoginRequest as LoginInput } from '../../types/auth';
+import { getRolesFromToken } from '../../utils/jwt';
 
 export function useLogin() {
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useDispatch();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -28,30 +28,21 @@ export function useLogin() {
       const response = await authService.login(data);
       if (response.success && response.data.accessToken) {
         dispatch(loginSuccess(response.data));
-        
-        // Điều hướng sau login dựa trên role (PB 02)
-        const user = response.data.user;
-        let redirectPath = '/dashboard';
-        
-        if (user) {
-          const role = (user.role || '').toUpperCase();
-          if (role === 'ADMIN' || role === 'ROLE_ADMIN') {
-            redirectPath = '/admin/dashboard';
-          } else if (role === 'WORKER' || role === 'ROLE_WORKER' || role === 'EMPLOYEE') {
-            redirectPath = '/tasks';
-          } else {
-            redirectPath = '/dashboard';
-          }
+
+        // Điều hướng sau login dựa trên role trích xuất từ token
+        const roles = getRolesFromToken(response.data.accessToken);
+        let redirectPath = '/farms';
+
+        if (roles.includes('ROLE_ADMIN')) {
+          redirectPath = '/admin/dashboard';
+        } else if (roles.includes('ROLE_WORKER') || roles.includes('ROLE_EMPLOYEE')) {
+          redirectPath = '/tasks';
+        } else {
+          redirectPath = '/farms';
         }
 
-        let from = (location.state as any)?.from?.pathname || redirectPath;
-        
-        // Force Admin to their dashboard if they were redirected from farm dashboard
-        if (user && (user.role === 'ADMIN' || user.role === 'ROLE_ADMIN') && from === '/dashboard') {
-          from = '/admin/dashboard';
-        }
-
-        navigate(from, { replace: true });
+        // Luôn vào thẳng redirectPath (mặc định là /farms) theo yêu cầu
+        navigate(redirectPath, { replace: true });
       } else {
         setServerError('Sai tên đăng nhập hoặc mật khẩu');
       }

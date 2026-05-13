@@ -29,9 +29,8 @@ import { GeneralInfo } from './detail/GeneralInfo';
 import { MaterialsSection } from './detail/MaterialsSection';
 import { AssigneesSection } from './detail/AssigneesSection';
 import { SubTasksSection } from './detail/SubTasksSection';
-import { DeleteConfirmModal } from './detail/DeleteConfirmModal';
-import { PlotManager } from './detail/PlotManager';
 import { PhasesSection } from './detail/PhasesSection';
+import { PlotManager } from './detail/PlotManager';
 import { DependenciesSection } from './detail/DependenciesSection';
 import { statusCodeOf } from './detail/DetailCommon';
 import { useTaskDependencies } from '@/hooks/seasonPlans/useTaskDependencies';
@@ -236,7 +235,6 @@ useEffect(() => {
   const availableStatuses = selection?.type === 'TASK' ? taskAvailableStatuses : phaseAvailableStatuses;
 
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -458,19 +456,6 @@ useEffect(() => {
     }
   };
 
-  const handleDelete = () => {
-    setShowDeleteConfirm(false);
-    if (sel.type === 'PLAN') {
-      // Backend currently exposes DELETE /plans/{planId} for plan removal.
-      onDeletePlan?.(plan.id);
-      onClose();
-    } else if (sel.type === 'PHASE') {
-      onDeletePhase?.(plan.id, (sel as any).phase.id);
-      onClose();
-    } else if (sel.type === 'TASK') {
-      onDeleteTask?.(plan.id, (sel as any).phase.id, (sel as any).task.id);
-    }
-  };
 
   const handleAddTaskSubmit = (plotIdOverride?: string | React.MouseEvent) => {
     if (selection.type !== 'PHASE') return;
@@ -600,7 +585,7 @@ console.log("phase.plotId:", (selection as any).phase.plotId);
           exit={{ x: '100%', opacity: 0 }}
           style={{ width: panelWidth }}
           transition={{ type: 'spring', stiffness: 360, damping: 36 }}
-          className="relative flex-shrink-0 bg-white border-l border-slate-200 flex flex-col z-40 shadow-xl overflow-hidden"
+          className="relative flex-shrink-0 bg-white border-l border-slate-200 flex flex-col z-[150] shadow-xl overflow-hidden"
         >
             {/* Resize handle - đặt ở cạnh trái */}
   <div
@@ -902,15 +887,6 @@ console.log("phase.plotId:", (selection as any).phase.plotId);
             <div className="h-6" />
           </div>
 
-          <DeleteConfirmModal
-            isOpen={showDeleteConfirm}
-            onClose={() => setShowDeleteConfirm(false)}
-            onConfirm={handleDelete}
-            title={sel.type === 'PHASE' ? 'Xóa giai đoạn?' : 'Xóa công việc?'}
-            message={sel.type === 'PHASE'
-              ? "Hành động này sẽ xóa vĩnh viễn giai đoạn này và tất cả các công việc liên quan. Bạn có chắc chắn muốn tiếp tục?"
-              : "Hành động này sẽ xóa vĩnh viễn công việc này. Bạn có chắc chắn muốn tiếp tục?"}
-          />
 
           {selectedWorkLogId && (
             <WorkLogDetailModal

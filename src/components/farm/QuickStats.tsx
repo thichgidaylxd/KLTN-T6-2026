@@ -7,6 +7,7 @@ interface QuickStatsProps {
   plansCount: number;
   planProgress: number;
   loading?: boolean;
+  showWeather?: boolean;
 }
 
 export default function QuickStats({
@@ -14,14 +15,15 @@ export default function QuickStats({
   cropsCount,
   plansCount,
   planProgress,
-  loading: farmLoading = false
+  loading: farmLoading = false,
+  showWeather = false
 }: QuickStatsProps) {
-  const { data: weather, loading: weatherLoading } = useWeather();
+  const { data: weather, loading: weatherLoading } = useWeather(showWeather);
 
   const weatherData = {
-    temperature: (weatherLoading || !weather) ? '...' : weather.temp.toFixed(1),
-    humidity: (weatherLoading || !weather) ? '...' : weather.humidity,
-    windSpeed: (weatherLoading || !weather) ? '...' : weather.windSpeed.toFixed(2),
+    temperature: (weatherLoading || !weather || !showWeather) ? '...' : weather.temp.toFixed(1),
+    humidity: (weatherLoading || !weather || !showWeather) ? '...' : weather.humidity,
+    windSpeed: (weatherLoading || !weather || !showWeather) ? '...' : weather.windSpeed.toFixed(2),
   };
 
   const statItems = [
@@ -77,7 +79,12 @@ export default function QuickStats({
       icon: Activity,
       color: 'rose',
     },
-  ];
+  ].filter(item => {
+    if (!showWeather && ['Nhiệt độ', 'Độ ẩm', 'Tốc độ gió'].includes(item.label)) {
+      return false;
+    }
+    return true;
+  });
 
   const getColorClasses = (color: string) => {
     const classes: Record<string, string> = {
