@@ -76,7 +76,7 @@ function useDashboardData(farmId?: string) {
       totalArea: farmId
         ? plots.reduce((acc, p) => acc + (Number(p.areaHa) || 0), 0)
         : 0,
-      totalPlants: farmId ? crops.length : systemCrops.length,
+      totalPlants: crops.length + systemCrops.length,
       performancePct: calculatePerformance(),
     },
     plots,

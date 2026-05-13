@@ -14,20 +14,21 @@ export function useLogin() {
   const dispatch = useDispatch();
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const form = useForm<LoginInput>({
+  const form = useForm<LoginInput & { rememberMe: boolean }>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
       password: '',
+      rememberMe: true,
     },
   });
 
-  const onSubmit = form.handleSubmit(async (data: LoginInput) => {
+  const onSubmit = form.handleSubmit(async (data: LoginInput & { rememberMe: boolean }) => {
     setServerError(null);
     try {
       const response = await authService.login(data);
       if (response.success && response.data.accessToken) {
-        dispatch(loginSuccess(response.data));
+        dispatch(loginSuccess({ ...response.data, rememberMe: data.rememberMe }));
 
         // Điều hướng sau login dựa trên role trích xuất từ token
         const roles = getRolesFromToken(response.data.accessToken);

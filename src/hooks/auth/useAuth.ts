@@ -49,10 +49,10 @@ export const useAuth = () => {
     refreshSubscription: useCallback(() => dispatch(refreshSubscription()), [dispatch]),
     
     // API wrappers
-    login: useCallback(async (data: LoginInput) => {
+    login: useCallback(async (data: LoginInput, rememberMe: boolean = false) => {
       const res = await authService.login(data);
       if (res.success && res.data) {
-        dispatch(loginSuccess(res.data));
+        dispatch(loginSuccess({ ...res.data, rememberMe }));
       } else {
         throw new Error(res.message || 'Lỗi đăng nhập');
       }

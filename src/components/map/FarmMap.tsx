@@ -336,17 +336,23 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
       })
     }
 
-    if (hasPoint) {
+    if (hasPoint && mapRef.current) {
       const center = bounds.getCenter()
       const ne = bounds.getNorthEast()
       const sw = bounds.getSouthWest()
-      const isPoint = Math.abs(ne.lat() - sw.lat()) < 0.0001 && Math.abs(ne.lng() - sw.lng()) < 0.0001
       
-      if (isPoint || selectedWarehouseId) {
-        mapRef.current.panTo(center)
-        mapRef.current.setZoom(18)
+      if (ne && sw) {
+        const isPoint = Math.abs(ne.lat() - sw.lat()) < 0.0001 && Math.abs(ne.lng() - sw.lng()) < 0.0001
+        
+        if (isPoint || selectedWarehouseId) {
+          mapRef.current.panTo(center)
+          mapRef.current.setZoom(18)
+        } else {
+          mapRef.current.fitBounds(bounds, 50)
+        }
       } else {
-        mapRef.current.fitBounds(bounds, 50)
+        // Fallback if bounds methods fail
+        mapRef.current.panTo(center)
       }
     }
   }, [selectedPlot, selectedWarehouseId, plots, warehouses])

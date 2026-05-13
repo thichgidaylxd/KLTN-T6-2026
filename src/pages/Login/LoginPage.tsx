@@ -123,7 +123,7 @@ export function LoginPage() {
                   type="checkbox"
                   id="remember"
                   className="w-3.5 h-3.5 cursor-pointer accent-emerald-500"
-                  defaultChecked
+                  {...register('rememberMe')}
                 />
                 <label htmlFor="remember" className="text-gray-600 text-[11px] cursor-pointer select-none font-medium">
                   Ghi nhớ đăng nhập
