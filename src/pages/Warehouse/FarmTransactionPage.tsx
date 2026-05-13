@@ -187,7 +187,8 @@ export function FarmTransactionPage() {
                   </tr>
                 ) : (
                   transactions.map((tx: WarehouseTransaction) => {
-                    const isImport = tx.qtyChange > 0;
+                    const isImport = tx.type.startsWith("IMPORT");
+                    const isExport = tx.type.startsWith("EXPORT");
                     return (
                       <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors group">
                         <td className="px-5 py-4">
@@ -214,8 +215,8 @@ export function FarmTransactionPage() {
                             ) : (
                               <ArrowUpCircle size={14} className="text-rose-500" />
                             )}
-                            <span className={cn("text-[15px] font-black", isImport ? "text-emerald-700" : "text-rose-600")}>
-                              {isImport ? "+" : ""}
+                            <span className={cn("text-[15px] font-black", isImport ? "text-emerald-700" : isExport ? "text-rose-600" : "text-slate-600")}>
+                              {isImport ? "+" : isExport ? "-" : ""}
                               {tx.qtyChange.toLocaleString("vi-VN")}
                             </span>
                             <span className="text-[11px] font-bold text-slate-400 uppercase">{tx.warehouseItem.unit.code}</span>

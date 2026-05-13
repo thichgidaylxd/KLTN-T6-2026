@@ -1205,7 +1205,8 @@ export function WarehouseDetailPage() {
                       </thead>
                       <tbody className="divide-y divide-slate-50">
                         {transactions.map((tx: WarehouseTransaction) => {
-                          const isImport = tx.qtyChange > 0;
+                          const isImport = tx.type.startsWith("IMPORT");
+                          const isExport = tx.type.startsWith("EXPORT");
                           const itemPrice = tx.warehouseItem.unitPrice ?? 0;
                           const totalValue = Math.abs(tx.qtyChange) * itemPrice;
 
@@ -1226,7 +1227,7 @@ export function WarehouseDetailPage() {
                                     "text-[9px] font-bold px-1.5 rounded uppercase tracking-tighter w-fit",
                                     isImport ? "bg-emerald-50 text-emerald-500" : "bg-rose-50 text-rose-500"
                                   )}>
-                                    {isImport ? "Nhập kho" : "Xuất kho"}
+                                    {isImport ? "Nhập kho" : isExport ? "Xuất kho" : "Khác"}
                                   </span>
                                 </div>
                               </td>
@@ -1243,7 +1244,7 @@ export function WarehouseDetailPage() {
                                   "text-[13px] font-bold",
                                   isImport ? "text-emerald-700" : "text-rose-700"
                                 )}>
-                                  {totalValue > 0 ? (isImport ? "+" : "-") + totalValue.toLocaleString("vi-VN") + " ₫" : "—"}
+                                  {totalValue > 0 ? (isImport ? "+" : isExport ? "-" : "") + totalValue.toLocaleString("vi-VN") + " ₫" : "—"}
                                 </span>
                               </td>
                               <td className="px-6 py-4">
@@ -1422,7 +1423,8 @@ export function WarehouseDetailPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {transactions.map((tx: WarehouseTransaction) => {
-                        const isImport = tx.qtyChange > 0;
+                        const isImport = tx.type.startsWith("IMPORT");
+                        const isExport = tx.type.startsWith("EXPORT");
                         const itemPrice = tx.warehouseItem.unitPrice ?? 0;
                         const totalValue = Math.abs(tx.qtyChange) * itemPrice;
 
@@ -1443,7 +1445,7 @@ export function WarehouseDetailPage() {
                                   "text-[9px] font-bold px-1.5 rounded uppercase tracking-tighter w-fit",
                                   isImport ? "bg-emerald-50 text-emerald-500" : "bg-rose-50 text-rose-500"
                                 )}>
-                                  {isImport ? "Nhập kho" : "Xuất kho"}
+                                  {isImport ? "Nhập kho" : isExport ? "Xuất kho" : "Khác"}
                                 </span>
                               </div>
                             </td>
@@ -1460,7 +1462,7 @@ export function WarehouseDetailPage() {
                                 "text-[13px] font-bold",
                                 isImport ? "text-emerald-700" : "text-rose-700"
                               )}>
-                                {totalValue > 0 ? (isImport ? "+" : "-") + totalValue.toLocaleString("vi-VN") + " ₫" : "—"}
+                                {totalValue > 0 ? (isImport ? "+" : isExport ? "-" : "") + totalValue.toLocaleString("vi-VN") + " ₫" : "—"}
                               </span>
                             </td>
                             <td className="px-6 py-4">
