@@ -148,7 +148,7 @@ export default function DashboardLayout() {
     // Farm management routes (require farm selection)
     const farmSpecificKeys = [
       "map", "land-plots", "crop-catalog", "season-plans",
-      "warehouses", "suppliers", "skus", "members", "config"
+      "warehouses", "suppliers", "skus", "members", "config", "soil-profile"
     ];
 
     if (farmSpecificKeys.includes(key)) {
@@ -188,7 +188,7 @@ export default function DashboardLayout() {
     }
 
     // Context-dependent routes (Wallet, Activity, Task, Gemini, etc.)
-    const farmContextKeys = ["wallet", "activity", "metrics", "task", "gemini", "season-plans", "map", "land-plots", "members", "subscription", "warehouses", "suppliers", "skus"];
+    const farmContextKeys = ["wallet", "activity", "metrics", "task", "gemini", "season-plans", "map", "land-plots", "members", "subscription", "warehouses", "suppliers", "skus", "soil-profile"];
 
     if (farmContextKeys.includes(key)) {
       if (currentFarmId) {

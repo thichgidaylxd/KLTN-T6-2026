@@ -23,6 +23,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Bell,
+  FlaskConical,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../utils/cn";
@@ -61,6 +62,7 @@ const NAV_GROUPS = [
     items: [
       { key: "map", label: "Bản đồ nông trại", icon: MapIcon, roles: ["owner", "admin"] },
       { key: "land-plots", label: "Lô đất & Cây trồng", icon: Grid3X3, roles: ["owner", "admin"] },
+      { key: "soil-profile", label: "Hồ sơ đất", icon: FlaskConical, roles: ["owner", "admin", "manager"] },
       { key: "crop-catalog", label: "Danh mục cây trồng", icon: Sprout, roles: ["owner", "admin"] },
       { key: "season-plans", label: "Kế hoạch mùa vụ", icon: Zap, roles: ["owner", "manager", "admin"] },
       { key: "warehouses", label: "Kho hàng", icon: Warehouse, roles: ["owner", "manager", "admin"] },

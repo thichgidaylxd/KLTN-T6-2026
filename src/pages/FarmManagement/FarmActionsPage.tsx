@@ -14,7 +14,8 @@ import {
   Grid3X3, 
   Zap, 
   Warehouse, 
-  ArrowRight
+  ArrowRight,
+  FlaskConical
 } from 'lucide-react';
 import { extractErrorMessage } from '../../utils/errorUtils';
 
@@ -138,6 +139,7 @@ const FarmActionsPage: React.FC = () => {
                     plansCount={plans.length}
                     planProgress={planProgress}
                     loading={plotsLoading || systemCropsLoading || loadingPlans}
+                    showWeather={true}
                 />
 
                 {/* Quick Actions Grid */}
@@ -153,6 +155,7 @@ const FarmActionsPage: React.FC = () => {
                             { title: 'Lô đất & Cây trồng', icon: Grid3X3, color: 'text-emerald-600', bgColor: 'bg-emerald-50', path: 'land-plots', desc: 'Quản lý các khu vực sản xuất' },
                             { title: 'Kế hoạch mùa vụ', icon: Zap, color: 'text-amber-600', bgColor: 'bg-amber-50', path: 'season-plans', desc: 'Lập lịch trình và theo dõi tiến độ' },
                             { title: 'Kho hàng', icon: Warehouse, color: 'text-indigo-600', bgColor: 'bg-indigo-50', path: 'warehouses', desc: 'Quản lý vật tư và tồn kho' },
+                            { title: 'Hồ sơ đất', icon: FlaskConical, color: 'text-rose-600', bgColor: 'bg-rose-50', path: 'soil-profile', desc: 'Theo dõi chỉ số dinh dưỡng đất' },
                         ].map((card, idx) => (
                             <button
                                 key={idx}
