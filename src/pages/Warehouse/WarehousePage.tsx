@@ -336,6 +336,8 @@ export function WarehousePage() {
                         <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Vật tư</th>
                         <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Đơn vị</th>
                         <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Tổng tồn kho</th>
+                        <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Tồn thực tế</th>
+                        <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Tồn tối thiểu</th>
                         <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Nhà cung cấp</th>
                         <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Đơn giá TB</th>
                         <th className="px-6 py-4 w-20"></th>
@@ -374,6 +376,16 @@ export function WarehousePage() {
                                 </span>
                               </div>
                               {isLow && <p className="text-[10px] text-rose-400 font-bold mt-0.5">Dưới mức tối thiểu</p>}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span className="text-[15px] font-black text-emerald-600">
+                                {(item.stock - (item.reservedQty || 0)).toLocaleString('vi-VN')}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span className="text-[15px] font-black text-rose-600">
+                                {item.minStockQty?.toLocaleString('vi-VN') || '0'}
+                              </span>
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-2 text-[13px] text-slate-600 font-medium">
