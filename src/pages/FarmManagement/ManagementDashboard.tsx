@@ -123,11 +123,19 @@ export function ManagementDashboardPage() {
     }
   };
 
+// SỬA LẠI ĐOẠN NÀY
   const filteredFarms = farmSummary.filter(f => {
+    // 1. Kiểm tra điều kiện tìm kiếm
     const matchSearch = f.farmName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       f.ownerFullName.toLowerCase().includes(searchTerm.toLowerCase());
+                        f.ownerFullName.toLowerCase().includes(searchTerm.toLowerCase());
+                        
+    // 2. Kiểm tra điều kiện tab đang chọn
     const matchTab = activeTab === 'all' || (f.myRole?.toLowerCase() === activeTab);
-    return matchSearch && matchTab;
+    
+    // 3. LOẠI BỎ CHÍNH XÁC CÁC FARM CÓ ROLE LÀ WORKER (NHÂN CÔNG)
+    const isNotWorker = f.myRole?.toLowerCase() !== 'worker';
+    
+    return matchSearch && matchTab && isNotWorker;
   });
 
   const stats = [
