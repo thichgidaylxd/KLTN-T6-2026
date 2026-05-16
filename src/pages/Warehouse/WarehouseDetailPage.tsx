@@ -717,6 +717,12 @@ export function WarehouseDetailPage() {
                       <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">
                         Tồn kho
                       </th>
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">
+                        Tồn thực tế
+                      </th>
+                      <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">
+                        Tồn tối thiểu
+                      </th>
                       <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         Nhà cung cấp
                       </th>
@@ -790,6 +796,16 @@ export function WarehouseDetailPage() {
                                 Dưới mức tối thiểu
                               </p>
                             )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-[13px] font-bold text-emerald-600">
+                              {(item.stock - (item.reservedQty || 0)).toLocaleString("vi-VN")}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-[13px] font-bold text-rose-600">
+                              {item.minStockQty?.toLocaleString("vi-VN") ?? "0"}
+                            </span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1.5">

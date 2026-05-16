@@ -139,6 +139,7 @@ export const useTransactionsByFarm = (
       warehouseTransactionService.getTransactionsByFarm(farmId!, pageable),
     enabled: (options?.enabled ?? true) && !!farmId,
     staleTime: 0,
+    refetchInterval: 30000, // Tự động cập nhật mỗi 30 giây để dòng thời gian hoạt động luôn mới
   });
 
   const refresh = useCallback(() => {
@@ -152,7 +153,8 @@ export const useTransactionsByFarm = (
   return {
     data: query.data ?? null,
     transactions: query.data?.content ?? [],
-    loading: query.isLoading || query.isFetching,
+    loading: query.isLoading, // Chỉ hiển thị loading ở lần tải đầu tiên
+    isFetching: query.isFetching,
     error: query.error,
     pageable,
     setPageable,

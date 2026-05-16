@@ -9,9 +9,9 @@ export const useAssignedTasks = (userId?: string) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAssignedTasks = useCallback(async (params?: PageableParams) => {
+  const fetchAssignedTasks = useCallback(async (params?: PageableParams, silent = false) => {
     if (!userId) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const data = await seasonPlanTaskService.getAssignedTasks(userId, params);
       setPagedData(data);
@@ -20,13 +20,13 @@ export const useAssignedTasks = (userId?: string) => {
     } catch (err: any) {
       setError(err.message || 'Lỗi khi tải danh sách công việc');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [userId]);
 
-  const fetchTodayTasks = useCallback(async () => {
+  const fetchTodayTasks = useCallback(async (silent = false) => {
     if (!userId) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const data = await seasonPlanTaskService.getTodayTasks(userId);
       setTodayTasks(data);
@@ -34,7 +34,7 @@ export const useAssignedTasks = (userId?: string) => {
     } catch (err: any) {
       setError(err.message || 'Lỗi khi tải công việc hôm nay');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [userId]);
 
@@ -55,9 +55,18 @@ export const useAssignedTasks = (userId?: string) => {
 
   useEffect(() => {
     if (userId) {
-      // Automatic fetching removed to let components control it via refresh() and URL params
+      fetchAssignedTasks();
+      fetchTodayTasks();
+
+      // Thiết lập tự động cập nhật mỗi 30 giây để đồng bộ trạng thái công việc
+      const interval = setInterval(() => {
+        fetchAssignedTasks(undefined, true);
+        fetchTodayTasks(true);
+      }, 30000);
+
+      return () => clearInterval(interval);
     }
-  }, [userId]);
+  }, [userId, fetchAssignedTasks, fetchTodayTasks]);
 
   return {
     tasks,

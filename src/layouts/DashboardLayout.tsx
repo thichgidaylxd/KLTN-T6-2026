@@ -82,6 +82,7 @@ export default function DashboardLayout() {
     if (p.includes("/warehouses")) return "warehouses";
     if (p.includes("/suppliers")) return "suppliers";
     if (p.includes("/skus")) return "skus";
+    if (p.includes("/soil-profile")) return "soil-profile";
     if (p.includes("/sessions")) return "sessions";
     if (p.includes("/config")) return "config";
     if (p.includes("/dashboard/notifications")) return "notifications";

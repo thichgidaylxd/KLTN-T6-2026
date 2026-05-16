@@ -87,7 +87,7 @@ export const rippleUpdatePhases = (
   
   if (newStartDate !== undefined) {
     targetPhase.startDate = newStartDate;
-    targetPhase.endDate = addDays(newStartDate, targetPhase.duration);
+    targetPhase.endDate = addDays(newStartDate, targetPhase.duration ?? 0);
   }
   
   if (newDuration !== undefined) {
@@ -105,7 +105,7 @@ export const rippleUpdatePhases = (
     newPhases[i] = {
       ...newPhases[i],
       startDate: prevPhase.endDate,
-      endDate: addDays(prevPhase.endDate, newPhases[i].duration)
+      endDate: addDays(prevPhase.endDate, newPhases[i].duration ?? 0)
     };
     
     newPhases[i] = updateTasks(newPhases[i], currentOldStart);
@@ -189,7 +189,7 @@ export const clonePlanLogic = (plan: SeasonPlan, newName: string, newStartDate: 
 
   plan.phases.forEach((phase, index) => {
     const duration = phase.duration;
-    const endDate = addDays(currentDate, duration);
+    const endDate = addDays(currentDate, duration ?? 0);
     
     // Sao chép và cập nhật ngày cho các tasks
     const oldStartDate = new Date(phase.startDate).getTime();
@@ -205,7 +205,7 @@ export const clonePlanLogic = (plan: SeasonPlan, newName: string, newStartDate: 
       startDate: currentDate,
       endDate: endDate,
       status: DRAFT_STATUS,
-      tasks: phase.tasks.map(task => ({
+      tasks: (phase.tasks ?? []).map(task => ({
         ...task,
         id: `task-${Date.now()}-${Math.random()}`,
         planStageId: newPhaseId,
@@ -229,34 +229,43 @@ export const clonePlanLogic = (plan: SeasonPlan, newName: string, newStartDate: 
 };
 
 /**
- * Tính toán tiến độ kế hoạch dựa trên số lượng Task và Giai đoạn đã COMPLETED
- * Công thức: (Completed Tasks + Completed Phases) / (Total Tasks + Total Phases)
+ * Kiểm tra task/phase đã hoàn thành dựa trên isTerminal hoặc code
+ * Đồng bộ với logic trong useFarmTaskStats.ts
+ */
+const COMPLETED_CODES = new Set(['COMPLETED', 'DONE', 'FINISHED', 'HOAN_THANH']);
+
+const isItemCompleted = (status: any): boolean => {
+  if (!status) return false;
+  if (status.isTerminal === true) return true;
+  const code = (typeof status === 'string' ? status : status.code ?? '').toUpperCase();
+  return COMPLETED_CODES.has(code);
+};
+
+/**
+ * Tính toán tiến độ kế hoạch dựa trên % task đã hoàn thành.
+ * Chỉ đếm task vì giai đoạn hoàn thành khi các task trong nó xong.
+ * Nếu không có task, fallback về % giai đoạn đã hoàn thành.
  */
 export const calculatePlanProgress = (plan: SeasonPlan): number => {
   if (!plan.phases || plan.phases.length === 0) return 0;
 
-  const completedPhasesCount = plan.phases.filter((phase) => {
-    const code = typeof phase.status === 'string' ? phase.status : phase.status?.code;
-    return code === 'COMPLETED';
-  }).length;
-
-  let totalTasksCount = 0;
-  let completedTasksCount = 0;
+  let totalTasks = 0;
+  let completedTasks = 0;
 
   plan.phases.forEach(phase => {
-    if (phase.tasks && phase.tasks.length > 0) {
-      totalTasksCount += phase.tasks.length;
-      completedTasksCount += phase.tasks.filter(task => {
-        const code = typeof task.status === 'string' ? task.status : task.status?.code;
-        return code === 'COMPLETED';
-      }).length;
-    }
+    const tasks = phase.tasks ?? [];
+    totalTasks += tasks.length;
+    completedTasks += tasks.filter(task => isItemCompleted(task.status)).length;
   });
 
-  const totalItems = plan.phases.length + totalTasksCount;
-  const completedItems = completedPhasesCount + completedTasksCount;
+  // Nếu có task: tính theo task
+  if (totalTasks > 0) {
+    return Math.round((completedTasks / totalTasks) * 100);
+  }
 
-  return totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+  // Fallback: không có task nào thì tính theo giai đoạn
+  const completedPhases = plan.phases.filter(phase => isItemCompleted(phase.status)).length;
+  return Math.round((completedPhases / plan.phases.length) * 100);
 };
 
 /**
@@ -266,10 +275,7 @@ export const getPlanProgressDetails = (plan: SeasonPlan) => {
   if (!plan.phases) return { completedPhases: 0, totalPhases: 0, completedTasks: 0, totalTasks: 0, percent: 0 };
 
   const totalPhases = plan.phases.length;
-  const completedPhases = plan.phases.filter((phase) => {
-    const code = typeof phase.status === 'string' ? phase.status : phase.status?.code;
-    return code === 'COMPLETED';
-  }).length;
+  const completedPhases = plan.phases.filter(phase => isItemCompleted(phase.status)).length;
 
   let totalTasks = 0;
   let completedTasks = 0;
@@ -277,10 +283,7 @@ export const getPlanProgressDetails = (plan: SeasonPlan) => {
   plan.phases.forEach(phase => {
     if (phase.tasks) {
       totalTasks += phase.tasks.length;
-      completedTasks += phase.tasks.filter(task => {
-        const code = typeof task.status === 'string' ? task.status : task.status?.code;
-        return code === 'COMPLETED';
-      }).length;
+      completedTasks += phase.tasks.filter(task => isItemCompleted(task.status)).length;
     }
   });
 

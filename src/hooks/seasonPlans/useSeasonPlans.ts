@@ -11,6 +11,7 @@ export const useSeasonPlans = (farmId?: string) => {
   return {
     plans: plansPart.plans,
     loading: plansPart.loading,
+    isFetching: plansPart.isFetching,
     createLoading: plansPart.createLoading,
     error: plansPart.error,
     createError: plansPart.createError,

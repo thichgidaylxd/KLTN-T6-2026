@@ -320,6 +320,11 @@ useEffect(() => {
           endDate: data.endDate,
         }).unwrap();
       }
+      if (!isDateChanged && !isNameChanged) {
+        // Không có gì thay đổi, không cần gọi API và không hiển thị thông báo
+        return;
+      }
+      toast.success('Cập nhật giai đoạn thành công');
     } catch (err: any) {
       showError('Lỗi cập nhật giai đoạn', err);
     }
@@ -511,6 +516,11 @@ useEffect(() => {
         }).unwrap();
         // Hook returns { planId, stageId, taskId, task }
         currentTaskVersion = result.task.version ?? 0;
+      }
+
+      if (!isDateChanged && !isContentChanged) {
+        // Không có gì thay đổi, không cần hiển thị thông báo
+        return;
       }
 
       toast.success('Cập nhật công việc thành công');

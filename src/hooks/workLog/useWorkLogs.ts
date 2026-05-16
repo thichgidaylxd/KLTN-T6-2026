@@ -26,7 +26,8 @@ export const useWorkLogs = (planId?: string, stageId?: string, taskId?: string, 
 
   return {
     workLogs: taskWorkLogsQuery.data ?? [],
-    loading: taskWorkLogsQuery.isLoading || taskWorkLogsQuery.isFetching,
+    loading: taskWorkLogsQuery.isLoading, // Chỉ hiển thị loading ở lần tải đầu tiên
+    isFetching: taskWorkLogsQuery.isFetching,
     error: taskWorkLogsQuery.error,
 
     fetchTaskWorkLogs: useCallback((pId: string, sId: string, tId: string) =>
@@ -78,9 +79,10 @@ export const useFarmWorkLogs = (farmId: string, from?: string, to?: string, enab
     queryKey: [...WORKLOG_KEYS.byFarm(from, to), farmId],
     queryFn: () => workLogService.getFarmWorkLogs(from, to),
     enabled: enabled && !!farmId,
-    staleTime: 5000, // Giữ dữ liệu "fresh" trong 5s để tránh duplicate request khi re-render
-    retry: false,    // Tắt tự động gọi lại khi lỗi để tránh hiện tượng "duplicate" trong Network tab
+    staleTime: 5000,
+    retry: false,
     refetchOnMount: true,
+    refetchInterval: 30000, // Tự động cập nhật mỗi 30 giây để dòng thời gian hoạt động luôn mới
   });
 };
 

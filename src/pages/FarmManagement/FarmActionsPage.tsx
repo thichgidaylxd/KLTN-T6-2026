@@ -15,7 +15,10 @@ import {
   Zap, 
   Warehouse, 
   ArrowRight,
-  FlaskConical
+  FlaskConical,
+  Sprout,
+  Users,
+  Truck
 } from 'lucide-react';
 import { extractErrorMessage } from '../../utils/errorUtils';
 
@@ -156,6 +159,9 @@ const FarmActionsPage: React.FC = () => {
                             { title: 'Kế hoạch mùa vụ', icon: Zap, color: 'text-amber-600', bgColor: 'bg-amber-50', path: 'season-plans', desc: 'Lập lịch trình và theo dõi tiến độ' },
                             { title: 'Kho hàng', icon: Warehouse, color: 'text-indigo-600', bgColor: 'bg-indigo-50', path: 'warehouses', desc: 'Quản lý vật tư và tồn kho' },
                             { title: 'Hồ sơ đất', icon: FlaskConical, color: 'text-rose-600', bgColor: 'bg-rose-50', path: 'soil-profile', desc: 'Theo dõi chỉ số dinh dưỡng đất' },
+                            { title: 'Danh mục cây trồng', icon: Sprout, color: 'text-lime-600', bgColor: 'bg-lime-50', path: 'crop-catalog', desc: 'Thư viện giống và quy trình' },
+                            { title: 'Thành viên', icon: Users, color: 'text-purple-600', bgColor: 'bg-purple-50', path: 'members', desc: 'Quản lý nhân sự và phân quyền' },
+                            { title: 'Nhà cung cấp', icon: Truck, color: 'text-orange-600', bgColor: 'bg-orange-50', path: 'suppliers', desc: 'Đối tác vật tư và thu mua' },
                         ].map((card, idx) => (
                             <button
                                 key={idx}

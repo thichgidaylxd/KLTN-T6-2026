@@ -45,7 +45,21 @@ export const useSeasonPlanPhases = ({ updatePlansCache }: UseSeasonPlanPhasesPro
       (planId: string) =>
         withUnwrap(
           planStageService.getStages(planId).then((phases) => {
-            updatePlansCache((prev) => prev.map((p) => (p.id === planId ? { ...p, phases } : p)));
+            updatePlansCache((prev) =>
+              prev.map((p) => {
+                if (p.id !== planId) return p;
+                return {
+                  ...p,
+                  phases: phases.map((newPh) => {
+                    const existingPh = (p.phases ?? []).find((ph) => ph.id === newPh.id);
+                    return {
+                      ...newPh,
+                      tasks: (newPh.tasks && newPh.tasks.length > 0) ? newPh.tasks : (existingPh?.tasks ?? []),
+                    };
+                  }),
+                };
+              }),
+            );
             return { planId, phases };
           }),
         ),

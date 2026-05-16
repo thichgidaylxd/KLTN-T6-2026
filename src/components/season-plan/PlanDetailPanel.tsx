@@ -402,35 +402,54 @@ useEffect(() => {
       if (selection.type === 'PLAN') {
         await onUpdatePlan(tempPlan);
       } else if (selection.type === 'PHASE' && tempPhase) {
-        // Kiểm tra nếu trạng thái thay đổi
         const currentStatusCode = statusCodeOf(selection.phase.status);
         const newStatusCode = statusCodeOf(tempPhase.status);
         const newStatusId = (tempPhase.status as any)?.id;
         
+        // Cập nhật thông tin giai đoạn (tên, ngày,...)
         await onUpdatePhase(tempPlan.id, tempPhase, selection.phase);
         
+        // Chỉ cập nhật trạng thái nếu trạng thái thực sự thay đổi
         if (newStatusCode !== currentStatusCode && newStatusId) {
-          await handleUpdateStatus(newStatusId);
+          try {
+            await handleUpdateStatus(newStatusId, true);
+          } catch {
+            // Cập nhật trạng thái thất bại → Hoàn tác lại status về trạng thái gốc trong tempPhase
+            setTempPhase({ ...tempPhase, status: selection.phase.status });
+            // Không đóng form, để user thấy badge đã về trạng thái cũ và toast lỗi
+            return;
+          }
         }
       } else if (selection.type === 'TASK' && tempPhase && tempTask) {
-        // Kiểm tra nếu trạng thái thay đổi
         const currentStatusCode = statusCodeOf(selection.task.status);
         const newStatusCode = statusCodeOf(tempTask.status);
         const newStatusId = (tempTask.status as any)?.id;
 
+        // Cập nhật thông tin task (tên, ngày, mô tả,...)
         await onUpdateTask(tempPlan.id, tempPhase.id, {
           ...tempTask,
           statusCode: statusCodeOf(tempTask.status)
         } as any, selection.task);
 
+        // Chỉ cập nhật trạng thái nếu trạng thái thực sự thay đổi
         if (newStatusCode !== currentStatusCode && newStatusId) {
-          await handleUpdateStatus(newStatusId);
+          try {
+            await handleUpdateStatus(newStatusId, true);
+          } catch {
+            // Cập nhật trạng thái thất bại → Hoàn tác lại status về trạng thái gốc trong tempTask
+            setTempTask({ ...tempTask, status: selection.task.status });
+            // Không đóng form, để user thấy badge đã về trạng thái cũ và toast lỗi
+            return;
+          }
         }
       }
       
+      // Chỉ đóng form khi TẤT CẢ thao tác thành công
       setIsEditing(false);
     } catch (err) {
-      console.error('Lỗi khi lưu:', err);
+      // Lỗi từ onUpdateTask / onUpdatePhase đã được hiển thị bởi toast.
+      // Giữ nguyên form đang edit để user có thể sửa lại.
+      console.error('Lỗi khi lưu, giữ nguyên form:', err);
     }
   };
 
@@ -512,7 +531,7 @@ console.log("phase.plotId:", (selection as any).phase.plotId);
     }
   };
 
-  const handleUpdateStatus = async (statusId: string) => {
+  const handleUpdateStatus = async (statusId: string, skipToast: boolean = false) => {
     if (!selection || selection.type === 'PLAN') return;
 
     try {
@@ -535,9 +554,14 @@ console.log("phase.plotId:", (selection as any).phase.plotId);
           queryClient.invalidateQueries({ queryKey: ['availableTaskStatuses'] });
         }
       }
-      toast.success('Cập nhật trạng thái thành công');
+      if (!skipToast) {
+        toast.success('Cập nhật trạng thái thành công');
+      }
     } catch (error: any) {
+      // Luôn hiển thị lỗi cho user
       toast.error(extractErrorMessage(error));
+      // Re-throw để caller (ví dụ: handleSaveEdit) có thể xử lý đúng
+      throw error;
     }
   };
 

@@ -14,7 +14,7 @@ import {
 const mapToPhase = (data: any): Phase => ({
   ...data,
   duration: 0, // default if missing
-  tasks: [], // default
+  tasks: data.tasks ?? [], // default
   source: data.source || 'MANUAL',
 });
 
