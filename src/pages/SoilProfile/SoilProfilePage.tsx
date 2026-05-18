@@ -23,6 +23,8 @@ import { EditSoilRecordModal } from '@/components/soilRecord/EditSoilRecordModal
 import { DeleteSoilRecordDialog } from '@/components/soilRecord/DeleteSoilRecordDialog';
 import { useSoilRecords } from '@/hooks/soilRecord/useSoilRecord';
 import { usePlots } from '@/hooks/plots/usePlots';
+import { SoilAnalysisModal } from '@/components/soilRecord/SoilAnalysisModal';
+import { useSoilAnalysis } from '@/hooks/soilAnalysis/useSoilAnalysis';
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -215,7 +217,11 @@ export const SoilProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { farmId } = useParams<{ farmId: string }>();
   const { currentFarmId } = useAuth();
-
+const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+const {
+  submitAnalysis,
+  pollJob,
+} = useSoilAnalysis();
   const {
     soilRecords,
     loading,
@@ -338,12 +344,23 @@ const { plots } = usePlots(currentFarmId || undefined);
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all active:scale-95 font-bold text-sm shadow-md shadow-emerald-600/20"
-        >
-          <Plus size={18} strokeWidth={2.5} /> Thêm bản ghi
-        </button>
+<div className="flex items-center gap-3">
+  <button
+    onClick={() => setIsAiModalOpen(true)}
+    className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-all active:scale-95 font-bold text-sm shadow-md shadow-violet-600/20"
+  >
+    <Sparkles size={18} strokeWidth={2.5} />
+    Phân tích AI
+  </button>
+
+  <button
+    onClick={() => setIsCreateOpen(true)}
+    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all active:scale-95 font-bold text-sm shadow-md shadow-emerald-600/20"
+  >
+    <Plus size={18} strokeWidth={2.5} />
+    Thêm bản ghi
+  </button>
+</div>
       </div>
 
       {/* ── Stats ── */}
@@ -428,6 +445,15 @@ const { plots } = usePlots(currentFarmId || undefined);
   onSave={handleCreate}
   isLoading={isSaving}
   plots={plots}
+/>
+<SoilAnalysisModal
+  isOpen={isAiModalOpen}
+  onClose={() => setIsAiModalOpen(false)}
+  plots={plots}
+  farmId={currentFarmId!}
+  onUploadFile={uploadFile}
+  onSubmitAnalysis={submitAnalysis}
+  onPollJob={pollJob}
 />
 
       <EditSoilRecordModal
