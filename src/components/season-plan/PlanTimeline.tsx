@@ -889,7 +889,7 @@ export const PlanTimeline = React.forwardRef<{ scrollToDate: (dateStr: string) =
           visibleInPlan: true, visibleInPhase: true,
         });
       }
-      plan.phases.forEach(phase => {
+      (plan.phases ?? []).forEach(phase => {
         list.push({
           type: 'phase', id: phase.id, planId: plan.id, depth: multi ? 1 : 0, item: phase,
           visibleInPlan: planExpanded, visibleInPhase: true,

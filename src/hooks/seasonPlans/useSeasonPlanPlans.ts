@@ -25,27 +25,43 @@ export const useSeasonPlanPlans = (farmId?: string) => {
     queryFn: () => seasonPlanService.getPlans(),
     enabled: !!activeFarmId || !farmId,
     refetchInterval: 30000, // Tự động cập nhật mỗi 30 giây để đảm bảo hiệu suất nông trại luôn mới
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // Tắt refetch khi focus lại tab để tránh mất dữ liệu đang xem
     // Merge existing phases/plots from cache when refetching list
     select: (newData: SeasonPlan[]) => {
+      // Lấy snapshot cache hiện tại TRONG lúc select chạy
+      // Dùng plansQuery.data thay vì queryClient.getQueryData để tránh race condition
       const currentData = queryClient.getQueryData<SeasonPlan[]>(
         activeFarmId ? PLAN_KEYS.byFarm(activeFarmId) : PLAN_KEYS.list
       );
       
       return newData.map(newPlan => {
         const existing = currentData?.find(p => p.id === newPlan.id);
+        
+        // Merge phases: ưu tiên giữ lại tasks đã được load từ cache
+        // API list thường không trả về phases/tasks đầy đủ nên phải merge
+        let mergedPhases: typeof newPlan.phases;
+        if (newPlan.phases && newPlan.phases.length > 0) {
+          // API có trả về phases → merge tasks vào từng phase
+          mergedPhases = newPlan.phases.map(ph => {
+            const existingPh = existing?.phases?.find(eph => eph.id === ph.id);
+            return {
+              ...ph,
+              // Chỉ dùng tasks từ API nếu có, ngược lại giữ cache
+              tasks: (ph.tasks && ph.tasks.length > 0) ? ph.tasks : existingPh?.tasks,
+            };
+          });
+        } else if (existing?.phases && existing.phases.length > 0) {
+          // API không trả về phases (list endpoint) → giữ nguyên cache
+          mergedPhases = existing.phases;
+        } else {
+          // Không có gì cả → trả về array rỗng (không để undefined)
+          mergedPhases = [];
+        }
+
         return {
           ...newPlan,
-          phases: (newPlan.phases && newPlan.phases.length > 0) 
-            ? newPlan.phases.map(ph => {
-                const existingPh = existing?.phases?.find(eph => eph.id === ph.id);
-                return {
-                  ...ph,
-                  tasks: (ph.tasks && ph.tasks.length > 0) ? ph.tasks : (existingPh?.tasks ?? [])
-                };
-              })
-            : (existing?.phases ?? []),
-          plots: (newPlan.plots && newPlan.plots.length > 0) ? newPlan.plots : (existing?.plots ?? []),
+          phases: mergedPhases,
+          plots: (newPlan.plots && newPlan.plots.length > 0) ? newPlan.plots : (existing?.plots ?? newPlan.plots),
         };
       });
     }
