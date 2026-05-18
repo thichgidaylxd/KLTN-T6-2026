@@ -92,6 +92,13 @@ export function SeasonPlanPage() {
   const { user, accessToken } = useAuth();
   const canEdit = canEditPlan(user?.role, accessToken);
   const timelineRef = useRef<{ scrollToDate: (dateStr: string) => void }>(null);
+  // Giữ lại selection hợp lệ cuối cùng, tránh flash null trong khi refetch 30s
+  const lastValidSelectedDataRef = useRef<
+    | { type: 'PLAN'; plan: SeasonPlan }
+    | { type: 'PHASE'; plan: SeasonPlan; phase: any }
+    | { type: 'TASK'; plan: SeasonPlan; phase: any; task: any }
+    | null
+  >(null);
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<NavTab>('timeline');
@@ -530,7 +537,7 @@ useEffect(() => {
   };
 
   // ── Selected data resolver ────────────────────────────────────────────────
-  const getSelectedData = () => {
+  const getSelectedDataRaw = () => {
     if (!selectedItem) return null;
     const plan = plans.find(p => p.id === selectedItem.planId);
     if (!plan) return null;
@@ -547,7 +554,15 @@ useEffect(() => {
     return null;
   };
 
-  const selectedData = getSelectedData();
+  // Nếu selectedItem bị xóa (null), reset ref. Ngược lại giữ lại data cũ khi refetch tạm null.
+  const freshData = getSelectedDataRaw();
+  if (!selectedItem) {
+    lastValidSelectedDataRef.current = null;
+  } else if (freshData) {
+    lastValidSelectedDataRef.current = freshData;
+  }
+  // Dùng freshData nếu có, fallback về data cũ để tránh flash trong lúc refetch
+  const selectedData = freshData ?? lastValidSelectedDataRef.current;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
