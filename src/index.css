@@ -185,3 +185,8 @@ body,
      1px  1px 0 #000,
      0px  0px 4px rgba(0,0,0,0.8);
 }
+
+/* Fix for Google Maps Autocomplete dropdown visibility inside high z-index elements/modals */
+.pac-container {
+  z-index: 999999 !important;
+}

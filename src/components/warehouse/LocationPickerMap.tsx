@@ -1,7 +1,7 @@
-import { useCallback, useState, useEffect, useMemo } from "react";
+import { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import { GoogleMap, Marker, Polygon, OverlayView } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/providers/GoogleMapsProvider";
-import { Maximize2, Minimize2, Map as MapIcon, X } from "lucide-react";
+import { Maximize2, Minimize2, Map as MapIcon, X, Search } from "lucide-react";
 import { Fragment } from "react";
 import { Plot } from "@/types/plot/plot";
 import { Warehouse } from "@/types/warehouse/warehouse";
@@ -31,6 +31,39 @@ export default function LocationPickerMap({ value, onChange, plots = [], warehou
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [tempValue, setTempValue] = useState<LatLng | null>(value);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const isSelectingRef = useRef(false);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            searchQuery
+          )}&limit=5&accept-language=vi&email=kltn.vietnam.student@gmail.com`
+        );
+        const data = await response.json();
+        setSuggestions(data);
+        setShowDropdown(true);
+      } catch (error) {
+        console.error("OSM Nominatim error:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Đồng bộ tempValue khi value thay đổi (ví dụ khi reset form)
   useEffect(() => {
@@ -135,10 +168,12 @@ export default function LocationPickerMap({ value, onChange, plots = [], warehou
       )}
     >
       {/* Overlay info */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-md text-[9px] font-bold tracking-wide text-slate-500 px-3 py-1 rounded-xl shadow-md border border-slate-100 pointer-events-none flex items-center gap-1.5 whitespace-nowrap">
-        <MapIcon size={10} className="text-emerald-500" />
-        Click để chọn vị trí kho hàng
-      </div>
+      {!isFullscreen && (
+        <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-md text-[9px] font-bold tracking-wide text-slate-500 px-3 py-1 rounded-xl shadow-md border border-slate-100 pointer-events-none flex items-center gap-1.5 whitespace-nowrap">
+          <MapIcon size={10} className="text-emerald-500" />
+          Click để chọn vị trí kho hàng
+        </div>
+      )}
 
       {/* Custom Controls */}
       <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
@@ -165,6 +200,99 @@ export default function LocationPickerMap({ value, onChange, plots = [], warehou
           tilt: 0,
         }}
       >
+        {/* Search Input Box (Only visible when isFullscreen is true) */}
+        {isFullscreen && (
+          <div className="absolute top-3 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-[320px] z-30">
+            <div className="relative shadow-xl rounded-xl border border-slate-200 bg-white/95 backdrop-blur-md">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm địa chỉ/vị trí..."
+                className="w-full h-9 pl-9 pr-10 text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all rounded-xl"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (suggestions.length > 0) {
+                      const firstItem = suggestions[0];
+                      const lat = parseFloat(firstItem.lat);
+                      const lng = parseFloat(firstItem.lon);
+                      const coords = { lat, lng };
+                      setTempValue(coords);
+                      onChange(coords);
+                      if (map) {
+                        map.setCenter(coords);
+                        map.setZoom(17);
+                      }
+                      setSearchQuery(firstItem.display_name);
+                      setShowDropdown(false);
+                    }
+                  }
+                }}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowDropdown(true);
+                  else if (searchQuery.trim()) setSearchQuery((s) => s);
+                }}
+                onBlur={() => {
+                  if (!isSelectingRef.current) setShowDropdown(false);
+                }}
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
+              {/* Clear Button / Loading Spinner */}
+              {isSearching ? (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-emerald-500 border-t-transparent"></div>
+                </div>
+              ) : searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSuggestions([]);
+                    setShowDropdown(false);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={14} />
+                </button>
+              ) : null}
+
+              {/* Suggestions Dropdown */}
+              {showDropdown && suggestions.length > 0 && (
+                <div 
+                  className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-100 rounded-xl shadow-2xl max-h-48 overflow-y-auto z-50 py-1 divide-y divide-slate-50"
+                  onMouseDown={() => { isSelectingRef.current = true; }}
+                  onMouseUp={() => { isSelectingRef.current = false; }}
+                >
+                  {suggestions.map((item, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        const lat = parseFloat(item.lat);
+                        const lng = parseFloat(item.lon);
+                        const coords = { lat, lng };
+                        setTempValue(coords);
+                        onChange(coords);
+                        if (map) {
+                          map.setCenter(coords);
+                          map.setZoom(17);
+                        }
+                        setSearchQuery(item.display_name);
+                        setShowDropdown(false);
+                        isSelectingRef.current = false;
+                      }}
+                      className="w-full text-left px-4 py-2 text-[11px] text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors truncate font-medium"
+                      title={item.display_name}
+                    >
+                      {item.display_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {/* Render Land Plots boundaries */}
         {plots.map((plot) => {
           const path = getPlotPath(plot);

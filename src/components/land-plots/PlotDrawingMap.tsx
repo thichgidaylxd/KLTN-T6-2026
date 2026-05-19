@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, useMemo, useEffect, forwardRef, useImperativeHandle, Fragment } from 'react'
-import { Maximize2, Minimize2, Trash2 } from 'lucide-react'
+import { Maximize2, Minimize2, Trash2, Search, X } from 'lucide-react'
 import { GoogleMap, Polygon, Polyline, Marker } from '@react-google-maps/api'
 import { Geometry, GeoPoint, Plot } from '@/types/plot'
 import { useGoogleMaps } from '@/providers/GoogleMapsProvider'
@@ -57,6 +57,39 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
   const [area, setArea] = useState(0)
 
   const mapRef = useRef<google.maps.Map | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const isSelectingRef = useRef(false)
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSuggestions([])
+      setShowDropdown(false)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearching(true)
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            searchQuery
+          )}&limit=5&accept-language=vi&email=kltn.vietnam.student@gmail.com`
+        )
+        const data = await response.json()
+        setSuggestions(data)
+        setShowDropdown(true)
+      } catch (error) {
+        console.error('OSM Nominatim error:', error)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300);
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   const handleClear = useCallback(() => {
     setDrawPts([])
@@ -244,6 +277,95 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
           onClick={handleMapClick}
           onMouseMove={handleMouseMove}
         >
+          {/* Search Input Box (Only visible when isFullscreen is true) */}
+          {isFullscreen && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 w-[160px] sm:w-[240px] md:w-[280px]">
+              <div className="relative shadow-md rounded-lg border border-gray-200 bg-white/95 backdrop-blur-md">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Tìm kiếm địa chỉ..."
+                  className="w-full h-8 pl-8 pr-8 text-[10px] sm:text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all rounded-lg"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      if (suggestions.length > 0) {
+                        const firstItem = suggestions[0]
+                        const lat = parseFloat(firstItem.lat)
+                        const lng = parseFloat(firstItem.lon)
+                        const coords = { lat, lng }
+                        if (mapRef.current) {
+                          mapRef.current.setCenter(coords)
+                          mapRef.current.setZoom(17)
+                        }
+                        setSearchQuery(firstItem.display_name)
+                        setShowDropdown(false)
+                      }
+                    }
+                  }}
+                  onFocus={() => {
+                    if (suggestions.length > 0) setShowDropdown(true)
+                    else if (searchQuery.trim()) setSearchQuery(s => s)
+                  }}
+                  onBlur={() => {
+                    if (!isSelectingRef.current) setShowDropdown(false)
+                  }}
+                />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                {/* Clear Button / Loading Spinner */}
+                {isSearching ? (
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-emerald-500 border-t-transparent"></div>
+                  </div>
+                ) : searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("")
+                      setSuggestions([])
+                      setShowDropdown(false)
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={12} />
+                  </button>
+                ) : null}
+
+                {/* Suggestions Dropdown */}
+                {showDropdown && suggestions.length > 0 && (
+                  <div 
+                    className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-lg shadow-xl max-h-40 overflow-y-auto z-50 py-1 divide-y divide-gray-50"
+                    onMouseDown={() => { isSelectingRef.current = true }}
+                    onMouseUp={() => { isSelectingRef.current = false }}
+                  >
+                    {suggestions.map((item, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => {
+                          const lat = parseFloat(item.lat)
+                          const lng = parseFloat(item.lon)
+                          const coords = { lat, lng }
+                          if (mapRef.current) {
+                            mapRef.current.setCenter(coords)
+                            mapRef.current.setZoom(17)
+                          }
+                          setSearchQuery(item.display_name)
+                          setShowDropdown(false)
+                          isSelectingRef.current = false
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-[9px] sm:text-[10px] text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors truncate font-medium"
+                        title={item.display_name}
+                      >
+                        {item.display_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {/* Nhãn thông tin dạng Card trắng tại tâm vùng đang vẽ */}
           {drawPts.length >= 3 && (
             <Marker
