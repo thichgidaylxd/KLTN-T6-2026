@@ -139,7 +139,7 @@ export default function AdminLayout() {
         )}
 
         {/* Page Content - Full Width Minimalist */}
-        <div className="flex-1 overflow-y-auto bg-white no-scrollbar">
+        <div className="flex-1 overflow-y-auto bg-white">
           <Outlet />
         </div>
       </main>

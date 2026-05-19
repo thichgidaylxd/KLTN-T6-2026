@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CreateCropRequest, CreateCropTypeRequest } from '../../types/crop';
+import { CreateCropRequest, CreateCropTypeRequest, CreateCropConditionRequest, CreateCropStageRequest, UpdateCropStageRequest, CreateDiseaseRequest } from '../../types/crop';
 import { cropService } from '../../services/crop/cropService';
 import { useAuth } from '../auth/useAuth';
 
@@ -79,6 +79,67 @@ export const useCrops = (farmId?: string) => {
     },
   });
 
+  const createCropConditionMutation = useMutation({
+    mutationFn: ({ cropId, request }: { cropId: string, request: CreateCropConditionRequest }) => cropService.createCropConditionByCrop(cropId, request),
+  });
+
+  const deleteCropConditionMutation = useMutation({
+    mutationFn: ({ cropId, conditionId }: { cropId: string, conditionId: string }) => cropService.deleteCropConditionByCrop(cropId, conditionId),
+    onSuccess: (_, { cropId }) => {
+      queryClient.invalidateQueries({ queryKey: ['crops', cropId, 'condition'] });
+    }
+  });
+
+  const createCropStageMutation = useMutation({
+    mutationFn: ({ cropId, request }: { cropId: string, request: CreateCropStageRequest }) => cropService.createCropStage(cropId, request),
+  });
+
+  const updateCropStageMutation = useMutation({
+    mutationFn: ({ cropId, stageId, request }: { cropId: string, stageId: string, request: UpdateCropStageRequest }) => cropService.updateCropStage(cropId, stageId, request),
+    onSuccess: (_, { cropId }) => {
+      queryClient.invalidateQueries({ queryKey: ['crops', cropId, 'stages'] });
+    }
+  });
+
+  const deleteCropStageMutation = useMutation({
+    mutationFn: ({ cropId, stageId }: { cropId: string, stageId: string }) => cropService.deleteCropStage(cropId, stageId),
+    onSuccess: (_, { cropId }) => {
+      queryClient.invalidateQueries({ queryKey: ['crops', cropId, 'stages'] });
+    }
+  });
+
+  const createDiseaseMutation = useMutation({
+    mutationFn: (request: CreateDiseaseRequest) => cropService.createDisease(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['diseases'] });
+    }
+  });
+
+  const updateDiseaseMutation = useMutation({
+    mutationFn: ({ diseaseId, request }: { diseaseId: string, request: CreateDiseaseRequest }) => cropService.updateDisease(diseaseId, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['diseases'] });
+    }
+  });
+
+  const deleteDiseaseMutation = useMutation({
+    mutationFn: (diseaseId: string) => cropService.deleteDisease(diseaseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['diseases'] });
+    }
+  });
+
+  const assignDiseaseToCropMutation = useMutation({
+    mutationFn: ({ cropId, diseaseId, isPrimary }: { cropId: string, diseaseId: string, isPrimary?: boolean }) => cropService.assignDiseaseToCrop(cropId, diseaseId, isPrimary),
+  });
+
+  const removeDiseaseFromCropMutation = useMutation({
+    mutationFn: ({ cropId, diseaseId }: { cropId: string, diseaseId: string }) => cropService.removeDiseaseFromCrop(cropId, diseaseId),
+    onSuccess: (_, { cropId }) => {
+      queryClient.invalidateQueries({ queryKey: ['crops', cropId, 'diseases'] });
+    }
+  });
+
   const loading = systemCropsQuery.isLoading || farmCropsQuery.isLoading || cropTypesQuery.isLoading;
   const cropTypesLoading = cropTypesQuery.isLoading;
 
@@ -149,6 +210,16 @@ export const useCrops = (farmId?: string) => {
       [queryClient],
     ),
     createCrop: useCallback((data: CreateCropRequest) => withUnwrap(createCropMutation.mutateAsync(data)), [createCropMutation]),
+    createCropCondition: useCallback((cropId: string, request: CreateCropConditionRequest) => withUnwrap(createCropConditionMutation.mutateAsync({ cropId, request })), [createCropConditionMutation]),
+    deleteCropCondition: useCallback((cropId: string, conditionId: string) => withUnwrap(deleteCropConditionMutation.mutateAsync({ cropId, conditionId })), [deleteCropConditionMutation]),
+    createCropStage: useCallback((cropId: string, request: CreateCropStageRequest) => withUnwrap(createCropStageMutation.mutateAsync({ cropId, request })), [createCropStageMutation]),
+    updateCropStage: useCallback((cropId: string, stageId: string, request: UpdateCropStageRequest) => withUnwrap(updateCropStageMutation.mutateAsync({ cropId, stageId, request })), [updateCropStageMutation]),
+    deleteCropStage: useCallback((cropId: string, stageId: string) => withUnwrap(deleteCropStageMutation.mutateAsync({ cropId, stageId })), [deleteCropStageMutation]),
+    createDisease: useCallback((request: CreateDiseaseRequest) => withUnwrap(createDiseaseMutation.mutateAsync(request)), [createDiseaseMutation]),
+    updateDisease: useCallback((diseaseId: string, request: CreateDiseaseRequest) => withUnwrap(updateDiseaseMutation.mutateAsync({ diseaseId, request })), [updateDiseaseMutation]),
+    deleteDisease: useCallback((diseaseId: string) => withUnwrap(deleteDiseaseMutation.mutateAsync(diseaseId)), [deleteDiseaseMutation]),
+    assignDiseaseToCrop: useCallback((cropId: string, diseaseId: string, isPrimary?: boolean) => withUnwrap(assignDiseaseToCropMutation.mutateAsync({ cropId, diseaseId, isPrimary })), [assignDiseaseToCropMutation]),
+    removeDiseaseFromCrop: useCallback((cropId: string, diseaseId: string) => withUnwrap(removeDiseaseFromCropMutation.mutateAsync({ cropId, diseaseId })), [removeDiseaseFromCropMutation]),
     createCropType: useCallback(
       (data: CreateCropTypeRequest) => withUnwrap(createCropTypeMutation.mutateAsync(data)),
       [createCropTypeMutation],
@@ -181,6 +252,46 @@ export const useCrops = (farmId?: string) => {
           queryClient.fetchQuery({
             queryKey: ['crop-types', 'detail', cropTypeId],
             queryFn: async () => (await cropService.getCropTypeById(cropTypeId)).data ?? null,
+          }),
+        ),
+      [queryClient],
+    ),
+    getCropConditionByCrop: useCallback(
+      (cropId: string) =>
+        withUnwrap(
+          queryClient.fetchQuery({
+            queryKey: ['crops', cropId, 'condition'],
+            queryFn: async () => (await cropService.getCropConditionByCrop(cropId)).data ?? null,
+          }),
+        ),
+      [queryClient],
+    ),
+    getCropStageByCrop: useCallback(
+      (cropId: string, page = 0, size = 100) =>
+        withUnwrap(
+          queryClient.fetchQuery({
+            queryKey: ['crops', cropId, 'stages', page, size],
+            queryFn: async () => (await cropService.getCropStageByCrop(cropId, page, size)).data ?? null,
+          }),
+        ),
+      [queryClient],
+    ),
+    getDiseasesByCrop: useCallback(
+      (cropId: string) =>
+        withUnwrap(
+          queryClient.fetchQuery({
+            queryKey: ['crops', cropId, 'diseases'],
+            queryFn: async () => (await cropService.getDiseasesByCrop(cropId)).data ?? [],
+          }),
+        ),
+      [queryClient],
+    ),
+    getAllDiseases: useCallback(
+      (page = 0, size = 100) =>
+        withUnwrap(
+          queryClient.fetchQuery({
+            queryKey: ['diseases', page, size],
+            queryFn: async () => (await cropService.getAllDiseases(page, size)).data ?? null,
           }),
         ),
       [queryClient],

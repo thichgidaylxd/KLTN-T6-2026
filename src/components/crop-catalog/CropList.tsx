@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Sprout, Trash2, Loader2, Tag, ChevronRight } from 'lucide-react';
+import { Sprout, Trash2, Loader2, Tag, ChevronRight, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/utils/cn';
 
 interface CropListProps {
   crops: any[]; 
-  mode?: 'crops' | 'types';
+  mode?: 'crops' | 'types' | 'diseases';
   onDelete: (id: string) => void;
   onViewDetail?: (id: string, scope: string) => void;
   loading: boolean;
@@ -38,10 +38,10 @@ export const CropList: React.FC<CropListProps> = ({
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-10 py-5 text-left text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                  {mode === 'crops' ? 'Thông tin cây trồng' : 'Danh mục loại cây'}
+                  {mode === 'crops' ? 'Thông tin cây trồng' : mode === 'types' ? 'Danh mục loại cây' : 'Thông tin bệnh hại'}
                 </th>
                 <th className="px-10 py-5 text-left text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                  {mode === 'crops' ? 'Danh mục' : 'Mô tả chi tiết'}
+                  {mode === 'crops' ? 'Danh mục' : mode === 'types' ? 'Mô tả chi tiết' : 'Triệu chứng & Giải pháp'}
                 </th>
                 <th className="px-10 py-5 text-right text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Chi tiết</th>
               </tr>
@@ -72,10 +72,19 @@ export const CropList: React.FC<CropListProps> = ({
                             </div>
                           </div>
                         </>
-                      ) : (
+                      ) : mode === 'types' ? (
                         <>
                           <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
                             <Tag className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <div className="text-[15px] font-bold text-slate-800">{item.name}</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 shrink-0">
+                            <Activity className="w-6 h-6" />
                           </div>
                           <div>
                             <div className="text-[15px] font-bold text-slate-800">{item.name}</div>
@@ -98,9 +107,20 @@ export const CropList: React.FC<CropListProps> = ({
                           </span>
                         </div>
                       </div>
-                    ) : (
+                    ) : mode === 'types' ? (
                       <div className="text-sm text-slate-500 leading-relaxed max-w-xl line-clamp-2">
                         {item.description || 'Chưa có thông tin mô tả chi tiết cho loại danh mục này.'}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1.5 max-w-xl">
+                        <div className="text-xs text-slate-600 line-clamp-1">
+                          <span className="font-bold text-slate-400 uppercase mr-1">Triệu chứng:</span>
+                          {item.symptoms}
+                        </div>
+                        <div className="text-xs text-slate-500 line-clamp-1">
+                          <span className="font-bold text-slate-400 uppercase mr-1">Giải pháp:</span>
+                          {item.treatment}
+                        </div>
                       </div>
                     )}
                   </td>
@@ -110,7 +130,7 @@ export const CropList: React.FC<CropListProps> = ({
                         onClick={() => onViewDetail?.(item.id, item.scope)}
                         className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-600 border border-slate-200 rounded-[14px] text-xs font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm"
                       >
-                        Chi tiết <ChevronRight size={14} />
+                        {mode === 'diseases' ? 'Cập nhật' : 'Chi tiết'} <ChevronRight size={14} />
                       </button>
                       {isAdmin && (
                         <button
@@ -130,7 +150,7 @@ export const CropList: React.FC<CropListProps> = ({
         ) : (
           <div className="flex flex-col items-center justify-center py-32 gap-6">
             <div className="w-24 h-24 bg-slate-50 rounded-[32px] flex items-center justify-center text-slate-200">
-              {mode === 'crops' ? <Sprout className="w-12 h-12" /> : <Tag className="w-12 h-12" />}
+              {mode === 'crops' ? <Sprout className="w-12 h-12" /> : mode === 'types' ? <Tag className="w-12 h-12" /> : <Activity className="w-12 h-12" />}
             </div>
             <div className="text-center">
               <h3 className="text-xl font-bold text-slate-800 mb-2">Kho dữ liệu trống</h3>
@@ -163,7 +183,7 @@ export const CropList: React.FC<CropListProps> = ({
               <div className="text-center mb-10">
                 <h3 className="text-2xl font-black text-slate-800 mb-3 uppercase tracking-tight">Xác nhận xóa?</h3>
                 <p className="text-slate-500 leading-relaxed font-medium">
-                  Dữ liệu về {mode === 'crops' ? 'cây trồng' : 'loại cây'} này sẽ bị gỡ bỏ vĩnh viễn khỏi hệ thống.
+                  Dữ liệu về {mode === 'crops' ? 'cây trồng' : mode === 'types' ? 'loại cây' : 'bệnh hại'} này sẽ bị gỡ bỏ vĩnh viễn khỏi hệ thống.
                 </p>
               </div>
               <div className="flex gap-4">
