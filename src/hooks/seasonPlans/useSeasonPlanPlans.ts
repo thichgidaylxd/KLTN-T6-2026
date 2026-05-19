@@ -20,51 +20,47 @@ export const useSeasonPlanPlans = (farmId?: string) => {
 
   const updatePlansCache = useMemo(() => createUpdatePlansCache(queryClient, activeFarmId), [queryClient, activeFarmId]);
 
-  const plansQuery = useQuery({
-    queryKey: activeFarmId ? PLAN_KEYS.byFarm(activeFarmId) : PLAN_KEYS.list,
-    queryFn: () => seasonPlanService.getPlans(),
-    enabled: !!activeFarmId || !farmId,
-    refetchInterval: 30000, // Tự động cập nhật mỗi 30 giây để đảm bảo hiệu suất nông trại luôn mới
-    refetchOnWindowFocus: false, // Tắt refetch khi focus lại tab để tránh mất dữ liệu đang xem
-    // Merge existing phases/plots from cache when refetching list
-    select: (newData: SeasonPlan[]) => {
-      // Lấy snapshot cache hiện tại TRONG lúc select chạy
-      // Dùng plansQuery.data thay vì queryClient.getQueryData để tránh race condition
-      const currentData = queryClient.getQueryData<SeasonPlan[]>(
-        activeFarmId ? PLAN_KEYS.byFarm(activeFarmId) : PLAN_KEYS.list
-      );
+  const fetchAndMergePlans = useCallback(
+    async (targetFarmId: string | null) => {
+      const key = targetFarmId ? PLAN_KEYS.byFarm(targetFarmId) : PLAN_KEYS.list;
+      const existingData = queryClient.getQueryData<SeasonPlan[]>(key);
+      const newData = await seasonPlanService.getPlans();
+      
+      if (!existingData) return newData;
       
       return newData.map(newPlan => {
-        const existing = currentData?.find(p => p.id === newPlan.id);
+        const existing = existingData.find(p => p.id === newPlan.id);
+        if (!existing) return newPlan;
         
-        // Merge phases: ưu tiên giữ lại tasks đã được load từ cache
-        // API list thường không trả về phases/tasks đầy đủ nên phải merge
-        let mergedPhases: typeof newPlan.phases;
+        let mergedPhases: typeof newPlan.phases = [];
         if (newPlan.phases && newPlan.phases.length > 0) {
-          // API có trả về phases → merge tasks vào từng phase
           mergedPhases = newPlan.phases.map(ph => {
-            const existingPh = existing?.phases?.find(eph => eph.id === ph.id);
+            const existingPh = existing.phases?.find(eph => eph.id === ph.id);
             return {
               ...ph,
-              // Chỉ dùng tasks từ API nếu có, ngược lại giữ cache
-              tasks: (ph.tasks && ph.tasks.length > 0) ? ph.tasks : existingPh?.tasks,
+              tasks: (ph.tasks && ph.tasks.length > 0) ? ph.tasks : (existingPh?.tasks ?? []),
             };
           });
-        } else if (existing?.phases && existing.phases.length > 0) {
-          // API không trả về phases (list endpoint) → giữ nguyên cache
+        } else if (existing.phases && existing.phases.length > 0) {
           mergedPhases = existing.phases;
-        } else {
-          // Không có gì cả → trả về array rỗng (không để undefined)
-          mergedPhases = [];
         }
-
+        
         return {
           ...newPlan,
           phases: mergedPhases,
-          plots: (newPlan.plots && newPlan.plots.length > 0) ? newPlan.plots : (existing?.plots ?? newPlan.plots),
+          plots: (newPlan.plots && newPlan.plots.length > 0) ? newPlan.plots : (existing.plots ?? []),
         };
       });
-    }
+    },
+    [queryClient]
+  );
+
+  const plansQuery = useQuery({
+    queryKey: activeFarmId ? PLAN_KEYS.byFarm(activeFarmId) : PLAN_KEYS.list,
+    queryFn: () => fetchAndMergePlans(activeFarmId),
+    enabled: !!activeFarmId || !farmId,
+    refetchInterval: 30000, // Tự động cập nhật mỗi 30 giây để đảm bảo hiệu suất nông trại luôn mới
+    refetchOnWindowFocus: false, // Tắt refetch khi focus lại tab để tránh mất dữ liệu đang xem
   });
 
   const createPlanMutation = useMutation({
@@ -107,11 +103,15 @@ export const useSeasonPlanPlans = (farmId?: string) => {
     updatePlansCache,
     fetchPlans: useCallback(
       (id?: string) => {
+        const nextFarmId = id || activeFarmId;
         if (id) setActiveFarmId(id);
-        const key = id ? PLAN_KEYS.byFarm(id) : (activeFarmId ? PLAN_KEYS.byFarm(activeFarmId) : PLAN_KEYS.list);
-        return withUnwrap(queryClient.fetchQuery({ queryKey: key, queryFn: () => seasonPlanService.getPlans() }));
+        const key = nextFarmId ? PLAN_KEYS.byFarm(nextFarmId) : PLAN_KEYS.list;
+        return withUnwrap(queryClient.fetchQuery({ 
+          queryKey: key, 
+          queryFn: () => fetchAndMergePlans(nextFarmId) 
+        }));
       },
-      [queryClient, activeFarmId],
+      [queryClient, activeFarmId, fetchAndMergePlans],
     ),
     fetchPlan: useCallback(
       (planId: string) =>
