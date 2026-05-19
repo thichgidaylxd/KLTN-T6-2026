@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useCrops } from '@/hooks/crops/useCrops';
 import { useAuth } from '@/hooks/auth/useAuth';
+import { DiseaseFormModal } from './DiseaseFormModal';
+
 
 type TabType = 'basic' | 'stages' | 'soil' | 'diseases';
 
@@ -42,7 +44,11 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
     deleteCropCondition,
     removeDiseaseFromCrop,
     updateCropStage,
-    deleteCropStage
+    deleteCropStage,
+    createCropStage,
+    getAllDiseases,
+    assignDiseaseToCrop,
+    createDisease
   } = useCrops();
   const { currentFarmId } = useAuth();
   const [response, setResponse] = useState<any>(null);
@@ -56,6 +62,26 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
     durationDays: 1,
     description: ''
   });
+
+  const [isAddingStage, setIsAddingStage] = useState(false);
+  const [newStageForm, setNewStageForm] = useState({
+    name: '',
+    durationDays: 1,
+    description: ''
+  });
+
+  const [allSystemDiseases, setAllSystemDiseases] = useState<any[]>([]);
+  const [selectedDiseaseId, setSelectedDiseaseId] = useState<string>('');
+  const [isDiseaseFormOpen, setIsDiseaseFormOpen] = useState(false);
+  const [diseaseLoading, setDiseaseLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'diseases' && isOpen) {
+      getAllDiseases(0, 100).then((res) => {
+        setAllSystemDiseases(res?.content || []);
+      }).catch(err => console.error(err));
+    }
+  }, [activeTab, isOpen, getAllDiseases]);
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -174,6 +200,85 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
     }
   };
 
+  const handleCreateStage = async () => {
+    if (!cropId) return;
+    if (!newStageForm.name.trim()) {
+      alert('Tên giai đoạn không được để trống');
+      return;
+    }
+    try {
+      const nextOrder = (extraData.stages || []).length + 1;
+      const res: any = await createCropStage(cropId, {
+        name: newStageForm.name,
+        durationDays: newStageForm.durationDays,
+        description: newStageForm.description,
+        orderIndex: nextOrder
+      });
+      const newStage = res.data || {
+        id: res.data?.id || String(Date.now()),
+        name: newStageForm.name,
+        durationDays: newStageForm.durationDays,
+        description: newStageForm.description,
+        orderIndex: nextOrder
+      };
+      setExtraData((prev: any) => ({
+        ...prev,
+        stages: [...(prev.stages || []), newStage]
+      }));
+      setNewStageForm({ name: '', durationDays: 1, description: '' });
+      setIsAddingStage(false);
+    } catch (err: any) {
+      console.error('Lỗi khi tạo giai đoạn:', err);
+      alert(err.message || 'Có lỗi xảy ra khi tạo giai đoạn');
+    }
+  };
+
+  const handleAssignDisease = async () => {
+    if (!cropId || !selectedDiseaseId) return;
+    try {
+      setDiseaseLoading(true);
+      await assignDiseaseToCrop(cropId, selectedDiseaseId, false);
+      
+      const matched = allSystemDiseases.find(d => d.id === selectedDiseaseId);
+      if (matched) {
+        setExtraData((prev: any) => ({
+          ...prev,
+          diseases: [...(prev.diseases || []), matched]
+        }));
+      }
+      setSelectedDiseaseId('');
+    } catch (err: any) {
+      console.error('Lỗi khi liên kết bệnh hại:', err);
+      alert(err.message || 'Có lỗi xảy ra khi liên kết bệnh hại');
+    } finally {
+      setDiseaseLoading(false);
+    }
+  };
+
+  const handleSaveNewDisease = async (data: any) => {
+    if (!cropId) return;
+    try {
+      setDiseaseLoading(true);
+      const res = await createDisease(data);
+      const diseaseId = res.data?.id;
+      if (diseaseId) {
+        await assignDiseaseToCrop(cropId, diseaseId, false);
+        const newDisease = res.data || { id: diseaseId, ...data };
+        setExtraData((prev: any) => ({
+          ...prev,
+          diseases: [...(prev.diseases || []), newDisease]
+        }));
+        setAllSystemDiseases(prev => [...prev, newDisease]);
+      }
+      setIsDiseaseFormOpen(false);
+    } catch (err: any) {
+      console.error('Lỗi khi tạo và liên kết bệnh hại:', err);
+      alert(err.message || 'Có lỗi xảy ra khi tạo bệnh hại');
+    } finally {
+      setDiseaseLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const data = response?.data;
@@ -283,6 +388,70 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
 
               {activeTab === 'stages' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-bold text-slate-700">Các giai đoạn phát triển</h3>
+                    <button
+                      onClick={() => setIsAddingStage(prev => !prev)}
+                      className="px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                    >
+                      {isAddingStage ? 'Hủy' : '+ Thêm giai đoạn'}
+                    </button>
+                  </div>
+
+                  {isAddingStage && (
+                    <div className="p-6 bg-green-50/30 border border-green-100 rounded-2xl flex flex-col gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                      <h4 className="text-xs font-black text-green-700 uppercase tracking-wider">Thêm giai đoạn sinh trưởng mới</h4>
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tên giai đoạn</label>
+                          <input
+                            type="text"
+                            value={newStageForm.name}
+                            onChange={(e) => setNewStageForm(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                            placeholder="Ví dụ: Nảy mầm, Ra hoa..."
+                          />
+                        </div>
+                        <div className="w-32">
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Số ngày</label>
+                          <input
+                            type="number"
+                            value={newStageForm.durationDays}
+                            onChange={(e) => setNewStageForm(prev => ({ ...prev, durationDays: Number(e.target.value) }))}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                            min={1}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Mô tả công việc</label>
+                        <textarea
+                          value={newStageForm.description}
+                          onChange={(e) => setNewStageForm(prev => ({ ...prev, description: e.target.value }))}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm h-20 resize-none focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                          placeholder="Mô tả các công việc cần thực hiện hoặc lưu ý..."
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setIsAddingStage(false);
+                            setNewStageForm({ name: '', durationDays: 1, description: '' });
+                          }}
+                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-colors"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          onClick={handleCreateStage}
+                          className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-colors"
+                        >
+                          Lưu giai đoạn
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {extraData.stages?.length > 0 ? extraData.stages.map((stage: any, idx: number) => {
                     const isEditing = editingStageId === stage.id;
                     return (
@@ -409,6 +578,43 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
 
               {activeTab === 'diseases' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  {/* Disease Adding Actions */}
+                  <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col gap-4 shadow-sm">
+                    <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Thêm bệnh hại vào cây trồng</h4>
+                    <div className="flex flex-wrap gap-3 items-end">
+                      <div className="flex-1 min-w-[200px]">
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Chọn từ thư viện bệnh hại</label>
+                        <select
+                          value={selectedDiseaseId}
+                          onChange={(e) => setSelectedDiseaseId(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                        >
+                          <option value="">-- Chọn bệnh hại sẵn có --</option>
+                          {allSystemDiseases
+                            .filter(d => !(extraData.diseases || []).some((linked: any) => linked.id === d.id))
+                            .map((disease: any) => (
+                              <option key={disease.id} value={disease.id}>
+                                {disease.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <button
+                        onClick={handleAssignDisease}
+                        disabled={!selectedDiseaseId || diseaseLoading}
+                        className="px-5 py-2.5 bg-slate-900 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                      >
+                        Chọn
+                      </button>
+                      <button
+                        onClick={() => setIsDiseaseFormOpen(true)}
+                        className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                      >
+                        + Tạo bệnh mới
+                      </button>
+                    </div>
+                  </div>
+
                   {extraData.diseases?.length > 0 ? extraData.diseases.map((disease: any, idx: number) => (
                     <div key={disease.id || idx} className="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm flex flex-col gap-4 relative group">
                       <div className="flex justify-between items-start">
@@ -443,6 +649,12 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
             </>
           )}
         </div>
+        <DiseaseFormModal 
+          isOpen={isDiseaseFormOpen} 
+          onClose={() => setIsDiseaseFormOpen(false)} 
+          onSave={handleSaveNewDisease} 
+          loading={diseaseLoading} 
+        />
       </motion.div>
     </div>
   );

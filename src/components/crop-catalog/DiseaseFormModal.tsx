@@ -162,14 +162,7 @@ export const DiseaseFormModal: React.FC<DiseaseFormModalProps> = ({
               </div>
 
               {/* Action Footer */}
-              <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
-                >
-                  Hủy bỏ
-                </button>
+              <div className="pt-6 border-t border-slate-100 flex justify-end">
                 <button
                   type="submit"
                   disabled={loading}
