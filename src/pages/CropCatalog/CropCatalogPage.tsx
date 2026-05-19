@@ -6,7 +6,7 @@ import { CreateCropRequest, CreateCropTypeRequest } from '../../types/crop';
 import { getRolesFromToken } from '../../utils/jwt';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, ArrowLeft, Filter, LayoutGrid, List } from 'lucide-react';
+import { Search, Plus, ArrowLeft, Filter, LayoutGrid, List, Activity } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 import { CropList } from '@/components/crop-catalog/CropList';
@@ -14,6 +14,7 @@ import { CropForm } from '@/components/crop-catalog/CropForm';
 import { QuickAddCropTypeModal } from '@/components/crop-catalog/QuickAddCropTypeModal';
 import { CropDetailModal } from '@/components/crop-catalog/CropDetailModal';
 import { CropTypeDetailModal } from '@/components/crop-catalog/CropTypeDetailModal';
+import { DiseaseFormModal } from '@/components/crop-catalog/DiseaseFormModal';
 
 export const CropCatalogPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,7 +30,14 @@ export const CropCatalogPage: React.FC = () => {
     createCrop,
     createCropType,
     deleteCrop,
-    deleteCropType
+    deleteCropType,
+    createCropCondition,
+    createCropStage,
+    createDisease,
+    assignDiseaseToCrop,
+    getAllDiseases,
+    updateDisease,
+    deleteDisease
   } = useCrops();
 
   const roles = accessToken ? getRolesFromToken(accessToken) : [];
@@ -40,7 +48,7 @@ export const CropCatalogPage: React.FC = () => {
   }
   
   const [view, setView] = useState<'list' | 'form'>('list');
-  const [activeTab, setActiveTab] = useState<'crops' | 'types'>('crops');
+  const [activeTab, setActiveTab] = useState<'crops' | 'types' | 'diseases'>('crops');
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
@@ -48,6 +56,33 @@ export const CropCatalogPage: React.FC = () => {
   const [scopeFilter, setScopeFilter] = useState<'ALL' | 'SYSTEM' | 'FARM'>('ALL');
   const [filterTypeId, setFilterTypeId] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // States for disease management
+  const [diseases, setDiseases] = useState<any[]>([]);
+  const [diseasesLoading, setDiseasesLoading] = useState(false);
+  const [selectedDisease, setSelectedDisease] = useState<any | null>(null);
+  const [isDiseaseModalOpen, setIsDiseaseModalOpen] = useState(false);
+  const [diseasePage, setDiseasePage] = useState(0);
+  const [diseaseTotalPages, setDiseaseTotalPages] = useState(1);
+
+  const fetchAllDiseasesList = useCallback(async () => {
+    setDiseasesLoading(true);
+    try {
+      const res = await getAllDiseases(diseasePage, 10);
+      setDiseases(res?.content || []);
+      setDiseaseTotalPages(res?.totalPages || 1);
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi tải danh sách bệnh hại');
+    } finally {
+      setDiseasesLoading(false);
+    }
+  }, [getAllDiseases, diseasePage]);
+
+  useEffect(() => {
+    if (activeTab === 'diseases') {
+      fetchAllDiseasesList();
+    }
+  }, [activeTab, fetchAllDiseasesList, diseasePage]);
 
   // Initial load for crop types only, others are handled by useQuery on mount
   useEffect(() => {
@@ -62,15 +97,28 @@ export const CropCatalogPage: React.FC = () => {
       void fetchCrops();
     }
     if ((newScope === 'FARM' || newScope === 'ALL') && currentFarmId) {
-      void fetchFarmCrops(currentFarmId);
+      void fetchFarmCrops();
     }
   };
 
-  const handleAdd = () => activeTab === 'types' ? setIsTypeModalOpen(true) : setView('form');
+  const handleAdd = () => {
+    if (activeTab === 'types') {
+      setIsTypeModalOpen(true);
+    } else if (activeTab === 'diseases') {
+      setSelectedDisease(null);
+      setIsDiseaseModalOpen(true);
+    } else {
+      setView('form');
+    }
+  };
   
   const handleViewDetail = (id: string, itemScope: string) => { 
     if (activeTab === 'types') {
       setSelectedTypeId(id);
+    } else if (activeTab === 'diseases') {
+      const found = diseases.find(d => d.id === id);
+      setSelectedDisease(found || null);
+      setIsDiseaseModalOpen(true);
     } else {
       setSelectedItemId(id); 
       // Nếu đang ở tab Trang trại hoặc item có scope là FARM thì dùng API Farm
@@ -87,6 +135,10 @@ export const CropCatalogPage: React.FC = () => {
         await deleteCropType(id).unwrap();
         toast.success('Xóa loại cây thành công');
         fetchCropTypes();
+      } else if (activeTab === 'diseases') {
+        await deleteDisease(id);
+        toast.success('Xóa bệnh hại thành công');
+        fetchAllDiseasesList();
       } else {
         await deleteCrop(id).unwrap();
         toast.success('Xóa cây trồng thành công');
@@ -97,8 +149,38 @@ export const CropCatalogPage: React.FC = () => {
 
   const handleSave = async (data: any) => {
     try {
-      await createCrop(data as CreateCropRequest).unwrap();
-      toast.success('Thêm cây trồng mới thành công');
+      const createCropRes = await createCrop(data as CreateCropRequest);
+      const cropId = createCropRes.data?.id;
+
+      if (!cropId) {
+        throw new Error('Không lấy được ID của cây trồng sau khi tạo');
+      }
+
+      // Tạo điều kiện đất (nếu có form hợp lệ)
+      if (data.soil) {
+        await createCropCondition(cropId, data.soil);
+      }
+
+      // Tạo các giai đoạn
+      if (data.stages && data.stages.length > 0) {
+        for (let i = 0; i < data.stages.length; i++) {
+          const stage = data.stages[i];
+          await createCropStage(cropId, { ...stage, orderIndex: i + 1 });
+        }
+      }
+
+      // Tạo các bệnh và gán vào cây
+      if (data.diseases && data.diseases.length > 0) {
+        for (const disease of data.diseases) {
+          const diseaseRes = await createDisease(disease);
+          const diseaseId = diseaseRes.data?.id;
+          if (diseaseId) {
+            await assignDiseaseToCrop(cropId, diseaseId, false);
+          }
+        }
+      }
+
+      toast.success('Thêm cây trồng mới và cấu hình chi tiết thành công');
       fetchCrops();
       setView('list');
     } catch (err: any) { toast.error(err.message || 'Thao tác thất bại'); }
@@ -113,9 +195,32 @@ export const CropCatalogPage: React.FC = () => {
     } catch (err: any) { toast.error(err.message || 'Thao tác thất bại'); }
   };
 
+  const handleSaveDisease = async (data: any) => {
+    try {
+      if (selectedDisease) {
+        await updateDisease(selectedDisease.id, data);
+        toast.success('Cập nhật bệnh hại thành công');
+      } else {
+        await createDisease(data);
+        toast.success('Thêm bệnh hại mới thành công');
+      }
+      fetchAllDiseasesList();
+      setIsDiseaseModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Thao tác thất bại');
+    }
+  };
+
   const filteredData = useCallback(() => {
     if (activeTab === 'types') {
       return cropTypes.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+    
+    if (activeTab === 'diseases') {
+      return diseases.filter(d => 
+        d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (d.symptoms || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
     
     let list: any[] = [];
@@ -136,7 +241,7 @@ export const CropCatalogPage: React.FC = () => {
       list = list.filter(c => c.name.toLowerCase().includes(s) || (c.cropType?.name || '').toLowerCase().includes(s));
     }
     return list;
-  }, [crops, systemCrops, cropTypes, activeTab, scopeFilter, filterTypeId, searchTerm]);
+  }, [crops, systemCrops, cropTypes, diseases, activeTab, scopeFilter, filterTypeId, searchTerm]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20">
@@ -146,7 +251,13 @@ export const CropCatalogPage: React.FC = () => {
           <div className="flex items-center justify-between gap-8">
             <div className="flex items-center gap-6">
               <button 
-                onClick={() => navigate(`/farms/${currentFarmId}/actions`)}
+                onClick={() => {
+                  if (isAdmin && !currentFarmId) {
+                    navigate('/admin/dashboard');
+                  } else {
+                    navigate(`/farms/${currentFarmId}/actions`);
+                  }
+                }}
                 className="group flex items-center gap-2 text-slate-400 hover:text-slate-800 transition-all font-bold text-sm"
               >
                 <div className="p-2 bg-slate-50 rounded-xl group-hover:bg-slate-100 transition-colors">
@@ -174,6 +285,15 @@ export const CropCatalogPage: React.FC = () => {
                 >
                   <LayoutGrid size={14} /> Loại cây
                 </button>
+                <button 
+                  onClick={() => setActiveTab('diseases')}
+                  className={cn(
+                    "flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                    activeTab === 'diseases' ? "bg-white text-green-700 shadow-md shadow-green-100/50" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  <Activity size={14} /> Bệnh hại
+                </button>
               </div>
             </div>
 
@@ -182,7 +302,7 @@ export const CropCatalogPage: React.FC = () => {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" size={16} />
                 <input 
                   type="text"
-                  placeholder={activeTab === 'crops' ? "Tìm cây trồng..." : "Tìm loại cây trồng..."}
+                  placeholder={activeTab === 'crops' ? "Tìm cây trồng..." : activeTab === 'types' ? "Tìm loại cây trồng..." : "Tìm bệnh hại..."}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-[18px] text-sm font-bold focus:outline-none focus:ring-2 focus:ring-green-500/10 focus:border-green-500/50 transition-all placeholder:text-slate-400"
@@ -249,9 +369,32 @@ export const CropCatalogPage: React.FC = () => {
                 mode={activeTab}
                 onDelete={handleDelete}
                 onViewDetail={handleViewDetail}
-                loading={loading}
+                loading={activeTab === 'diseases' ? diseasesLoading : loading}
                 isAdmin={isAdmin}
               />
+              {activeTab === 'diseases' && diseaseTotalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 px-4">
+                  <span className="text-xs text-slate-500 font-bold">
+                    Trang {diseasePage + 1} / {diseaseTotalPages}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      disabled={diseasePage === 0}
+                      onClick={() => setDiseasePage(p => Math.max(0, p - 1))}
+                      className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 transition-all disabled:opacity-50"
+                    >
+                      Trước
+                    </button>
+                    <button
+                      disabled={diseasePage >= diseaseTotalPages - 1}
+                      onClick={() => setDiseasePage(p => p + 1)}
+                      className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 transition-all disabled:opacity-50"
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -270,6 +413,7 @@ export const CropCatalogPage: React.FC = () => {
       <QuickAddCropTypeModal isOpen={isTypeModalOpen} onClose={() => setIsTypeModalOpen(false)} onSave={handleSaveType} loading={loading} />
       <CropDetailModal isOpen={!!selectedItemId} onClose={() => setSelectedItemId(null)} cropId={selectedItemId} isFarmScope={isFarmScope} />
       <CropTypeDetailModal isOpen={!!selectedTypeId} onClose={() => setSelectedTypeId(null)} cropTypeId={selectedTypeId} />
+      <DiseaseFormModal isOpen={isDiseaseModalOpen} onClose={() => setIsDiseaseModalOpen(false)} onSave={handleSaveDisease} loading={diseasesLoading} initialData={selectedDisease} />
     </div>
   );
 };

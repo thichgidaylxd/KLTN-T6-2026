@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import {
   Trees,
   Plus,
-  ArrowLeft,
   Search,
   Loader2,
   AlertCircle,
   ArrowRight,
   User,
 } from 'lucide-react';
+
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useFarms } from '@/hooks/farms/useFarms';
 import { farmService } from '../../services/farm/farmService';
@@ -166,13 +166,6 @@ export function ManagementDashboardPage() {
       {/* Topbar */}
       <div className="sticky top-0 z-20 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 bg-white border border-slate-200 rounded-full px-4 py-1.5 text-[13px] font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200 transition-all"
-          >
-            <ArrowLeft size={14} strokeWidth={3} />
-            Quay lại
-          </button>
           <div>
             <h1 className="text-[17px] font-bold text-slate-900 leading-none">Quản lý trang trại</h1>
             <p className="text-[12px] text-slate-400 mt-1">Xem và điều chỉnh cấu hình các không gian canh tác</p>

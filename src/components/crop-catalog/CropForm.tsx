@@ -85,7 +85,10 @@ export const CropForm: React.FC<CropFormProps> = ({
       name: data.name,
       cropTypeId: data.cropTypeId,
       description: data.description,
-      imageUrl: base64Image || data.imageUrl, // Ưu tiên ảnh upload từ máy (dưới dạng string base64)
+      imageUrl: base64Image || data.imageUrl,
+      stages: data.stages,
+      soil: data.soil,
+      diseases: data.diseases,
     };
 
     onSave(payload);
@@ -330,7 +333,7 @@ export const CropForm: React.FC<CropFormProps> = ({
                   <button
                     type="button"
                     onClick={() => removeStage(index)}
-                    className="absolute top-6 right-6 p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    className="absolute top-6 right-6 p-2 text-red-500 hover:text-red-700 transition-colors"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -490,7 +493,7 @@ export const CropForm: React.FC<CropFormProps> = ({
                       <button
                         type="button"
                         onClick={() => removeDisease(index)}
-                        className="absolute top-6 right-6 p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                        className="absolute top-6 right-6 p-2 text-red-500 hover:text-red-700 transition-colors"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>

@@ -72,3 +72,56 @@ export interface CreateCropTypeRequest {
 export interface UpdateCropRequest extends Partial<CreateCropRequest> {
   version?: number;
 }
+
+// ──────────────────────────────────────────────
+// API REQUEST & RESPONSE TYPES FOR CROP DETAILS
+// ──────────────────────────────────────────────
+
+export interface CreateCropConditionRequest {
+  phMin: number;
+  phMax: number;
+  nMin: number;
+  nMax: number;
+  pMin: number;
+  pMax: number;
+  kMin: number;
+  kMax: number;
+}
+
+export interface CropConditionResponse extends CreateCropConditionRequest {
+  id: string;
+}
+
+export interface CreateCropStageRequest {
+  name: string;
+  orderIndex: number;
+  durationDays: number;
+  description?: string;
+}
+
+export interface UpdateCropStageRequest extends CreateCropStageRequest {}
+
+export interface CropStageResponse extends CreateCropStageRequest {
+  id: string;
+}
+
+export interface CreateDiseaseRequest {
+  name: string;
+  symptoms: string;
+  treatment: string;
+  images?: string[];
+}
+
+export interface DiseaseResponse extends CreateDiseaseRequest {
+  id: string;
+}
+
+export interface PageableResponse<T> {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+

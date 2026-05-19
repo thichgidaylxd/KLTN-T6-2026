@@ -79,14 +79,7 @@ export const soilRecordService = {
     return response.data;
   },
 
-  // ──────────────────────────────────────────────
-  // STORAGE
-  // ──────────────────────────────────────────────
 
-  /**
-   * Lấy presigned URL để upload ảnh
-   * POST /api/v1/storage/presigned-url
-   */
   async getPresignedUrl(data: PresignedUploadRequest): Promise<ApiResponse<PresignedUploadResponse>> {
     const response = await axiosInstance.post<ApiResponse<PresignedUploadResponse>>(
       '/api/v1/storage/presigned-url',
