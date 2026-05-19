@@ -16,7 +16,7 @@ export interface SoilAnalysisJob {
   id: string;
   status: 'QUEUED' | 'PROCESSING' | 'DONE' | 'FAILED';
   result?: string;       // JSON string or text returned by AI
-  errorMessage?: string;
+  error?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -148,7 +148,7 @@ export const SoilAnalysisModal: React.FC<Props> = ({
     } catch (err: any) {
       stopPolling();
       setStep('failed');
-      setJob({ id: '', status: 'FAILED', errorMessage: err?.message ?? 'Có lỗi xảy ra' });
+      setJob({ id: '', status: 'FAILED', error: err?.message ?? 'Có lỗi xảy ra' });
     }
   };
 
@@ -384,7 +384,7 @@ export const SoilAnalysisModal: React.FC<Props> = ({
                 <div>
                   <p className="font-bold text-red-800 text-sm">Phân tích thất bại</p>
                   <p className="text-xs text-red-600 mt-1 leading-relaxed">
-                    {job?.errorMessage ?? 'Có lỗi xảy ra trong quá trình phân tích. Vui lòng thử lại.'}
+                    {job?.error ?? 'Có lỗi xảy ra trong quá trình phân tích. Vui lòng thử lại.'}
                   </p>
                 </div>
               </div>
