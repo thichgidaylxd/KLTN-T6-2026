@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateSeasonPlanRequest, SeasonPlan } from '@/types/seasonPlan';
 import { seasonPlanService } from '@/services/seasonplan/seasonPlanService';
@@ -9,7 +9,11 @@ export const useSeasonPlanPlans = (farmId?: string) => {
   const queryClient = useQueryClient();
   const { currentFarmId } = useAuth();
   const [activeFarmId, setActiveFarmId] = useState<string | null>(farmId || currentFarmId);
-  
+
+  // Ref để luôn có activeFarmId mới nhất trong callbacks mà không cần thêm vào deps
+  const activeFarmIdRef = useRef(activeFarmId);
+  activeFarmIdRef.current = activeFarmId;
+
   useEffect(() => {
     if (farmId) {
       setActiveFarmId(farmId);
@@ -18,50 +22,142 @@ export const useSeasonPlanPlans = (farmId?: string) => {
     }
   }, [currentFarmId, farmId]);
 
-  const updatePlansCache = useMemo(() => createUpdatePlansCache(queryClient, activeFarmId), [queryClient, activeFarmId]);
+  const updatePlansCache = useMemo(
+    () => createUpdatePlansCache(queryClient, activeFarmId),
+    [queryClient, activeFarmId],
+  );
+
+  /**
+   * Lấy existing data từ cache — thử nhiều keys để tránh miss khi activeFarmId vừa thay đổi
+   */
+  const getExistingFromCache = useCallback(
+    (targetFarmId: string | null): SeasonPlan[] | undefined => {
+      const key = targetFarmId ? PLAN_KEYS.byFarm(targetFarmId) : PLAN_KEYS.list;
+      return (
+        queryClient.getQueryData<SeasonPlan[]>(key) ??
+        // Thử key của activeFarmId hiện tại nếu khác targetFarmId
+        (activeFarmIdRef.current && activeFarmIdRef.current !== targetFarmId
+          ? queryClient.getQueryData<SeasonPlan[]>(PLAN_KEYS.byFarm(activeFarmIdRef.current))
+          : undefined) ??
+        // Fallback về list key
+        queryClient.getQueryData<SeasonPlan[]>(PLAN_KEYS.list)
+      );
+    },
+    [queryClient],
+  );
+
+  /**
+   * Merge phases an toàn: luôn ưu tiên giữ tasks/phases từ cache
+   * kể cả khi list API trả về phases: []
+   */
+  const mergePhases = useCallback(
+    (
+      newPhases: SeasonPlan['phases'],
+      existingPhases: SeasonPlan['phases'],
+    ): SeasonPlan['phases'] => {
+      // List API không trả về phases → giữ nguyên existing
+      if (!newPhases || newPhases.length === 0) {
+        return existingPhases ?? [];
+      }
+
+      // Merge từng phase mới với existing, giữ tasks nếu API không trả về
+      const merged = newPhases.map(ph => {
+        const existingPh = existingPhases?.find(eph => eph.id === ph.id);
+        return {
+          ...ph,
+          tasks:
+            ph.tasks && ph.tasks.length > 0
+              ? ph.tasks
+              : existingPh?.tasks ?? [],
+        };
+      });
+
+      // Giữ lại phases trong existing mà list API không trả về (tránh mất dữ liệu)
+      if (existingPhases && existingPhases.length > 0) {
+        const newPhaseIds = new Set(newPhases.map(p => p.id));
+        const orphanPhases = existingPhases.filter(p => !newPhaseIds.has(p.id));
+        return [...merged, ...orphanPhases];
+      }
+
+      return merged;
+    },
+    [],
+  );
 
   const fetchAndMergePlans = useCallback(
     async (targetFarmId: string | null) => {
-      const key = targetFarmId ? PLAN_KEYS.byFarm(targetFarmId) : PLAN_KEYS.list;
-      const existingData = queryClient.getQueryData<SeasonPlan[]>(key);
       const newData = await seasonPlanService.getPlans();
-      
-      if (!existingData) return newData;
-      
+
+      // FIX CHÍNH: Lấy existing từ cache (thử nhiều keys)
+      const existingData = getExistingFromCache(targetFarmId);
+
+      // Nếu không có cache → vẫn merge từ detail cache của từng plan thay vì return thẳng
       return newData.map(newPlan => {
-        const existing = existingData.find(p => p.id === newPlan.id);
+        const existing =
+          existingData?.find(p => p.id === newPlan.id) ??
+          // Thử lấy từ detail cache
+          queryClient.getQueryData<SeasonPlan>(PLAN_KEYS.detail(newPlan.id));
+
         if (!existing) return newPlan;
-        
-        let mergedPhases: typeof newPlan.phases = [];
-        if (newPlan.phases && newPlan.phases.length > 0) {
-          mergedPhases = newPlan.phases.map(ph => {
-            const existingPh = existing.phases?.find(eph => eph.id === ph.id);
-            return {
-              ...ph,
-              tasks: (ph.tasks && ph.tasks.length > 0) ? ph.tasks : (existingPh?.tasks ?? []),
-            };
-          });
-        } else if (existing.phases && existing.phases.length > 0) {
-          mergedPhases = existing.phases;
-        }
-        
+
         return {
           ...newPlan,
-          phases: mergedPhases,
-          plots: (newPlan.plots && newPlan.plots.length > 0) ? newPlan.plots : (existing.plots ?? []),
+          phases: mergePhases(newPlan.phases, existing.phases),
+          plots:
+            newPlan.plots && newPlan.plots.length > 0
+              ? newPlan.plots
+              : existing.plots ?? [],
         };
       });
     },
-    [queryClient]
+    [queryClient, getExistingFromCache, mergePhases],
   );
 
   const plansQuery = useQuery({
     queryKey: activeFarmId ? PLAN_KEYS.byFarm(activeFarmId) : PLAN_KEYS.list,
     queryFn: () => fetchAndMergePlans(activeFarmId),
     enabled: !!activeFarmId || !farmId,
-    refetchInterval: 30000, // Tự động cập nhật mỗi 30 giây để đảm bảo hiệu suất nông trại luôn mới
-    refetchOnWindowFocus: false, // Tắt refetch khi focus lại tab để tránh mất dữ liệu đang xem
+    refetchOnWindowFocus: false,
+    // Tắt refetchInterval mặc định — thay bằng setInterval thủ công bên dưới
+    // để chỉ cập nhật metadata mà KHÔNG ghi đè phases/tasks
   });
+
+  /**
+   * Thay thế refetchInterval: 30000
+   * Chỉ cập nhật metadata (name, status, startDate, endDate, version)
+   * KHÔNG bao giờ ghi đè phases/tasks từ list API
+   */
+  useEffect(() => {
+    if (!activeFarmId) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const freshPlans = await seasonPlanService.getPlans();
+        const cacheKey = PLAN_KEYS.byFarm(activeFarmId);
+
+        queryClient.setQueryData<SeasonPlan[]>(cacheKey, (old = []) =>
+          old.map(existing => {
+            const updated = freshPlans.find(p => p.id === existing.id);
+            if (!updated) return existing;
+
+            // Chỉ cập nhật metadata — KHÔNG đụng phases và plots
+            return {
+              ...existing,
+              name: updated.name,
+              status: updated.status,
+              startDate: updated.startDate,
+              endDate: updated.endDate,
+              version: updated.version,
+            };
+          }),
+        );
+      } catch {
+        // Silent fail — giữ nguyên data cũ, không làm crash UI
+      }
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [activeFarmId, queryClient]);
 
   const createPlanMutation = useMutation({
     mutationFn: (data: CreateSeasonPlanRequest) => seasonPlanService.createPlan(data),
@@ -78,12 +174,23 @@ export const useSeasonPlanPlans = (farmId?: string) => {
   });
 
   const updatePlanTimeMutation = useMutation({
-    mutationFn: ({ planId, startDate, endDate, version }: { planId: string; startDate: string; endDate: string; version?: number }) =>
-      seasonPlanService.updatePlanTime(planId, { startDate, endDate, version }),
+    mutationFn: ({
+      planId,
+      startDate,
+      endDate,
+      version,
+    }: {
+      planId: string;
+      startDate: string;
+      endDate: string;
+      version?: number;
+    }) => seasonPlanService.updatePlanTime(planId, { startDate, endDate, version }),
     onSuccess: (updatedPlan) => {
       updatePlansCache((prev) =>
         prev.map((plan) =>
-          plan.id === (updatedPlan as any).id ? { ...(updatedPlan as any), phases: plan.phases, plots: plan.plots } : plan,
+          plan.id === (updatedPlan as any).id
+            ? { ...(updatedPlan as any), phases: plan.phases, plots: plan.plots }
+            : plan,
         ),
       );
     },
@@ -93,7 +200,7 @@ export const useSeasonPlanPlans = (farmId?: string) => {
 
   return {
     plans: plansQuery.data ?? [],
-    loading: plansQuery.isLoading, // Chỉ hiển thị loading ở lần tải đầu tiên
+    loading: plansQuery.isLoading,
     isFetching: plansQuery.isFetching,
     createLoading: createPlanMutation.isPending,
     error,
@@ -106,10 +213,12 @@ export const useSeasonPlanPlans = (farmId?: string) => {
         const nextFarmId = id || activeFarmId;
         if (id) setActiveFarmId(id);
         const key = nextFarmId ? PLAN_KEYS.byFarm(nextFarmId) : PLAN_KEYS.list;
-        return withUnwrap(queryClient.fetchQuery({ 
-          queryKey: key, 
-          queryFn: () => fetchAndMergePlans(nextFarmId) 
-        }));
+        return withUnwrap(
+          queryClient.fetchQuery({
+            queryKey: key,
+            queryFn: () => fetchAndMergePlans(nextFarmId),
+          }),
+        );
       },
       [queryClient, activeFarmId, fetchAndMergePlans],
     ),
@@ -120,27 +229,38 @@ export const useSeasonPlanPlans = (farmId?: string) => {
             queryKey: PLAN_KEYS.detail(planId),
             queryFn: async () => {
               const plan = await seasonPlanService.getPlanById(planId);
-              // Update list cache with this new data
               updatePlansCache((prev) =>
-                prev.map((p) => (p.id === planId ? { 
-                  ...p, 
-                  ...plan, 
-                  phases: (plan.phases && plan.phases.length > 0) ? plan.phases : p.phases,
-                  plots: (plan.plots && plan.plots.length > 0) ? plan.plots : p.plots 
-                } : p)),
+                prev.map((p) =>
+                  p.id === planId
+                    ? {
+                        ...p,
+                        ...plan,
+                        phases: mergePhases(plan.phases, p.phases),
+                        plots:
+                          plan.plots && plan.plots.length > 0 ? plan.plots : p.plots,
+                      }
+                    : p,
+                ),
               );
               return plan;
             },
           }),
         ),
-      [queryClient, updatePlansCache],
+      [queryClient, updatePlansCache, mergePhases],
     ),
-    createPlan: useCallback((data: CreateSeasonPlanRequest) => withUnwrap(createPlanMutation.mutateAsync(data)), [createPlanMutation]),
+    createPlan: useCallback(
+      (data: CreateSeasonPlanRequest) => withUnwrap(createPlanMutation.mutateAsync(data)),
+      [createPlanMutation],
+    ),
     updatePlan: useCallback(
-      (planId: string, data: Partial<SeasonPlan>) => withUnwrap(seasonPlanService.updatePlan(planId, data)),
+      (planId: string, data: Partial<SeasonPlan>) =>
+        withUnwrap(seasonPlanService.updatePlan(planId, data)),
       [],
     ),
-    deletePlan: useCallback((planId: string) => withUnwrap(deletePlanMutation.mutateAsync(planId)), [deletePlanMutation]),
+    deletePlan: useCallback(
+      (planId: string) => withUnwrap(deletePlanMutation.mutateAsync(planId)),
+      [deletePlanMutation],
+    ),
     updatePlanTime: useCallback(
       (planId: string, startDate: string, endDate: string, version?: number) =>
         withUnwrap(updatePlanTimeMutation.mutateAsync({ planId, startDate, endDate, version })),
@@ -150,7 +270,9 @@ export const useSeasonPlanPlans = (farmId?: string) => {
       (planId: string) =>
         withUnwrap(
           seasonPlanService.getPlanPlots(planId).then((plots) => {
-            updatePlansCache((prev) => prev.map((p) => (p.id === planId ? { ...p, plots } : p)));
+            updatePlansCache((prev) =>
+              prev.map((p) => (p.id === planId ? { ...p, plots } : p)),
+            );
             return { planId, plots };
           }),
         ),
@@ -167,7 +289,7 @@ export const useSeasonPlanPlans = (farmId?: string) => {
                 const incoming = result.addedPlots ?? [];
                 const merged = [...current];
                 incoming.forEach((item: { plotId: string; plotName: string }) => {
-                   if (!merged.some((m) => m.plotId === item.plotId)) merged.push(item);
+                  if (!merged.some((m) => m.plotId === item.plotId)) merged.push(item);
                 });
                 return { ...p, plots: merged };
               }),
@@ -183,7 +305,9 @@ export const useSeasonPlanPlans = (farmId?: string) => {
           seasonPlanService.removePlotFromPlan(planId, plotId).then(() => {
             updatePlansCache((prev) =>
               prev.map((p) =>
-                p.id === planId ? { ...p, plots: p.plots?.filter((pt) => pt.plotId !== plotId) } : p,
+                p.id === planId
+                  ? { ...p, plots: p.plots?.filter((pt) => pt.plotId !== plotId) }
+                  : p,
               ),
             );
           }),
@@ -198,4 +322,3 @@ export const useSeasonPlanPlans = (farmId?: string) => {
     ),
   };
 };
-
