@@ -23,38 +23,45 @@ export function useLogin() {
     },
   });
 
-  const onSubmit = form.handleSubmit(async (data: LoginInput & { rememberMe: boolean }) => {
+  const onSubmit = form.handleSubmit(
+  async (data: LoginInput & { rememberMe: boolean }) => {
     setServerError(null);
+
     try {
       const response = await authService.login(data);
-      if (response.success && response.data.accessToken) {
-        dispatch(loginSuccess({ ...response.data, rememberMe: data.rememberMe }));
 
-        // Điều hướng sau login dựa trên role trích xuất từ token
+      if (response.success && response.data.accessToken) {
+        dispatch(loginSuccess({ 
+          ...response.data, 
+          rememberMe: data.rememberMe 
+        }));
+
         const roles = getRolesFromToken(response.data.accessToken);
+
         let redirectPath = '/farms';
 
         if (roles.includes('ROLE_ADMIN')) {
           redirectPath = '/admin/dashboard';
-        } else if (roles.includes('ROLE_WORKER') || roles.includes('ROLE_EMPLOYEE')) {
+        } else if (
+          roles.includes('ROLE_WORKER') ||
+          roles.includes('ROLE_EMPLOYEE')
+        ) {
           redirectPath = '/tasks';
-        } else {
-          redirectPath = '/farms';
         }
 
-        // Luôn vào thẳng redirectPath (mặc định là /farms) theo yêu cầu
         navigate(redirectPath, { replace: true });
       } else {
-        setServerError('Sai tên đăng nhập hoặc mật khẩu');
+        setServerError(response.message || 'Đăng nhập thất bại');
       }
     } catch (error: any) {
-      if (error.response?.status === 401) {
-        setServerError('Sai tên đăng nhập hoặc mật khẩu');
-      } else {
-        setServerError(error.response?.data?.message || 'Có lỗi xảy ra khi đăng nhập');
-      }
+      const errorMessage =
+        error?.response?.data?.message ||
+        'Có lỗi xảy ra khi đăng nhập';
+
+      setServerError(errorMessage);
     }
-  });
+  }
+);
 
   return {
     form,
