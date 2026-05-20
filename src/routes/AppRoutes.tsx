@@ -45,6 +45,7 @@ const FarmTransactionPage = lazy(() => import('../pages/Warehouse/FarmTransactio
 const UserManagementPage = lazy(() => import('../pages/Admin/UserManagementPage'));
 const NotificationsPage = lazy(() => import('../pages/Notifications/NotificationsPage').then(module => ({ default: module.NotificationsPage })));
 const SoilProfilePage = lazy(() => import('../pages/SoilProfile/SoilProfilePage').then(module => ({ default: module.SoilProfilePage })));
+const PestDiseaseReportPage = lazy(() => import('../pages/Monitoring/PestDiseaseReportPage').then(module => ({ default: module.PestDiseaseReportPage })));
 
 
 // Layouts
@@ -112,6 +113,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="suppliers" element={<Suspense fallback={<LoadingPage />}><SupplierListPage /></Suspense>} />
             <Route path="skus" element={<Suspense fallback={<LoadingPage />}><SKUListPage /></Suspense>} />
             <Route path="soil-profile" element={<Suspense fallback={<LoadingPage />}><SoilProfilePage /></Suspense>} />
+            <Route path="pest-reports" element={<Suspense fallback={<LoadingPage />}><PestDiseaseReportPage /></Suspense>} />
             <Route path="config" element={<Suspense fallback={<LoadingPage />}><ConfigPage /></Suspense>} />
 
           </Route>

@@ -348,7 +348,7 @@ export function GeneralInfo({
                   onChange={e => tempTask && setTempTask({ ...tempTask, plotId: e.target.value })}
                   className="text-[12px] font-medium text-slate-700 bg-transparent outline-none border-b border-slate-300 focus:border-indigo-400 transition-colors w-full px-1"
                 >
-                  <option value="">Chọn lô đất...</option>
+                  <option value="">— Không gán lô đất —</option>
                   {plan.plots?.map(p => (
                     <option key={p.plotId} value={p.plotId}>{p.plotName}</option>
                   ))}
