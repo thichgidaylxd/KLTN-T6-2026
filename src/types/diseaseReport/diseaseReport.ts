@@ -28,6 +28,7 @@ export interface DiseaseReportResponse {
   description: string;
   imageUrl?: string | null;
   createdAt: string;
+  diagnosisDetails?: DiagnosisResponse;
 }
 
 export interface CreateDiseaseReportRequest {
@@ -36,4 +37,25 @@ export interface CreateDiseaseReportRequest {
   locationNotes: string;
   description: string;
   imageUrl?: string;
+}
+
+export type DiagnosisSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type DiagnosisStatus = 'QUEUED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+
+export interface DiagnosisResponse {
+  id: string;
+  farmId: string;
+  plotId: string;
+  requestedById: string;
+  diseaseName: string;
+  severity: DiagnosisSeverity;
+  confidence: number;
+  treatment: string;
+  alternatives: string;
+  needsExpert: boolean;
+  aiModel: string;
+  status: DiagnosisStatus;
+  createdAt: string;
+  completedAt: string | null;
+  deletedAt: string | null;
 }
