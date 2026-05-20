@@ -203,18 +203,18 @@ export function SeasonPlanPage() {
     }
   }, [selectedItem?.planId, fetchStages, fetchPlanPlots]);
 
-useEffect(() => {
-  if (selectedItem?.type !== 'PHASE' && selectedItem?.type !== 'TASK') return;
-  const stageId = selectedItem.type === 'PHASE' ? selectedItem.id : selectedItem.phaseId;
-  if (!stageId || !selectedItem.planId) return;
+  useEffect(() => {
+    if (selectedItem?.type !== 'PHASE' && selectedItem?.type !== 'TASK') return;
+    const stageId = selectedItem.type === 'PHASE' ? selectedItem.id : selectedItem.phaseId;
+    if (!stageId || !selectedItem.planId) return;
 
-  const plan = plans.find(p => p.id === selectedItem.planId);
-  const phase = plan?.phases?.find(ph => ph.id === stageId);
-  // Chỉ fetch nếu tasks chưa được load (undefined = chưa fetch, [] = đã fetch nhưng rỗng)
-  if (phase?.tasks === undefined) {
-    fetchTasks(selectedItem.planId, stageId);
-  }
-}, [selectedItem?.id, selectedItem?.phaseId, selectedItem?.type, selectedItem?.planId]);
+    const plan = plans.find(p => p.id === selectedItem.planId);
+    const phase = plan?.phases?.find(ph => ph.id === stageId);
+    // Chỉ fetch nếu tasks chưa được load (undefined = chưa fetch, [] = đã fetch nhưng rỗng)
+    if (phase?.tasks === undefined) {
+      fetchTasks(selectedItem.planId, stageId);
+    }
+  }, [selectedItem?.id, selectedItem?.phaseId, selectedItem?.type, selectedItem?.planId]);
 
   // ── Error helper ──────────────────────────────────────────────────────────
 
@@ -383,7 +383,7 @@ useEffect(() => {
     const phase = plan?.phases?.find(ph => ph.id === phaseId);
     if (!plan || !phase) return;
 
-    let plotId = data.plotId;
+    let plotId = data.plotId === '' ? null : data.plotId;
     try {
       await createSeasonTask(planId, phaseId, { ...data, plotId }).unwrap();
     } catch (err: any) {
@@ -486,8 +486,7 @@ useEffect(() => {
 
 
   const handleUpdateTask = async (planId: string, stageId: string, task: Task, originalTask?: Task) => {
-    const plan = plans.find(p => p.id === planId);
-    const plotId = task.plotId || (plan?.plots?.length ? plan.plots[0].plotId : undefined);
+    const plotId = task.plotId === '' ? null : task.plotId;
 
     try {
       if (!originalTask) {

@@ -83,6 +83,7 @@ export default function DashboardLayout() {
     if (p.includes("/suppliers")) return "suppliers";
     if (p.includes("/skus")) return "skus";
     if (p.includes("/soil-profile")) return "soil-profile";
+    if (p.includes("/pest-reports")) return "pest-reports";
     if (p.includes("/sessions")) return "sessions";
     if (p.includes("/config")) return "config";
     if (p.includes("/dashboard/notifications")) return "notifications";
@@ -98,7 +99,7 @@ export default function DashboardLayout() {
 
   const [active, setActive] = useState(getActive());
 
-  const wideSidebarPaths = ["/members", "/land-plots", "/map", "/subscription", "/crop-catalog", "/season-plans", "/warehouses", "/suppliers", "/skus", "/config"];
+  const wideSidebarPaths = ["/members", "/land-plots", "/map", "/subscription", "/crop-catalog", "/season-plans", "/warehouses", "/suppliers", "/skus", "/pest-reports", "/config"];
   const isWideSidebarPage =
     wideSidebarPaths.some(path => location.pathname.includes(path)) ||
     (location.pathname.startsWith("/farms") && location.pathname !== "/farms");
@@ -146,10 +147,9 @@ export default function DashboardLayout() {
       return;
     }
 
-    // Farm management routes (require farm selection)
     const farmSpecificKeys = [
       "map", "land-plots", "crop-catalog", "season-plans",
-      "warehouses", "suppliers", "skus", "members", "config", "soil-profile"
+      "warehouses", "suppliers", "skus", "members", "config", "soil-profile", "pest-reports"
     ];
 
     if (farmSpecificKeys.includes(key)) {
@@ -189,7 +189,7 @@ export default function DashboardLayout() {
     }
 
     // Context-dependent routes (Wallet, Activity, Task, Gemini, etc.)
-    const farmContextKeys = ["wallet", "activity", "metrics", "task", "gemini", "season-plans", "map", "land-plots", "members", "subscription", "warehouses", "suppliers", "skus", "soil-profile"];
+    const farmContextKeys = ["wallet", "activity", "metrics", "task", "gemini", "season-plans", "map", "land-plots", "members", "subscription", "warehouses", "suppliers", "skus", "soil-profile", "pest-reports"];
 
     if (farmContextKeys.includes(key)) {
       if (currentFarmId) {

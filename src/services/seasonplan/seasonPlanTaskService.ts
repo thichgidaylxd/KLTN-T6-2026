@@ -18,7 +18,7 @@ export interface CreateTaskRequest {
   description?: string;
   startDate: string;
   endDate: string;
-  plotId?: string;
+  plotId?: string | null;
 }
 
 export interface UpdateTaskRequest {
@@ -27,7 +27,7 @@ export interface UpdateTaskRequest {
   description?: string;
   startDate?: string;
   endDate?: string;
-  plotId?: string;
+  plotId?: string | null;
   progressPercent?: number;
 }
 
