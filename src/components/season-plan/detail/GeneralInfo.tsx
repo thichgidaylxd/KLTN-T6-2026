@@ -354,9 +354,14 @@ export function GeneralInfo({
                   ))}
                 </select>
               ) : (
-                plan.plots && plan.plots.length > 0
-                  ? <span className="text-[12px] font-medium text-emerald-700">{plan.plots.find(p => p.plotId === (tempTask?.plotId ?? selection.task?.plotId))?.plotName || plan.plots[0].plotName}</span>
-                  : <span className="text-[12px] text-slate-400 italic">—</span>
+                (() => {
+                  const currentPlotId = tempTask?.plotId ?? selection.task?.plotId;
+                  if (!currentPlotId) return <span className="text-[12px] text-slate-400 italic">—</span>;
+                  const plot = plan.plots?.find(p => p.plotId === currentPlotId);
+                  return plot 
+                    ? <span className="text-[12px] font-medium text-emerald-700">{plot.plotName}</span>
+                    : <span className="text-[12px] text-slate-400 italic">—</span>;
+                })()
               )}
             </DetailRow>
           </>
