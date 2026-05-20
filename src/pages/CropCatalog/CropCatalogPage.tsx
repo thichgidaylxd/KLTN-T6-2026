@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useCrops } from '@/hooks/crops/useCrops';
 import { CreateCropRequest, CreateCropTypeRequest } from '../../types/crop';
@@ -62,13 +62,45 @@ export const CropCatalogPage: React.FC = () => {
   const [diseasesLoading, setDiseasesLoading] = useState(false);
   const [selectedDisease, setSelectedDisease] = useState<any | null>(null);
   const [isDiseaseModalOpen, setIsDiseaseModalOpen] = useState(false);
-  const [diseasePage, setDiseasePage] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const diseasePage = parseInt(searchParams.get('page') || '0', 10);
+  const diseasePageSize = parseInt(searchParams.get('size') || '5', 10);
+  const diseaseSort = searchParams.get('sort') || 'createdAt,desc';
+
+  const setDiseasePage = (page: number | ((prev: number) => number)) => {
+    const newPage = typeof page === 'function' ? page(diseasePage) : page;
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('page', newPage.toString());
+      // Also preserve activeTab if we had it, but we use replace: true
+      return next;
+    }, { replace: true });
+  };
+
+  const setDiseasePageSize = (size: number) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('size', size.toString());
+      next.set('page', '0'); // Reset page
+      return next;
+    }, { replace: true });
+  };
+
+  const setDiseaseSort = (sort: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('sort', sort);
+      next.set('page', '0'); // Reset page
+      return next;
+    }, { replace: true });
+  };
+
   const [diseaseTotalPages, setDiseaseTotalPages] = useState(1);
 
   const fetchAllDiseasesList = useCallback(async () => {
     setDiseasesLoading(true);
     try {
-      const res = await getAllDiseases(diseasePage, 10);
+      const res = await getAllDiseases(diseasePage, diseasePageSize, diseaseSort);
       setDiseases(res?.content || []);
       setDiseaseTotalPages(res?.totalPages || 1);
     } catch (err: any) {
@@ -76,13 +108,13 @@ export const CropCatalogPage: React.FC = () => {
     } finally {
       setDiseasesLoading(false);
     }
-  }, [getAllDiseases, diseasePage]);
+  }, [getAllDiseases, diseasePage, diseasePageSize, diseaseSort]);
 
   useEffect(() => {
     if (activeTab === 'diseases') {
       fetchAllDiseasesList();
     }
-  }, [activeTab, fetchAllDiseasesList, diseasePage]);
+  }, [activeTab, fetchAllDiseasesList, diseasePage, diseasePageSize, diseaseSort]);
 
   // Initial load for crop types only, others are handled by useQuery on mount
   useEffect(() => {
@@ -331,38 +363,73 @@ export const CropCatalogPage: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              {activeTab === 'crops' && (
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="flex bg-white p-1 rounded-xl border border-slate-200/60 shadow-sm">
-{(['ALL', 'SYSTEM', 'FARM'] as const).map((scope) => (
-                       <button
-                         key={scope}
-                         onClick={() => handleScopeChange(scope)}
-                         className={cn(
-                           "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-                           scopeFilter === scope ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-50"
-                         )}
-                       >
-                         {scope === 'ALL' ? 'Tất cả' : scope === 'SYSTEM' ? 'Hệ thống' : 'Trang trại'}
-                       </button>
-                     ))}
-                  </div>
-                  <div className="h-8 w-px bg-slate-200" />
-                  <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200/60 rounded-xl shadow-sm">
-                    <Filter size={14} className="text-slate-400" />
-                    <select 
-                      value={filterTypeId}
-                      onChange={(e) => setFilterTypeId(e.target.value)}
-                      className="bg-transparent text-[11px] font-bold outline-none text-slate-700 cursor-pointer min-w-[140px]"
-                    >
-                      <option value="All">Tất cả danh mục</option>
-                      {cropTypes.map((t: any) => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
+              <div className="flex items-center justify-between mb-6">
+                {activeTab === 'crops' ? (
+                  <div className="flex items-center gap-4">
+                    <div className="flex bg-white p-1 rounded-xl border border-slate-200/60 shadow-sm">
+                      {(['ALL', 'SYSTEM', 'FARM'] as const).map((scope) => (
+                        <button
+                          key={scope}
+                          onClick={() => handleScopeChange(scope)}
+                          className={cn(
+                            "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                            scopeFilter === scope ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-50"
+                          )}
+                        >
+                          {scope === 'ALL' ? 'Tất cả' : scope === 'SYSTEM' ? 'Hệ thống' : 'Trang trại'}
+                        </button>
                       ))}
-                    </select>
+                    </div>
+                    <div className="h-8 w-px bg-slate-200" />
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200/60 rounded-xl shadow-sm">
+                      <Filter size={14} className="text-slate-400" />
+                      <select 
+                        value={filterTypeId}
+                        onChange={(e) => setFilterTypeId(e.target.value)}
+                        className="bg-transparent text-[11px] font-bold outline-none text-slate-700 cursor-pointer min-w-[140px]"
+                      >
+                        <option value="All">Tất cả danh mục</option>
+                        {cropTypes.map((t: any) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : activeTab === 'diseases' ? (
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200/60 rounded-xl shadow-sm">
+                      <Filter size={14} className="text-slate-400" />
+                      <select 
+                        value={diseaseSort}
+                        onChange={(e) => {
+                          setDiseaseSort(e.target.value);
+                        }}
+                        className="bg-transparent text-[11px] font-bold outline-none text-slate-700 cursor-pointer"
+                      >
+                        <option value="createdAt,desc">Mới nhất</option>
+                        <option value="createdAt,asc">Cũ nhất</option>
+                        <option value="name,asc">Tên A-Z</option>
+                        <option value="name,desc">Tên Z-A</option>
+                      </select>
+                    </div>
+                    <div className="h-8 w-px bg-slate-200" />
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200/60 rounded-xl shadow-sm">
+                      <span className="text-[11px] font-bold text-slate-400">Hiển thị:</span>
+                      <select
+                        value={diseasePageSize}
+                        onChange={(e) => {
+                          setDiseasePageSize(Number(e.target.value));
+                        }}
+                        className="bg-transparent text-[11px] font-bold outline-none text-slate-700 cursor-pointer"
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                      </select>
+                    </div>
+                  </div>
+                ) : <div />}
+              </div>
 
               <CropList
                 crops={filteredData()}
@@ -372,10 +439,10 @@ export const CropCatalogPage: React.FC = () => {
                 loading={activeTab === 'diseases' ? diseasesLoading : loading}
                 isAdmin={isAdmin}
               />
-              {activeTab === 'diseases' && diseaseTotalPages > 1 && (
+              {activeTab === 'diseases' && diseaseTotalPages > 0 && (
                 <div className="flex items-center justify-between mt-6 px-4">
                   <span className="text-xs text-slate-500 font-bold">
-                    Trang {diseasePage + 1} / {diseaseTotalPages}
+                    Trang {diseasePage + 1} / {diseaseTotalPages || 1}
                   </span>
                   <div className="flex gap-2">
                     <button

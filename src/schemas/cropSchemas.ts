@@ -23,16 +23,17 @@ export const growthStageSchema = z.object({
 export const soilConditionSchema = z.object({
   phMin: z.number().min(0).max(14),
   phMax: z.number().min(0).max(14),
-  nMin: z.number().min(0),
-  nMax: z.number().min(0),
-  pMin: z.number().min(0),
-  pMax: z.number().min(0),
-  kMin: z.number().min(0),
-  kMax: z.number().min(0),
+  nitrogenMin: z.number().min(0),
+  nitrogenMax: z.number().min(0),
+  phosphorusMin: z.number().min(0),
+  phosphorusMax: z.number().min(0),
+  potassiumMin: z.number().min(0),
+  potassiumMax: z.number().min(0),
+  moisturePercent: z.number().min(0).max(100).optional(),
 }).refine((d) => d.phMin < d.phMax, { message: 'pH min phải nhỏ hơn pH max', path: ['phMax'] })
-  .refine((d) => d.nMin < d.nMax, { message: 'Nitơ min phải nhỏ hơn max', path: ['nMax'] })
-  .refine((d) => d.pMin < d.pMax, { message: 'Phốt pho min phải nhỏ hơn max', path: ['pMax'] })
-  .refine((d) => d.kMin < d.kMax, { message: 'Kali min phải nhỏ hơn max', path: ['kMax'] });
+  .refine((d) => d.nitrogenMin < d.nitrogenMax, { message: 'Nitơ min phải nhỏ hơn max', path: ['nitrogenMax'] })
+  .refine((d) => d.phosphorusMin < d.phosphorusMax, { message: 'Phốt pho min phải nhỏ hơn max', path: ['phosphorusMax'] })
+  .refine((d) => d.potassiumMin < d.potassiumMax, { message: 'Kali min phải nhỏ hơn max', path: ['potassiumMax'] });
 
 // Schema cho form Bệnh hại (lưu local, chờ API)
 export const diseaseSchema = z.object({
@@ -41,6 +42,7 @@ export const diseaseSchema = z.object({
   symptoms: z.string().min(1, 'Triệu chứng là bắt buộc'),
   images: z.array(z.string()).optional(),
   treatment: z.string().min(1, 'Cách xử lý là bắt buộc'),
+  severityLevel: z.string().default('LOW'),
 });
 
 // Schema cho form Tạo Cây trồng — Đồng bộ payload với POST /api/v1/crop

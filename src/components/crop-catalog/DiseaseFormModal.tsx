@@ -10,6 +10,7 @@ const diseaseSchema = z.object({
   symptoms: z.string().min(1, 'Triệu chứng không được để trống'),
   treatment: z.string().min(1, 'Giải pháp xử lý không được để trống'),
   images: z.array(z.string()).optional().default([]),
+  severityLevel: z.string().default('LOW'),
 });
 
 type DiseaseFormInput = z.infer<typeof diseaseSchema>;
@@ -23,6 +24,7 @@ interface DiseaseFormModalProps {
     name: string;
     symptoms: string;
     treatment: string;
+    severityLevel?: string;
     images?: string[];
   } | null;
 }
@@ -45,6 +47,7 @@ export const DiseaseFormModal: React.FC<DiseaseFormModalProps> = ({
       name: '',
       symptoms: '',
       treatment: '',
+      severityLevel: 'LOW',
       images: [],
     },
   });
@@ -55,6 +58,7 @@ export const DiseaseFormModal: React.FC<DiseaseFormModalProps> = ({
         name: initialData.name,
         symptoms: initialData.symptoms,
         treatment: initialData.treatment,
+        severityLevel: initialData.severityLevel || 'LOW',
         images: initialData.images || [],
       });
     } else {
@@ -62,6 +66,7 @@ export const DiseaseFormModal: React.FC<DiseaseFormModalProps> = ({
         name: '',
         symptoms: '',
         treatment: '',
+        severityLevel: 'LOW',
         images: [],
       });
     }
@@ -159,6 +164,20 @@ export const DiseaseFormModal: React.FC<DiseaseFormModalProps> = ({
                 {errors.treatment && (
                   <p className="text-red-500 text-xs mt-1.5 font-bold">{errors.treatment.message}</p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
+                  Mức độ nghiêm trọng
+                </label>
+                <select
+                  {...register('severityLevel')}
+                  className="w-full px-5 py-3 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 text-sm font-semibold text-slate-600 transition-all"
+                >
+                  <option value="LOW">Thấp</option>
+                  <option value="MEDIUM">Trung bình</option>
+                  <option value="HIGH">Cao</option>
+                </select>
               </div>
 
               {/* Action Footer */}

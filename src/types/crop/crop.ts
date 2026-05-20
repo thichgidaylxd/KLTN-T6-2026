@@ -21,12 +21,13 @@ export interface GrowthStage {
 export interface SoilCondition {
   phMin: number;
   phMax: number;
-  nMin: number;
-  nMax: number;
-  pMin: number;
-  pMax: number;
-  kMin: number;
-  kMax: number;
+  nitrogenMin: number;
+  nitrogenMax: number;
+  phosphorusMin: number;
+  phosphorusMax: number;
+  potassiumMin: number;
+  potassiumMax: number;
+  moisturePercent?: number;
 }
 
 export interface Disease {
@@ -35,6 +36,7 @@ export interface Disease {
   symptoms: string;
   images?: string[];
   treatment: string;
+  severityLevel?: string;
 }
 
 // Response shape từ API POST /api/v1/crop và GET (khi có)
@@ -80,12 +82,13 @@ export interface UpdateCropRequest extends Partial<CreateCropRequest> {
 export interface CreateCropConditionRequest {
   phMin: number;
   phMax: number;
-  nMin: number;
-  nMax: number;
-  pMin: number;
-  pMax: number;
-  kMin: number;
-  kMax: number;
+  nitrogenMin: number;
+  nitrogenMax: number;
+  phosphorusMin: number;
+  phosphorusMax: number;
+  potassiumMin: number;
+  potassiumMax: number;
+  moisturePercent?: number;
 }
 
 export interface CropConditionResponse extends CreateCropConditionRequest {
@@ -109,6 +112,7 @@ export interface CreateDiseaseRequest {
   name: string;
   symptoms: string;
   treatment: string;
+  severityLevel: string;
   images?: string[];
 }
 

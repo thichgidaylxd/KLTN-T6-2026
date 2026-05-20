@@ -148,9 +148,13 @@ export const cropService = {
   // CROP STAGES
   // ──────────────────────────────────────────────
 
-  async getCropStageByCrop(cropId: string, page: number = 0, size: number = 100): Promise<ApiResponse<PageableResponse<CropStageResponse>>> {
+  async getCropStageByCrop(cropId: string, page: number = 0, size: number = 100, sort: string[] = []): Promise<ApiResponse<PageableResponse<CropStageResponse>>> {
+    const params: any = { page, size };
+    if (sort && sort.length > 0) {
+      params.sort = sort;
+    }
     const response = await axiosInstance.get<ApiResponse<PageableResponse<CropStageResponse>>>(`/api/v1/crops/${cropId}/stages`, {
-      params: { page, size }
+      params
     });
     return response.data;
   },
@@ -171,18 +175,15 @@ export const cropService = {
     return response.data;
   },
 
-  // ──────────────────────────────────────────────
-  // DISEASES
-  // ──────────────────────────────────────────────
 
   async getDiseasesByCrop(cropId: string): Promise<ApiResponse<DiseaseResponse[]>> {
     const response = await axiosInstance.get<ApiResponse<DiseaseResponse[]>>(`/api/v1/crops/${cropId}/diseases`);
     return response.data;
   },
 
-  async getAllDiseases(page: number = 0, size: number = 100): Promise<ApiResponse<PageableResponse<DiseaseResponse>>> {
+  async getAllDiseases(page: number = 0, size: number = 100, sort?: string): Promise<ApiResponse<PageableResponse<DiseaseResponse>>> {
     const response = await axiosInstance.get<ApiResponse<PageableResponse<DiseaseResponse>>>('/api/v1/diseases', {
-      params: { page, size }
+      params: { page, size, sort }
     });
     return response.data;
   },

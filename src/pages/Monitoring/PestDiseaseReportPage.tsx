@@ -1,13 +1,20 @@
 import React from 'react';
-import { 
-  Bug, 
-  Search, 
-  Filter, 
-  Download, 
+import {
+  Bug,
   Plus
 } from 'lucide-react';
 
+import { useDiseaseReports } from '@/hooks/diseaseReport/useDiseaseReports';
+import { Loader2 } from 'lucide-react';
+import { CreateDiseaseReportModal } from './CreateDiseaseReportModal';
+
 export const PestDiseaseReportPage: React.FC = () => {
+  const [page, setPage] = React.useState(0);
+  const [size, setSize] = React.useState(10);
+  const [sort, setSort] = React.useState<string[]>(['createdAt,desc']);
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+
+  const { reports, pageData, loading } = useDiseaseReports(page, size, sort);
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col h-full bg-slate-50">
@@ -30,51 +37,18 @@ export const PestDiseaseReportPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all font-semibold text-sm shadow-sm">
-            <Download size={18} />
-            Xuất báo cáo
-          </button>
-          <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-semibold text-sm shadow-sm shadow-red-200">
+
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-semibold text-sm shadow-sm shadow-red-200"
+          >
             <Plus size={18} />
             Tạo báo cáo mới
           </button>
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text"
-              placeholder="Tìm kiếm theo tên bệnh, lô trồng..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
-            />
-          </div>
-          
-          <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-100 transition-all font-semibold text-sm h-full shrink-0">
-            <Filter size={18} />
-            Lọc
-          </button>
-        </div>
 
-        {/* Status tabs/pills could go here */}
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 hide-scrollbar">
-          <button className="px-4 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-bold whitespace-nowrap border border-red-100">
-            Tất cả
-          </button>
-          <button className="px-4 py-2 bg-white text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-semibold whitespace-nowrap border border-transparent">
-            Chưa xử lý
-          </button>
-          <button className="px-4 py-2 bg-white text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-semibold whitespace-nowrap border border-transparent">
-            Đang theo dõi
-          </button>
-          <button className="px-4 py-2 bg-white text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-semibold whitespace-nowrap border border-transparent">
-            Đã khắc phục
-          </button>
-        </div>
-      </div>
 
       {/* Main Table Area */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col">
@@ -82,47 +56,144 @@ export const PestDiseaseReportPage: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <th className="px-6 py-4">Mã BC</th>
-                <th className="px-6 py-4">Loại dịch hại</th>
-                <th className="px-6 py-4">Vị trí lô</th>
-                <th className="px-6 py-4">Ngày phát hiện</th>
-                <th className="px-6 py-4">Mức độ</th>
+                <th className="px-6 py-4">Lô đất</th>
+                <th className="px-6 py-4">Cây trồng</th>
+                <th className="px-6 py-4">Chi tiết bệnh hại</th>
+                <th className="px-6 py-4">Tỉ lệ ảnh hưởng</th>
                 <th className="px-6 py-4">Trạng thái</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
+                <th className="px-6 py-4">Ngày tạo</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {/* Empty state when no data is provided */}
-              <tr>
-                <td colSpan={7} className="px-6 py-16 text-center">
-                  <div className="flex flex-col items-center justify-center text-slate-400">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
-                      <Bug size={32} className="text-slate-300" />
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-16 text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-red-500 mx-auto" />
+                    <p className="mt-2 text-sm text-slate-500">Đang tải dữ liệu báo cáo...</p>
+                  </td>
+                </tr>
+              ) : reports.length > 0 ? (
+                reports.map((report) => (
+                  <tr key={report.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-sm text-slate-700">{report.plot?.name || 'Không xác định'}</div>
+                      {report.plot?.status && <div className="text-xs text-slate-500 mt-0.5">{report.plot.status}</div>}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-sm text-slate-700">{report.crop?.name || 'Không xác định'}</div>
+                      {report.crop?.cropType && (
+                        <div className="text-xs text-slate-500 mt-0.5 max-w-[200px] truncate" title={report.crop.cropType.description}>
+                          {report.crop.cropType.name} - {report.crop.cropType.description}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-sm text-slate-700 line-clamp-1" title={report.description}>
+                        {report.description || 'Không có mô tả'}
+                      </div>
+                      {report.locationNotes && (
+                        <div className="text-xs text-slate-500 mt-0.5 line-clamp-1" title={report.locationNotes}>
+                          Vị trí: {report.locationNotes}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-md border border-red-100">
+                        {report.affectedPercent}%
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {report.status === 'QUEUED' && <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-yellow-100 text-yellow-700">CHỜ XỬ LÝ</span>}
+                      {report.status === 'IN_PROGRESS' && <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-blue-100 text-blue-700">ĐANG XỬ LÝ</span>}
+                      {report.status === 'COMPLETED' && <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-green-100 text-green-700">ĐÃ XỬ LÝ</span>}
+                      {!['QUEUED', 'IN_PROGRESS', 'COMPLETED'].includes(report.status) && (
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700">{report.status}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500">
+                      {new Date(report.createdAt).toLocaleDateString('vi-VN')} {new Date(report.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center justify-center text-slate-400">
+                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+                        <Bug size={32} className="text-slate-300" />
+                      </div>
+                      <p className="text-sm font-semibold text-slate-600 mb-1">Chưa có dữ liệu báo cáo</p>
+                      <p className="text-xs text-slate-500">Dữ liệu sẽ được hiển thị khi API được tích hợp.</p>
                     </div>
-                    <p className="text-sm font-semibold text-slate-600 mb-1">Chưa có dữ liệu báo cáo</p>
-                    <p className="text-xs text-slate-500">Dữ liệu sẽ được hiển thị khi API được tích hợp.</p>
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-        
-        {/* Pagination placeholder */}
+
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between mt-auto">
-          <p className="text-xs font-semibold text-slate-500">
-            Hiển thị <span className="text-slate-800">0</span> báo cáo
-          </p>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold text-slate-500">
+                Hiển thị <span className="text-slate-800">{reports.length}</span> / {pageData?.totalElements || 0} báo cáo
+              </p>
+              <select
+                value={size}
+                onChange={(e) => {
+                  setSize(Number(e.target.value));
+                  setPage(0);
+                }}
+                className="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-red-500"
+              >
+                <option value={10}>10 dòng</option>
+                <option value={20}>20 dòng</option>
+                <option value={50}>50 dòng</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+              <p className="text-xs font-semibold text-slate-500">Sắp xếp:</p>
+              <select
+                value={sort[0]}
+                onChange={(e) => {
+                  setSort([e.target.value]);
+                  setPage(0);
+                }}
+                className="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-red-500"
+              >
+                <option value="createdAt,desc">Ngày tạo (Mới nhất)</option>
+                <option value="createdAt,asc">Ngày tạo (Cũ nhất)</option>
+                <option value="affectedPercent,desc">Mức độ ảnh hưởng (Cao nhất)</option>
+                <option value="affectedPercent,asc">Mức độ ảnh hưởng (Thấp nhất)</option>
+              </select>
+            </div>
+          </div>
+
           <div className="flex items-center gap-1">
-            <button disabled className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-400 opacity-50 cursor-not-allowed">
+            <button
+              disabled={page === 0}
+              onClick={() => setPage(p => p - 1)}
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+            >
               Trước
             </button>
-            <button disabled className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-400 opacity-50 cursor-not-allowed">
+            <span className="px-3 text-sm font-semibold text-slate-600">Trang {page + 1} / {pageData?.totalPages || 1}</span>
+            <button
+              disabled={!pageData || page >= pageData.totalPages - 1}
+              onClick={() => setPage(p => p + 1)}
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+            >
               Tiếp
             </button>
           </div>
         </div>
       </div>
+
+      <CreateDiseaseReportModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
     </div>
   );
 };
