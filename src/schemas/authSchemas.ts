@@ -4,7 +4,6 @@ import { z } from 'zod';
 export const loginSchema = z.object({
   email: z.string().min(1, 'Email là bắt buộc').email('Định dạng email không hợp lệ'),
   password: z.string().min(1, 'Mật khẩu là bắt buộc'),
-  rememberMe: z.boolean().optional(),
 });
 
 // Forgot Password Schema

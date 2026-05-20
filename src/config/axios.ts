@@ -69,8 +69,7 @@ axiosInstance.interceptors.request.use(
       config.url?.includes('/auth/refresh') ||
       config.url?.includes('/auth/verify');
 
-    const getFromStorage = (key: string) => localStorage.getItem(key) || sessionStorage.getItem(key);
-    const token = getFromStorage('accessToken');
+    const token = sessionStorage.getItem('accessToken');
 
     if (token && config.headers && !isPublicRoute && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -105,8 +104,7 @@ axiosInstance.interceptors.response.use(
         originalRequest._retry = true;
 
         try {
-          const getFromStorage = (key: string) => localStorage.getItem(key) || sessionStorage.getItem(key);
-          const refreshToken = getFromStorage('refreshToken');
+          const refreshToken = sessionStorage.getItem('refreshToken');
           if (!refreshToken) {
             throw new Error('No refresh token available');
           }
@@ -119,12 +117,8 @@ axiosInstance.interceptors.response.use(
           if (response.data.success) {
             const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
-            // 1. Cập nhật Storage (tự động chọn loại đang dùng)
-            const isRemembered = localStorage.getItem('rememberMe') === 'true';
-            const storage = isRemembered ? localStorage : sessionStorage;
-            
-            storage.setItem('accessToken', accessToken);
-            storage.setItem('refreshToken', newRefreshToken);
+            sessionStorage.setItem('accessToken', accessToken);
+            sessionStorage.setItem('refreshToken', newRefreshToken);
 
             // 2. Cập nhật Header cho request cũ
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -134,8 +128,6 @@ axiosInstance.interceptors.response.use(
           }
         } catch (refreshError) {
           // Nếu refresh thất bại, logout người dùng
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
           sessionStorage.removeItem('accessToken');
           sessionStorage.removeItem('refreshToken');
           window.location.href = '/login';
