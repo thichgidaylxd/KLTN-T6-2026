@@ -46,7 +46,7 @@ const UserManagementPage = lazy(() => import('../pages/Admin/UserManagementPage'
 const NotificationsPage = lazy(() => import('../pages/Notifications/NotificationsPage').then(module => ({ default: module.NotificationsPage })));
 const SoilProfilePage = lazy(() => import('../pages/SoilProfile/SoilProfilePage').then(module => ({ default: module.SoilProfilePage })));
 const PestDiseaseReportPage = lazy(() => import('../pages/Monitoring/PestDiseaseReportPage').then(module => ({ default: module.PestDiseaseReportPage })));
-
+const SeasonSummaryPage = lazy(() => import('../pages/Harvest/SeasonSummaryPage').then(module => ({ default: module.SeasonSummaryPage })));
 
 // Layouts
 const DashboardLayout = lazy(() => import('../layouts/DashboardLayout'));
@@ -98,6 +98,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="task" element={<Suspense fallback={<LoadingPage />}><TasksPage /></Suspense>} />
             <Route path="season-plans" element={<Suspense fallback={<LoadingPage />}><SeasonPlanListPage /></Suspense>} />
             <Route path="season-plans/:planId" element={<Suspense fallback={<LoadingPage />}><SeasonPlanPage /></Suspense>} />
+            <Route path="season-summary" element={<Suspense fallback={<LoadingPage />}><SeasonSummaryPage /></Suspense>} />
             <Route path="map" element={<Suspense fallback={<LoadingPage />}><MapPage /></Suspense>} />
             <Route path="land-plots" element={<Suspense fallback={<LoadingPage />}><LandPlotsPage /></Suspense>} />
             <Route path="members" element={<Suspense fallback={<LoadingPage />}><MembersPage /></Suspense>} />
