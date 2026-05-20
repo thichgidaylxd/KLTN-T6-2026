@@ -78,8 +78,9 @@ const authSlice = createSlice({
       } else {
         tokenStorage.remove(tokenStorage.KEYS.currentFarmId);
       }
-      // Farm token chỉ lưu vào sessionStorage (không cần persist vĩnh viễn)
-      sessionStorage.setItem(tokenStorage.KEYS.accessToken, action.payload.token);
+      // Ghi farm token vào đúng storage (localStorage nếu rememberMe, sessionStorage nếu không)
+      // Axios interceptor sẽ đọc đúng token này khi gọi API trong farm context
+      tokenStorage.set(tokenStorage.KEYS.accessToken, action.payload.token);
     },
 
     // Thoát farm - quay về Hub bằng cách khôi phục accessToken từ hubToken
