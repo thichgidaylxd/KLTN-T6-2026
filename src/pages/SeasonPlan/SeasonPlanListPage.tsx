@@ -304,7 +304,7 @@ export function SeasonPlanListPage() {
                     <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between mt-4">
                       <div className="flex items-center gap-2">
                         <div className="flex -space-x-1.5">
-                          {plan.phases.slice(0, 3).map((phase, idx) => {
+                          {(plan.phases || []).slice(0, 3).map((phase, idx) => {
                             const color = getStatusColor(phase.status);
                             return (
                               <div
@@ -316,9 +316,9 @@ export function SeasonPlanListPage() {
                               </div>
                             );
                           })}
-                          {plan.phases.length > 3 && (
+                          {(plan.phases || []).length > 3 && (
                             <div className="w-5 h-5 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-600">
-                              +{plan.phases.length - 3}
+                              +{(plan.phases || []).length - 3}
                             </div>
                           )}
                         </div>

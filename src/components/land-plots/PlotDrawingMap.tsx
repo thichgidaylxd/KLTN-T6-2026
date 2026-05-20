@@ -50,7 +50,7 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
   const containerRef = useRef<HTMLDivElement>(null)
 
   const [drawPts, setDrawPts] = useState<GeoPoint[]>([])
-  const [hoverPt, setHoverPt] = useState<GeoPoint | null>(null)
+  const hoverPolylineRef = useRef<google.maps.Polyline | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [overlappingPlotName, setOverlappingPlotName] = useState<string | null>(null)
   const [isSelfIntersect, setIsSelfIntersect] = useState(false)
@@ -93,7 +93,9 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
 
   const handleClear = useCallback(() => {
     setDrawPts([])
-    setHoverPt(null)
+    if (hoverPolylineRef.current) {
+      hoverPolylineRef.current.setPath([])
+    }
     setIsDrawing(false)
     setOverlappingPlotName(null)
     setIsSelfIntersect(false)
@@ -137,7 +139,9 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
     coords.push([...coords[0]])
     onGeometryChange({ type: 'Polygon', coordinates: [coords] }, area)
     setIsDrawing(false)
-    setHoverPt(null)
+    if (hoverPolylineRef.current) {
+      hoverPolylineRef.current.setPath([])
+    }
     setOverlappingPlotName(null)
   }, [drawPts, area, onGeometryChange])
 
@@ -149,7 +153,7 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
     const hasError = !!currentOverlap || currentSelf
 
     if (hasError) {
-      setDrawPts(prev => prev.slice(0, -1))
+      // Just ignore the click, do not delete the last point!
       return
     }
 
@@ -168,14 +172,100 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
   }, [isDrawing, drawPts, checkOverlap, finishDrawing])
 
   const handleMouseMove = useCallback((e: google.maps.MapMouseEvent) => {
-    if (!isDrawing || !e.latLng) return
-    const pt = { lat: e.latLng.lat(), lng: e.latLng.lng() }
-    setHoverPt(pt)
-    if (drawPts.length > 0) {
-      setOverlappingPlotName(checkOverlap(drawPts[drawPts.length - 1], pt))
-      setIsSelfIntersect(isSelfIntersecting([...drawPts, pt]))
+    if (!isDrawing || !e.latLng || drawPts.length === 0) return
+    const pt = e.latLng
+    const simplePt = { lat: pt.lat(), lng: pt.lng() }
+
+    if (hoverPolylineRef.current) {
+      hoverPolylineRef.current.setPath([
+        new google.maps.LatLng(drawPts[drawPts.length - 1].lat, drawPts[drawPts.length - 1].lng),
+        pt
+      ])
+
+      const currentOverlap = checkOverlap(drawPts[drawPts.length - 1], simplePt)
+      const currentSelf = isSelfIntersecting([...drawPts, simplePt])
+      const hasError = !!currentOverlap || currentSelf
+
+      hoverPolylineRef.current.setOptions({
+        strokeColor: hasError ? '#ef4444' : '#10b981'
+      })
+
+      if (hasError) {
+        if (!overlappingPlotName && currentOverlap) setOverlappingPlotName(currentOverlap)
+        if (!isSelfIntersect && currentSelf) setIsSelfIntersect(true)
+      } else {
+        if (overlappingPlotName) setOverlappingPlotName(null)
+        if (isSelfIntersect) setIsSelfIntersect(false)
+      }
     }
-  }, [isDrawing, drawPts, checkOverlap])
+  }, [isDrawing, drawPts, checkOverlap, overlappingPlotName, isSelfIntersect])
+
+  const handleMapRightClick = useCallback((e: google.maps.MapMouseEvent) => {
+    if (!isDrawing) return
+    setDrawPts(prev => {
+      if (prev.length === 0) return prev
+      const newPts = prev.slice(0, -1)
+      if (hoverPolylineRef.current) {
+        if (newPts.length > 0 && e.latLng) {
+          hoverPolylineRef.current.setPath([
+            new google.maps.LatLng(newPts[newPts.length - 1].lat, newPts[newPts.length - 1].lng),
+            e.latLng
+          ])
+        } else {
+          hoverPolylineRef.current.setPath([])
+        }
+      }
+      return newPts
+    })
+  }, [isDrawing])
+
+  useEffect(() => {
+    if (!isDrawing && hoverPolylineRef.current) {
+      hoverPolylineRef.current.setPath([])
+    }
+  }, [isDrawing])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isDrawing) return
+
+      const target = e.target as HTMLElement
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return
+      }
+
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault()
+        setDrawPts(prev => {
+          if (prev.length === 0) return prev
+          const newPts = prev.slice(0, -1)
+          if (hoverPolylineRef.current) {
+            if (newPts.length > 0) {
+              const path = hoverPolylineRef.current.getPath()
+              const currentHoverLatLng = path.getLength() > 1 ? path.getAt(1) : null
+              if (currentHoverLatLng) {
+                hoverPolylineRef.current.setPath([
+                  new google.maps.LatLng(newPts[newPts.length - 1].lat, newPts[newPts.length - 1].lng),
+                  currentHoverLatLng
+                ])
+              } else {
+                hoverPolylineRef.current.setPath([])
+              }
+            } else {
+              hoverPolylineRef.current.setPath([])
+            }
+          }
+          return newPts
+        })
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        handleClear()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isDrawing, handleClear])
 
   const center = useMemo(() => {
     if (initialGeometry?.coordinates?.[0]?.[0])
@@ -276,6 +366,7 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
           options={MAP_OPTIONS}
           onClick={handleMapClick}
           onMouseMove={handleMouseMove}
+          onRightClick={handleMapRightClick}
         >
           {/* Search Input Box (Only visible when isFullscreen is true) */}
           {isFullscreen && (
@@ -370,6 +461,7 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
           {drawPts.length >= 3 && (
             <Marker
               position={calculateCentroid(drawPts)}
+              clickable={false}
               icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 0 }}
               label={{
                 text: `${area.toFixed(4)} ha / ${drawPts.length} điểm`,
@@ -402,6 +494,7 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
                 />
                 <Marker
                   position={centroid}
+                  clickable={false}
                   icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 0 }}
                   label={{
                     text: plot.name || 'Lô đất',
@@ -421,12 +514,21 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
                 path={drawPts}
                 options={{ strokeColor: '#10b981', strokeWeight: 2, zIndex: 2, clickable: false }}
               />
-              {isDrawing && hoverPt && (
+              {isDrawing && (
                 <Polyline
-                  path={[drawPts[drawPts.length - 1], hoverPt]}
+                  onLoad={polyline => {
+                    hoverPolylineRef.current = polyline
+                  }}
+                  onUnmount={() => {
+                    hoverPolylineRef.current = null
+                  }}
+                  path={[]}
                   options={{
-                    strokeColor: errorMessage ? '#ef4444' : '#10b981',
-                    strokeWeight: 2, strokeOpacity: 0.5, zIndex: 2, clickable: false
+                    strokeColor: '#10b981',
+                    strokeWeight: 2,
+                    strokeOpacity: 0.5,
+                    zIndex: 2,
+                    clickable: false
                   }}
                 />
               )}
@@ -452,6 +554,45 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
             />
           )}
         </GoogleMap>
+
+        {isDrawing && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-2 rounded-xl shadow-xl border border-gray-100 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            {drawPts.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDrawPts(prev => {
+                      if (prev.length === 0) return prev
+                      const newPts = prev.slice(0, -1)
+                      if (hoverPolylineRef.current) {
+                        hoverPolylineRef.current.setPath([])
+                      }
+                      return newPts
+                    })
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 border border-gray-200/50"
+                  title="Hoàn tác điểm vừa vẽ (Chuột phải hoặc Backspace)"
+                >
+                  <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                  </svg>
+                  Hoàn tác điểm
+                </button>
+                <div className="w-px h-4 bg-gray-200" />
+              </>
+            )}
+            <button
+              type="button"
+              onClick={handleClear}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 border border-red-100"
+              title="Xóa toàn bộ bản vẽ hiện tại (Esc)"
+            >
+              <Trash2 size={13} />
+              Xóa bản vẽ
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -5,6 +5,7 @@ import { PlotDrawingMap, PlotDrawingMapHandle } from './PlotDrawingMap'
 import { createPlotSchema } from '@/schemas/plotSchemas'
 import { cn } from '@/utils/cn'
 
+
 interface CreatePlotModalProps {
   isOpen: boolean
   onClose: () => void
@@ -51,13 +52,8 @@ export function CreatePlotModal({
       return
     }
 
-    const isDuplicate = existingPlots.some(
-      (p) => p.name.toLowerCase() === name.trim().toLowerCase(),
-    )
-    if (isDuplicate && !warning) {
-      setWarning('Tên lô đất này đã tồn tại. Nhấn Lưu lần nữa để xác nhận.')
-      return
-    }
+
+  
 
     onSave({
       plotName: validation.data.name,

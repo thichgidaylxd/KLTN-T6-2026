@@ -262,6 +262,34 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
     }
   }, [isDrawing, onOverlapChange])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isDrawing || isEditing) return
+      
+      const target = e.target as HTMLElement
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return
+      }
+
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault()
+        onPathChange(currentPath.slice(0, -1))
+      }
+    }
+
+    if (isDrawing && !isEditing) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isDrawing, isEditing, currentPath, onPathChange])
+
+  const handleMapRightClick = useCallback(() => {
+    if (!isDrawing || isEditing) return
+    onPathChange(currentPath.slice(0, -1))
+  }, [isDrawing, isEditing, currentPath, onPathChange])
+
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     editListenersRef.current.forEach(l => l.remove())
@@ -375,6 +403,7 @@ export const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap(
       onClick={handleMapClick}
       onMouseMove={handleMapMouseMove}
       onDblClick={handleMapDblClick}
+      onRightClick={handleMapRightClick}
     >
       {/* ── 1. Tất cả lô đất ── */}
       {plots.map((plot) => {

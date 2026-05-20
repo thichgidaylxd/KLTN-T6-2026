@@ -6,7 +6,7 @@ import { useWarehouses } from '@/hooks/warehouses/useWarehouses';
 import { Plot, GeoPoint, Geometry } from '../../types/plot';
 import { Warehouse } from '../../types/warehouse/warehouse';
 import { toast } from 'sonner';
-import { ArrowLeft, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, Map as MapIcon, Search, X } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 
 import { FarmMap, FarmMapHandle } from '@/components/map/FarmMap';
@@ -42,6 +42,34 @@ export function MapPage() {
   const farmMapRef = useRef<FarmMapHandle>(null);
   const pathToSaveRef = useRef<GeoPoint[]>([]);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+
+  const [mapSearchQuery, setMapSearchQuery] = useState('');
+  const [mapSuggestions, setMapSuggestions] = useState<any[]>([]);
+  const [mapShowDropdown, setMapShowDropdown] = useState(false);
+  const [mapIsSearching, setMapIsSearching] = useState(false);
+  const mapIsSelectingRef = useRef(false);
+
+  useEffect(() => {
+    if (!mapSearchQuery.trim()) {
+      setMapSuggestions([]);
+      setMapShowDropdown(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        setMapIsSearching(true);
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(mapSearchQuery)}&limit=5&accept-language=vi&email=kltn.vietnam.student@gmail.com`
+        );
+        const data = await res.json();
+        setMapSuggestions(data);
+        setMapShowDropdown(true);
+      } catch { /* ignore */ } finally {
+        setMapIsSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [mapSearchQuery]);
 
   // Callback ổn định để nhận mapInstance từ FarmMap sau khi load
   const handleMapLoad = useCallback((map: google.maps.Map) => {
@@ -228,6 +256,18 @@ export function MapPage() {
     pathToSaveRef.current = [];
   };
 
+  const handleUndoDrawingPoint = () => {
+    setCurrentPath(prev => {
+      if (prev.length === 0) return prev;
+      return prev.slice(0, -1);
+    });
+  };
+
+  const handleClearDrawingPath = () => {
+    setCurrentPath([]);
+    setOverlappingPlotName(null);
+  };
+
   const handleStartDrawing = (plot: Plot) => {
     setSelectedPlot(plot);
     setMode('drawing');
@@ -372,10 +412,12 @@ export function MapPage() {
         mapInstance={mapInstance}
         isOverlapping={!!overlappingPlotName}
       >
-        <div 
-          className="absolute top-4 left-4 z-20 w-72 rounded-2xl border border-gray-200 shadow-xl overflow-hidden"
-          style={{ maxHeight: 'calc(100% - 2rem)' }}
-        >
+        {({ isFullscreen }) => (
+          <>
+            <div 
+              className="absolute top-4 left-4 z-20 w-72 rounded-2xl border border-gray-200 shadow-xl overflow-hidden"
+              style={{ maxHeight: 'calc(100% - 2rem)' }}
+            >
           <MapSidebar
             plots={plots}
             warehouses={warehouses}
@@ -415,7 +457,80 @@ export function MapPage() {
           onCancel={handleCancelDrawing}
           canSave={currentPath.length >= 3}
           overlappingPlotName={overlappingPlotName}
+          onUndo={handleUndoDrawingPoint}
+          onClear={handleClearDrawingPath}
+          canUndo={currentPath.length > 0}
         />
+        {/* Search box — hiện khi toàn màn hình */}
+        {isFullscreen && (
+          <div className="absolute top-3 right-4 z-20 w-[220px] sm:w-[260px]">
+            <div className="relative shadow-md rounded-xl border border-gray-200 bg-white/95 backdrop-blur-md">
+              <input
+                type="text"
+                value={mapSearchQuery}
+                onChange={(e) => setMapSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm địa chỉ..."
+                className="w-full h-9 pl-9 pr-9 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all rounded-xl"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (mapSuggestions.length > 0) {
+                      const first = mapSuggestions[0];
+                      const coords = { lat: parseFloat(first.lat), lng: parseFloat(first.lon) };
+                      mapInstance?.setCenter(coords);
+                      mapInstance?.setZoom(17);
+                      setMapSearchQuery(first.display_name);
+                      setMapShowDropdown(false);
+                    }
+                  }
+                }}
+                onFocus={() => { if (mapSuggestions.length > 0) setMapShowDropdown(true); }}
+                onBlur={() => { if (!mapIsSelectingRef.current) setMapShowDropdown(false); }}
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+              {mapIsSearching ? (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-emerald-500 border-t-transparent" />
+                </div>
+              ) : mapSearchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => { setMapSearchQuery(''); setMapSuggestions([]); setMapShowDropdown(false); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={13} />
+                </button>
+              ) : null}
+
+              {mapShowDropdown && mapSuggestions.length > 0 && (
+                <div
+                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl max-h-48 overflow-y-auto z-50 py-1 divide-y divide-gray-50"
+                  onMouseDown={() => { mapIsSelectingRef.current = true; }}
+                  onMouseUp={() => { mapIsSelectingRef.current = false; }}
+                >
+                  {mapSuggestions.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        const coords = { lat: parseFloat(item.lat), lng: parseFloat(item.lon) };
+                        mapInstance?.setCenter(coords);
+                        mapInstance?.setZoom(17);
+                        setMapSearchQuery(item.display_name);
+                        setMapShowDropdown(false);
+                        mapIsSelectingRef.current = false;
+                      }}
+                      className="w-full text-left px-3 py-2 text-[11px] text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors truncate font-semibold"
+                      title={item.display_name}
+                    >
+                      {item.display_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <BoundaryConfirmDialog
           isOpen={isConfirmOpen}
@@ -456,6 +571,8 @@ export function MapPage() {
           onSave={handleUpdatePlotInfo}
           plot={editingPlot}
         />
+          </>
+        )}
       </MapCanvas>
     </div>
   );
