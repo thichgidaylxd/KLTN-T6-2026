@@ -33,7 +33,7 @@ export function useLogin() {
       if (response.success && response.data.accessToken) {
         dispatch(loginSuccess({ 
           ...response.data, 
-          rememberMe: data.rememberMe 
+          rememberMe: data.rememberMe ?? true   // mặc định ghi nhớ nếu không xác định được
         }));
 
         const roles = getRolesFromToken(response.data.accessToken);

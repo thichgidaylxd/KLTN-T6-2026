@@ -21,14 +21,18 @@ export const useMembers = () => {
     queryKey: farmId ? MEMBER_KEYS.members(farmId) : ['members', 'inactive'],
     queryFn: async () => (await memberService.getMembers(farmId as string)).data ?? [],
     enabled: !!farmId,
-    refetchInterval: 30000, // Tự động cập nhật mỗi 30 giây
+    staleTime: 0,                  // Luôn coi data là stale → refetch ngay khi focus
+    refetchOnWindowFocus: true,    // Tự động refetch khi người dùng quay lại tab
+    refetchInterval: 10000,        // Poll mỗi 10 giây để bắt kịp thay đổi từ phía người được mời
   });
 
   const invitationsQuery = useQuery({
     queryKey: farmId ? MEMBER_KEYS.invitations(farmId) : ['members', 'invitations', 'inactive'],
     queryFn: async () => (await memberService.getInvitations(farmId as string)).data ?? [],
     enabled: !!farmId,
-    refetchInterval: 30000, // Tự động cập nhật mỗi 30 giây
+    staleTime: 0,                  // Luôn coi data là stale → refetch ngay khi focus
+    refetchOnWindowFocus: true,    // Tự động refetch khi người dùng quay lại tab
+    refetchInterval: 10000,        // Poll mỗi 10 giây để bắt kịp thay đổi từ phía người được mời
   });
 
   const inviteMutation = useMutation({

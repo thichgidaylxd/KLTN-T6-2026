@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Loader2, CheckCircle2, XCircle, Eye, EyeOff, Sprout } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, Eye, EyeOff, Sprout, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { loginSchema } from '../../schemas/authSchemas'
 import { useDispatch } from 'react-redux'
-import { loginSuccess } from '../../store/authSlice'
+import { loginSuccess, clearFarmContext } from '../../store/authSlice'
 import { authService } from '../../services/auth/authService'
 import { farmInvitationService } from '../../services/farm/farmInvitationService'
 import { extractErrorMessage } from '../../utils/errorUtils'
+import { getUserFromToken } from '../../utils/jwt'
+import { tokenStorage } from '../../utils/tokenStorage'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
 
 type Phase = 'loading' | 'login-required' | 'accepting' | 'success' | 'error'
@@ -34,6 +36,7 @@ export function AcceptInvitationPage() {
     const [phase, setPhase] = useState<Phase>('loading')
     const [invitation, setInvitation] = useState<InvitationInfo | null>(null)
     const [errorMsg, setErrorMsg] = useState('')
+    const [emailMismatch, setEmailMismatch] = useState(false)
 
     // Login form
     const [email, setEmail] = useState('')
@@ -66,23 +69,51 @@ export function AcceptInvitationPage() {
                 setInvitation(preview)
                 setEmail(preview.email)
 
-                // Kiểm tra đã login chưa
-                const token = sessionStorage.getItem('accessToken')
-                if (token) {
+                // Ưu tiên dùng hubToken để lấy đúng identity của người dùng.
+                // accessToken có thể là farm token (khi đang trong farm), không chứa email.
+                // Dùng tokenStorage.get() để hỗ trợ cả localStorage (rememberMe) và sessionStorage.
+                const hubToken = tokenStorage.get(tokenStorage.KEYS.hubToken)
+                const accessToken = tokenStorage.get(tokenStorage.KEYS.accessToken)
+                const effectiveToken = hubToken || accessToken
+
+                if (effectiveToken) {
+                    // Giải mã token để lấy email người đang đăng nhập
+                    const currentUser = getUserFromToken(effectiveToken)
+                    const loggedEmail = currentUser?.email?.toLowerCase().trim() ?? ''
+                    const invitedEmail = preview.email?.toLowerCase().trim() ?? ''
+
+                    // Nếu email không khớp với email được mời → yêu cầu đăng nhập đúng tài khoản
+                    if (loggedEmail && invitedEmail && loggedEmail !== invitedEmail) {
+                        if (!isMounted) return;
+                        setEmailMismatch(true)
+                        setPhase('login-required')
+                        return
+                    }
+
                     if (hasAcceptedRef.current) return;
                     hasAcceptedRef.current = true;
-                    
+
+                    // Nếu đang trong farm context, cần clear trước để API accept dùng hub token
+                    const currentFarmId = tokenStorage.get(tokenStorage.KEYS.currentFarmId)
+                    if (currentFarmId && currentFarmId !== 'null') {
+                        dispatch(clearFarmContext())
+                        // Đợi một tick để Redux cập nhật xong
+                        await new Promise(resolve => setTimeout(resolve, 50))
+                    }
+
                     setPhase('accepting')
                     try {
                         await acceptMutation.mutateAsync(invitationId as string)
                         if (!isMounted) return;
+                        queryClient.invalidateQueries()
                         setPhase('success')
                         toast.success('Đã chấp nhận lời mời thành công')
-                        setTimeout(() => navigate('/farms'), 3000)
+                        setTimeout(() => navigate('/farms', { replace: true }), 3000)
                     } catch (err: unknown) {
                         if (!isMounted) return;
                         setErrorMsg(extractErrorMessage(err))
                         setPhase('error')
+                        hasAcceptedRef.current = false;
                     }
                 } else {
                     setPhase('login-required')
@@ -99,7 +130,7 @@ export function AcceptInvitationPage() {
         return () => {
             isMounted = false;
         }
-    }, [invitationId, navigate]); // Removed acceptMutation from dependencies to be safe
+    }, [invitationId, navigate, dispatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -113,6 +144,12 @@ export function AcceptInvitationPage() {
 
         try {
             setIsLoggingIn(true)
+
+            // Nếu email mismatch, cần xóa session cũ trước khi đăng nhập tài khoản mới
+            if (emailMismatch) {
+                tokenStorage.clear()
+            }
+
             const response = await authService.login({ email, password })
 
             if (response.success && response.data.accessToken) {
@@ -125,9 +162,10 @@ export function AcceptInvitationPage() {
                 setPhase('accepting')
                 try {
                     await acceptMutation.mutateAsync(invitationId as string)
+                    queryClient.invalidateQueries()
                     setPhase('success')
                     toast.success('Đã chấp nhận lời mời thành công')
-                    setTimeout(() => navigate('/farms'), 3000)
+                    setTimeout(() => navigate('/farms', { replace: true }), 3000)
                 } catch (err: unknown) {
                     setErrorMsg(extractErrorMessage(err))
                     setPhase('error')
@@ -246,10 +284,24 @@ export function AcceptInvitationPage() {
                         {/* Login form */}
                         <form onSubmit={handleLogin} className="px-6 py-5 flex flex-col gap-4">
                             <div>
-                                <p className="text-[13px] font-medium text-[#1a1a18] mb-1">Đăng nhập để tiếp tục</p>
-                                <p className="text-[12px] text-[#8a8a7a]">
-                                    Sau khi đăng nhập, bạn sẽ được thêm vào trang trại tự động.
-                                </p>
+                                {emailMismatch ? (
+                                    <div className="flex items-start gap-2 p-3 bg-[#fff8f0] border border-[#f5c06a] rounded-xl mb-1">
+                                        <AlertTriangle className="w-4 h-4 text-[#b97c20] flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-[12px] font-medium text-[#7a4e10]">Tài khoản không khớp</p>
+                                            <p className="text-[11px] text-[#9a6620] mt-0.5">
+                                                Lời mời dành cho <span className="font-semibold">{invitation.email}</span>. Vui lòng đăng nhập bằng đúng tài khoản được mời.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p className="text-[13px] font-medium text-[#1a1a18] mb-1">Đăng nhập để tiếp tục</p>
+                                        <p className="text-[12px] text-[#8a8a7a]">
+                                            Sau khi đăng nhập, bạn sẽ được thêm vào trang trại tự động.
+                                        </p>
+                                    </>
+                                )}
                             </div>
 
                             <div className="flex flex-col gap-3">

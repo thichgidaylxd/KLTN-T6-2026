@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { AuthTokens } from '../types/auth';
+import { tokenStorage } from '../utils/tokenStorage';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -9,48 +10,54 @@ interface AuthState {
   subscriptionVersion: number;
 }
 
-const getFromStorage = (key: string) => localStorage.getItem(key) || sessionStorage.getItem(key);
-
+// Đọc token từ đúng storage khi khởi động — hỗ trợ cả localStorage (rememberMe) và sessionStorage
 const initialState: AuthState = {
-  isAuthenticated: !!getFromStorage('accessToken'),
-  accessToken: getFromStorage('accessToken'),
-  hubToken: getFromStorage('hubToken'),
-  currentFarmId: getFromStorage('currentFarmId') === 'null' ? null : getFromStorage('currentFarmId'),
-  subscriptionVersion: 0
+  isAuthenticated: !!tokenStorage.get(tokenStorage.KEYS.accessToken),
+  accessToken: tokenStorage.get(tokenStorage.KEYS.accessToken),
+  hubToken: tokenStorage.get(tokenStorage.KEYS.hubToken),
+  currentFarmId: (() => {
+    const v = tokenStorage.get(tokenStorage.KEYS.currentFarmId);
+    return v === 'null' || v === null ? null : v;
+  })(),
+  subscriptionVersion: 0,
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    /**
+     * loginSuccess — được gọi sau khi đăng nhập thành công.
+     * Hỗ trợ payload mở rộng với `rememberMe?: boolean`.
+     */
     loginSuccess: (state, action: PayloadAction<AuthTokens & { rememberMe?: boolean }>) => {
       state.isAuthenticated = true;
       state.accessToken = action.payload.accessToken;
       state.hubToken = action.payload.accessToken;
+      // Khi đăng nhập mới, xóa farm context cũ
+      state.currentFarmId = null;
 
-      const storage = action.payload.rememberMe ? localStorage : sessionStorage;
-      
-      storage.setItem('accessToken', action.payload.accessToken);
-      storage.setItem('hubToken', action.payload.accessToken);
-      storage.setItem('refreshToken', action.payload.refreshToken);
-      // Nếu ghi nhớ, hãy lưu luôn trạng thái này
-      if (action.payload.rememberMe) {
-        localStorage.setItem('rememberMe', 'true');
-      }
+      tokenStorage.saveSession({
+        accessToken: action.payload.accessToken,
+        refreshToken: action.payload.refreshToken,
+        rememberMe: action.payload.rememberMe ?? false,
+      });
+      // Xóa farm context cũ
+      tokenStorage.remove(tokenStorage.KEYS.currentFarmId);
     },
 
-    setCredentials: (state, action: PayloadAction<AuthTokens>) => {
+    setCredentials: (state, action: PayloadAction<AuthTokens & { rememberMe?: boolean }>) => {
       state.isAuthenticated = true;
       state.accessToken = action.payload.accessToken;
       state.hubToken = action.payload.accessToken;
+      state.currentFarmId = null;
 
-      // Giữ nguyên loại storage hiện tại đang dùng
-      const isRemembered = localStorage.getItem('rememberMe') === 'true';
-      const storage = isRemembered ? localStorage : sessionStorage;
-
-      storage.setItem('accessToken', action.payload.accessToken);
-      storage.setItem('hubToken', action.payload.accessToken);
-      storage.setItem('refreshToken', action.payload.refreshToken);
+      tokenStorage.saveSession({
+        accessToken: action.payload.accessToken,
+        refreshToken: action.payload.refreshToken,
+        rememberMe: action.payload.rememberMe ?? false,
+      });
+      tokenStorage.remove(tokenStorage.KEYS.currentFarmId);
     },
 
     logout: (state) => {
@@ -58,8 +65,7 @@ const authSlice = createSlice({
       state.accessToken = null;
       state.hubToken = null;
       state.currentFarmId = null;
-      localStorage.clear();
-      sessionStorage.clear();
+      tokenStorage.clear();
     },
 
     // Chọn farm - lưu farmToken làm accessToken hiện tại
@@ -67,42 +73,39 @@ const authSlice = createSlice({
       state.currentFarmId = action.payload.currentFarmId;
       state.accessToken = action.payload.token;
 
-      const storage = localStorage.getItem('rememberMe') === 'true' ? localStorage : sessionStorage;
-
       if (action.payload.currentFarmId) {
-        storage.setItem('currentFarmId', action.payload.currentFarmId);
+        tokenStorage.set(tokenStorage.KEYS.currentFarmId, action.payload.currentFarmId);
       } else {
-        storage.removeItem('currentFarmId');
+        tokenStorage.remove(tokenStorage.KEYS.currentFarmId);
       }
-      storage.setItem('accessToken', action.payload.token);
+      // Ghi farm token vào đúng storage (localStorage nếu rememberMe, sessionStorage nếu không)
+      // Axios interceptor sẽ đọc đúng token này khi gọi API trong farm context
+      tokenStorage.set(tokenStorage.KEYS.accessToken, action.payload.token);
     },
 
     // Thoát farm - quay về Hub bằng cách khôi phục accessToken từ hubToken
     clearFarmContext: (state) => {
       state.currentFarmId = null;
-      const storage = localStorage.getItem('rememberMe') === 'true' ? localStorage : sessionStorage;
       if (state.hubToken) {
         state.accessToken = state.hubToken;
-        storage.setItem('accessToken', state.hubToken);
+        tokenStorage.set(tokenStorage.KEYS.accessToken, state.hubToken);
       }
-      storage.removeItem('currentFarmId');
+      tokenStorage.remove(tokenStorage.KEYS.currentFarmId);
     },
 
     setAccessToken: (state, action: PayloadAction<{ token: string; farmId?: string }>) => {
       state.accessToken = action.payload.token;
-      const storage = localStorage.getItem('rememberMe') === 'true' ? localStorage : sessionStorage;
-      storage.setItem('accessToken', action.payload.token);
+      tokenStorage.set(tokenStorage.KEYS.accessToken, action.payload.token);
 
       if (action.payload.farmId) {
         state.currentFarmId = action.payload.farmId;
-        storage.setItem('currentFarmId', action.payload.farmId);
+        tokenStorage.set(tokenStorage.KEYS.currentFarmId, action.payload.farmId);
       } else {
         // Nếu setAccessToken không kèm farmId, coi như đây là hub token mới
         state.hubToken = action.payload.token;
-        storage.setItem('hubToken', action.payload.token);
+        tokenStorage.set(tokenStorage.KEYS.hubToken, action.payload.token);
       }
     },
-
 
     refreshSubscription: (state) => {
       state.subscriptionVersion += 1;

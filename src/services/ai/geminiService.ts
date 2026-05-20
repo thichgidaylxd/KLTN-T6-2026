@@ -2,9 +2,10 @@
 import { axiosInstance } from '@/config/axios';
 import { ApiResponse } from '@/types/auth';
 import { TaskSuggestion } from '@/types/ai';
+import { tokenStorage } from '@/utils/tokenStorage';
 
 const farmHeaders = () => {
-  const farmToken = sessionStorage.getItem('accessToken');
+  const farmToken = tokenStorage.get(tokenStorage.KEYS.accessToken);
   return farmToken ? { 'X-Farm-Token': farmToken } : {};
 };
 

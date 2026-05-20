@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { ENV } from './env';
+import { tokenStorage } from '../utils/tokenStorage';
 
 
 export const axiosInstance = axios.create({
@@ -69,8 +70,8 @@ axiosInstance.interceptors.request.use(
       config.url?.includes('/auth/refresh') ||
       config.url?.includes('/auth/verify');
 
-    const getFromStorage = (key: string) => localStorage.getItem(key) || sessionStorage.getItem(key);
-    const token = getFromStorage('accessToken');
+    // Đọc từ đúng storage (localStorage nếu rememberMe, sessionStorage nếu không)
+    const token = tokenStorage.get(tokenStorage.KEYS.accessToken);
 
     if (token && config.headers && !isPublicRoute && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -105,8 +106,8 @@ axiosInstance.interceptors.response.use(
         originalRequest._retry = true;
 
         try {
-          const getFromStorage = (key: string) => localStorage.getItem(key) || sessionStorage.getItem(key);
-          const refreshToken = getFromStorage('refreshToken');
+          // Đọc từ đúng storage (hỗ trợ cả localStorage lẫn sessionStorage)
+          const refreshToken = tokenStorage.get(tokenStorage.KEYS.refreshToken);
           if (!refreshToken) {
             throw new Error('No refresh token available');
           }
@@ -119,12 +120,9 @@ axiosInstance.interceptors.response.use(
           if (response.data.success) {
             const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
-            // 1. Cập nhật Storage (tự động chọn loại đang dùng)
-            const isRemembered = localStorage.getItem('rememberMe') === 'true';
-            const storage = isRemembered ? localStorage : sessionStorage;
-            
-            storage.setItem('accessToken', accessToken);
-            storage.setItem('refreshToken', newRefreshToken);
+            // Ghi token mới vào đúng storage
+            tokenStorage.set(tokenStorage.KEYS.accessToken, accessToken);
+            tokenStorage.set(tokenStorage.KEYS.refreshToken, newRefreshToken);
 
             // 2. Cập nhật Header cho request cũ
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -134,10 +132,7 @@ axiosInstance.interceptors.response.use(
           }
         } catch (refreshError) {
           // Nếu refresh thất bại, logout người dùng
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          sessionStorage.removeItem('accessToken');
-          sessionStorage.removeItem('refreshToken');
+          tokenStorage.clear();
           window.location.href = '/login';
           return Promise.reject(refreshError);
         }
