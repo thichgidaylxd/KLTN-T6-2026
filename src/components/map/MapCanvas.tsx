@@ -6,7 +6,7 @@ import { GeoPoint } from '@/types/plot';
 import { FarmMapHandle } from './FarmMap';
 
 interface Props {
-  children: ReactNode;
+  children: ReactNode | ((props: { isFullscreen: boolean }) => ReactNode);
   /** Trạng thái đang vẽ ranh giới — dùng cho Canvas Overlay */
   isDrawing?: boolean;
   /** Các điểm đã đặt */
@@ -36,7 +36,7 @@ export function MapCanvas({
       className="flex-1 w-full rounded-2xl border border-gray-100 overflow-hidden relative shadow-inner m-4 mt-2 bg-gray-900"
       style={isFullscreen ? { margin: 0, borderRadius: 0, border: 'none' } : undefined}
     >
-      {children}
+      {typeof children === 'function' ? children({ isFullscreen }) : children}
 
       {/* ── Canvas API Overlay — vẽ animation khi đang vẽ ranh giới ── */}
       <CanvasOverlay

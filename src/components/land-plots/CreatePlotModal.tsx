@@ -4,7 +4,7 @@ import { Plot, Geometry } from '@/types/plot'
 import { PlotDrawingMap, PlotDrawingMapHandle } from './PlotDrawingMap'
 import { createPlotSchema } from '@/schemas/plotSchemas'
 import { cn } from '@/utils/cn'
-import { getPlotPath, polygonsOverlap } from '@/utils/plotUtils'
+
 
 interface CreatePlotModalProps {
   isOpen: boolean
@@ -52,26 +52,8 @@ export function CreatePlotModal({
       return
     }
 
-    // Kiểm tra chồng lấn ranh giới với các lô đất hiện có
-    if (geometry?.type === 'Polygon') {
-      const newPath = getPlotPath({ geometry })
-      const overlapPlot = existingPlots.find(p => {
-        const path = getPlotPath(p)
-        return polygonsOverlap(newPath, path)
-      })
-      if (overlapPlot) {
-        setError(`Ranh giới lô đất bị chồng lấn với lô đất "${overlapPlot.name}". Vui lòng vẽ lại.`)
-        return
-      }
-    }
 
-    const isDuplicate = existingPlots.some(
-      (p) => p.name.toLowerCase() === name.trim().toLowerCase(),
-    )
-    if (isDuplicate && !warning) {
-      setWarning('Tên lô đất này đã tồn tại. Nhấn Lưu lần nữa để xác nhận.')
-      return
-    }
+  
 
     onSave({
       plotName: validation.data.name,

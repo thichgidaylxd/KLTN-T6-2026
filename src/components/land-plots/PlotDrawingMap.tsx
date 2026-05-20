@@ -228,6 +228,12 @@ export const PlotDrawingMap = forwardRef<PlotDrawingMapHandle, PlotDrawingMapPro
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isDrawing) return
+
+      const target = e.target as HTMLElement
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return
+      }
+
       if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault()
         setDrawPts(prev => {
