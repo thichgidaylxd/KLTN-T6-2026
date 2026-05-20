@@ -41,6 +41,7 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
     getCropConditionByCrop, 
     getCropStageByCrop, 
     getDiseasesByCrop, 
+    createCropCondition,
     deleteCropCondition,
     removeDiseaseFromCrop,
     updateCropStage,
@@ -74,6 +75,18 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
   const [selectedDiseaseId, setSelectedDiseaseId] = useState<string>('');
   const [isDiseaseFormOpen, setIsDiseaseFormOpen] = useState(false);
   const [diseaseLoading, setDiseaseLoading] = useState(false);
+
+  const [isEditingCondition, setIsEditingCondition] = useState(false);
+  const [conditionForm, setConditionForm] = useState({
+    phMin: '',
+    phMax: '',
+    nMin: '',
+    nMax: '',
+    pMin: '',
+    pMax: '',
+    kMin: '',
+    kMax: ''
+  });
 
   useEffect(() => {
     if (activeTab === 'diseases' && isOpen) {
@@ -120,6 +133,67 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
       fetchDetail();
     }
   }, [isOpen, cropId, isFarmScope, currentFarmId]);
+
+  const handleStartAddCondition = () => {
+    setConditionForm({
+      phMin: '',
+      phMax: '',
+      nMin: '',
+      nMax: '',
+      pMin: '',
+      pMax: '',
+      kMin: '',
+      kMax: ''
+    });
+    setIsEditingCondition(true);
+  };
+
+  const handleSaveCondition = async () => {
+    if (!cropId) return;
+    
+    const phMin = parseFloat(conditionForm.phMin);
+    const phMax = parseFloat(conditionForm.phMax);
+    const nMin = parseFloat(conditionForm.nMin);
+    const nMax = parseFloat(conditionForm.nMax);
+    const pMin = parseFloat(conditionForm.pMin);
+    const pMax = parseFloat(conditionForm.pMax);
+    const kMin = parseFloat(conditionForm.kMin);
+    const kMax = parseFloat(conditionForm.kMax);
+
+    if (
+      isNaN(phMin) || isNaN(phMax) ||
+      isNaN(nMin) || isNaN(nMax) ||
+      isNaN(pMin) || isNaN(pMax) ||
+      isNaN(kMin) || isNaN(kMax)
+    ) {
+      alert('Vui lòng điền đầy đủ và đúng định dạng các trường số.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await createCropCondition(cropId, {
+        phMin, phMax,
+        nMin, nMax,
+        pMin, pMax,
+        kMin, kMax
+      });
+
+      // Gọi lại API lấy điều kiện để đồng bộ ID mới nhất từ backend
+      const updatedSoil = await getCropConditionByCrop(cropId).catch(() => null);
+
+      setExtraData((prev: any) => ({
+        ...prev,
+        soil: updatedSoil || (res as any)?.data || { id: (res as any)?.data?.id || String(Date.now()), phMin, phMax, nMin, nMax, pMin, pMax, kMin, kMax }
+      }));
+      setIsEditingCondition(false);
+    } catch (err: any) {
+      console.error('Lỗi khi thiết lập điều kiện lý hóa:', err);
+      alert(err.message || 'Có lỗi xảy ra khi thiết lập điều kiện lý hóa');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDeleteCondition = async () => {
     if (!cropId || !extraData?.soil?.id) return;
@@ -541,7 +615,122 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
 
               {activeTab === 'soil' && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  {extraData.soil ? (
+                  {isEditingCondition ? (
+                    <div className="space-y-6 bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
+                      <h3 className="text-sm font-bold text-slate-800">
+                        Thiết lập điều kiện lý hóa mới
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* pH */}
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold text-slate-500 uppercase">pH</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              step="0.1"
+                              placeholder="Min (ví dụ: 5.5)"
+                              value={conditionForm.phMin}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, phMin: e.target.value }))}
+                              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                            />
+                            <span className="text-slate-400 font-bold">-</span>
+                            <input
+                              type="number"
+                              step="0.1"
+                              placeholder="Max (ví dụ: 7.0)"
+                              value={conditionForm.phMax}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, phMax: e.target.value }))}
+                              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Nitơ (N) */}
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold text-slate-500 uppercase">Nitơ (N) (mg/kg)</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              placeholder="Min"
+                              value={conditionForm.nMin}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, nMin: e.target.value }))}
+                              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                            />
+                            <span className="text-slate-400 font-bold">-</span>
+                            <input
+                              type="number"
+                              placeholder="Max"
+                              value={conditionForm.nMax}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, nMax: e.target.value }))}
+                              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Phốt pho (P) */}
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold text-slate-500 uppercase">Phốt pho (P) (mg/kg)</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              placeholder="Min"
+                              value={conditionForm.pMin}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, pMin: e.target.value }))}
+                              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                            />
+                            <span className="text-slate-400 font-bold">-</span>
+                            <input
+                              type="number"
+                              placeholder="Max"
+                              value={conditionForm.pMax}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, pMax: e.target.value }))}
+                              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Kali (K) */}
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold text-slate-500 uppercase">Kali (K) (mg/kg)</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              placeholder="Min"
+                              value={conditionForm.kMin}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, kMin: e.target.value }))}
+                              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                            />
+                            <span className="text-slate-400 font-bold">-</span>
+                            <input
+                              type="number"
+                              placeholder="Max"
+                              value={conditionForm.kMax}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, kMax: e.target.value }))}
+                              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingCondition(false)}
+                          className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest transition-colors"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveCondition}
+                          className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-colors"
+                        >
+                          Lưu thiết lập
+                        </button>
+                      </div>
+                    </div>
+                  ) : extraData.soil ? (
                     <div className="space-y-6">
                       <div className="flex justify-end">
                         <button 
@@ -571,7 +760,15 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-slate-400 font-medium">Chưa có cấu hình điều kiện đất.</div>
+                    <div className="text-center py-12 space-y-4">
+                      <div className="text-slate-400 font-medium">Chưa có cấu hình điều kiện lý hóa của đất cho giống cây này.</div>
+                      <button
+                        onClick={handleStartAddCondition}
+                        className="px-6 py-3 bg-green-600 text-white hover:bg-green-700 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-md hover:shadow-lg"
+                      >
+                        + Thiết lập điều kiện lý hóa
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
