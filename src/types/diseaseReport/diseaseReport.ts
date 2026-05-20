@@ -26,6 +26,7 @@ export interface DiseaseReportResponse {
   locationNotes: string;
   affectedPercent: number;
   description: string;
+  imageUrl?: string | null;
   createdAt: string;
 }
 

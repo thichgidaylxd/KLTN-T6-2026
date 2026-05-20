@@ -1,18 +1,22 @@
 import React from 'react';
 import {
   Bug,
-  Plus
+  Plus,
+  ChevronRight
 } from 'lucide-react';
 
 import { useDiseaseReports } from '@/hooks/diseaseReport/useDiseaseReports';
 import { Loader2 } from 'lucide-react';
 import { CreateDiseaseReportModal } from './CreateDiseaseReportModal';
+import { DiseaseReportDetailModal } from './DiseaseReportDetailModal';
+import type { DiseaseReportResponse } from '@/types/diseaseReport/diseaseReport';
 
 export const PestDiseaseReportPage: React.FC = () => {
   const [page, setPage] = React.useState(0);
   const [size, setSize] = React.useState(10);
   const [sort, setSort] = React.useState<string[]>(['createdAt,desc']);
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [selectedReport, setSelectedReport] = React.useState<DiseaseReportResponse | null>(null);
 
   const { reports, pageData, loading } = useDiseaseReports(page, size, sort);
 
@@ -74,10 +78,18 @@ export const PestDiseaseReportPage: React.FC = () => {
                 </tr>
               ) : reports.length > 0 ? (
                 reports.map((report) => (
-                  <tr key={report.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr 
+                    key={report.id} 
+                    onClick={() => setSelectedReport(report)}
+                    className="hover:bg-slate-50/50 transition-colors cursor-pointer group"
+                  >
                     <td className="px-6 py-4">
                       <div className="font-semibold text-sm text-slate-700">{report.plot?.name || 'Không xác định'}</div>
-                      {report.plot?.status && <div className="text-xs text-slate-500 mt-0.5">{report.plot.status}</div>}
+                      {report.plot?.status && (
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {report.plot.status === 'ACTIVE' ? 'Đang hoạt động' : report.plot.status === 'INACTIVE' ? 'Ngừng hoạt động' : report.plot.status}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-semibold text-sm text-slate-700">{report.crop?.name || 'Không xác định'}</div>
@@ -110,8 +122,15 @@ export const PestDiseaseReportPage: React.FC = () => {
                         <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700">{report.status}</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
-                      {new Date(report.createdAt).toLocaleDateString('vi-VN')} {new Date(report.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-sm text-slate-500">
+                          {new Date(report.createdAt).toLocaleDateString('vi-VN')} {new Date(report.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-red-50 group-hover:text-red-600 transition-colors">
+                          <ChevronRight size={18} />
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -123,7 +142,7 @@ export const PestDiseaseReportPage: React.FC = () => {
                         <Bug size={32} className="text-slate-300" />
                       </div>
                       <p className="text-sm font-semibold text-slate-600 mb-1">Chưa có dữ liệu báo cáo</p>
-                      <p className="text-xs text-slate-500">Dữ liệu sẽ được hiển thị khi API được tích hợp.</p>
+                    
                     </div>
                   </td>
                 </tr>
@@ -193,6 +212,12 @@ export const PestDiseaseReportPage: React.FC = () => {
       <CreateDiseaseReportModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+      />
+
+      <DiseaseReportDetailModal
+        isOpen={!!selectedReport}
+        report={selectedReport}
+        onClose={() => setSelectedReport(null)}
       />
     </div>
   );
