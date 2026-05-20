@@ -50,7 +50,7 @@ export const CropForm: React.FC<CropFormProps> = ({
       description: '',
       imageUrl: '',
       stages: [],
-      soil: { phMin: 5.5, phMax: 7.0, nMin: 100, nMax: 200, pMin: 50, pMax: 100, kMin: 100, kMax: 200 },
+      soil: { phMin: 5.5, phMax: 7.0, nitrogenMin: 100, nitrogenMax: 200, phosphorusMin: 50, phosphorusMax: 100, potassiumMin: 100, potassiumMax: 200, moisturePercent: 60 },
       diseases: [],
     },
   });
@@ -411,12 +411,12 @@ export const CropForm: React.FC<CropFormProps> = ({
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tối thiểu</label>
-                      <input type="number" {...register('soil.nMin', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
+                      <input type="number" {...register('soil.nitrogenMin', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
                     </div>
                     <div className="mt-4 text-slate-300">─</div>
                     <div className="flex-1">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tối đa</label>
-                      <input type="number" {...register('soil.nMax', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
+                      <input type="number" {...register('soil.nitrogenMax', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
                     </div>
                   </div>
                 </div>
@@ -431,12 +431,12 @@ export const CropForm: React.FC<CropFormProps> = ({
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tối thiểu</label>
-                      <input type="number" {...register('soil.pMin', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
+                      <input type="number" {...register('soil.phosphorusMin', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
                     </div>
                     <div className="mt-4 text-slate-300">─</div>
                     <div className="flex-1">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tối đa</label>
-                      <input type="number" {...register('soil.pMax', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
+                      <input type="number" {...register('soil.phosphorusMax', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
                     </div>
                   </div>
                 </div>
@@ -451,12 +451,27 @@ export const CropForm: React.FC<CropFormProps> = ({
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tối thiểu</label>
-                      <input type="number" {...register('soil.kMin', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
+                      <input type="number" {...register('soil.potassiumMin', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
                     </div>
                     <div className="mt-4 text-slate-300">─</div>
                     <div className="flex-1">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tối đa</label>
-                      <input type="number" {...register('soil.kMax', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
+                      <input type="number" {...register('soil.potassiumMax', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Độ ẩm */}
+                <div className="p-8 bg-slate-50/50 rounded-[28px] border border-slate-100 shadow-sm relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-400 opacity-50" />
+                  <h4 className="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2 text-cyan-700">
+                    <Droplets className="w-4 h-4" />
+                    Độ ẩm lý tưởng (%)
+                  </h4>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Phần trăm</label>
+                      <input type="number" {...register('soil.moisturePercent', { valueAsNumber: true })} className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" />
                     </div>
                   </div>
                 </div>
@@ -474,7 +489,7 @@ export const CropForm: React.FC<CropFormProps> = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => appendDisease({ name: '', symptoms: '', treatment: '', images: [] })}
+                  onClick={() => appendDisease({ name: '', symptoms: '', treatment: '', images: [], severityLevel: 'LOW' })}
                   className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 font-bold transition-all"
                 >
                   <Plus className="w-4 h-4" />
@@ -521,6 +536,17 @@ export const CropForm: React.FC<CropFormProps> = ({
                               className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 h-24 resize-none"
                             />
                           </div>
+                        </div>
+                        <div className="mt-4">
+                          <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Mức độ nghiêm trọng</label>
+                          <select
+                            {...register(`diseases.${index}.severityLevel`)}
+                            className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                          >
+                            <option value="LOW">Thấp</option>
+                            <option value="MEDIUM">Trung bình</option>
+                            <option value="HIGH">Cao</option>
+                          </select>
                         </div>
                       </div>
                     </div>

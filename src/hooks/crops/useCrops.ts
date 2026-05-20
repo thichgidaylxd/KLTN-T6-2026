@@ -81,6 +81,9 @@ export const useCrops = (farmId?: string) => {
 
   const createCropConditionMutation = useMutation({
     mutationFn: ({ cropId, request }: { cropId: string, request: CreateCropConditionRequest }) => cropService.createCropConditionByCrop(cropId, request),
+    onSuccess: (_, { cropId }) => {
+      queryClient.invalidateQueries({ queryKey: ['crops', cropId, 'condition'] });
+    }
   });
 
   const deleteCropConditionMutation = useMutation({
@@ -92,6 +95,9 @@ export const useCrops = (farmId?: string) => {
 
   const createCropStageMutation = useMutation({
     mutationFn: ({ cropId, request }: { cropId: string, request: CreateCropStageRequest }) => cropService.createCropStage(cropId, request),
+    onSuccess: (_, { cropId }) => {
+      queryClient.invalidateQueries({ queryKey: ['crops', cropId, 'stages'] });
+    }
   });
 
   const updateCropStageMutation = useMutation({
@@ -131,6 +137,9 @@ export const useCrops = (farmId?: string) => {
 
   const assignDiseaseToCropMutation = useMutation({
     mutationFn: ({ cropId, diseaseId, isPrimary }: { cropId: string, diseaseId: string, isPrimary?: boolean }) => cropService.assignDiseaseToCrop(cropId, diseaseId, isPrimary),
+    onSuccess: (_, { cropId }) => {
+      queryClient.invalidateQueries({ queryKey: ['crops', cropId, 'diseases'] });
+    }
   });
 
   const removeDiseaseFromCropMutation = useMutation({
@@ -267,11 +276,11 @@ export const useCrops = (farmId?: string) => {
       [queryClient],
     ),
     getCropStageByCrop: useCallback(
-      (cropId: string, page = 0, size = 100) =>
+      (cropId: string, page = 0, size = 100, sort: string[] = []) =>
         withUnwrap(
           queryClient.fetchQuery({
-            queryKey: ['crops', cropId, 'stages', page, size],
-            queryFn: async () => (await cropService.getCropStageByCrop(cropId, page, size)).data ?? null,
+            queryKey: ['crops', cropId, 'stages', page, size, sort],
+            queryFn: async () => (await cropService.getCropStageByCrop(cropId, page, size, sort)).data ?? null,
           }),
         ),
       [queryClient],
@@ -287,13 +296,8 @@ export const useCrops = (farmId?: string) => {
       [queryClient],
     ),
     getAllDiseases: useCallback(
-      (page = 0, size = 100) =>
-        withUnwrap(
-          queryClient.fetchQuery({
-            queryKey: ['diseases', page, size],
-            queryFn: async () => (await cropService.getAllDiseases(page, size)).data ?? null,
-          }),
-        ),
+      async (page = 0, size = 100, sort?: string) =>
+        (await cropService.getAllDiseases(page, size, sort)).data ?? null,
       [queryClient],
     ),
     clearError: useCallback(() => undefined, []),

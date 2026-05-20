@@ -56,6 +56,11 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
   const [extraData, setExtraData] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('basic');
+  
+  const [stagePage, setStagePage] = useState(0);
+  const [stageSize, setStageSize] = useState(5);
+  const [stageTotalPages, setStageTotalPages] = useState(0);
+  const [stageSort, setStageSort] = useState<string[]>(['orderIndex,asc']);
 
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
   const [editStageForm, setEditStageForm] = useState<{ name: string; durationDays: number; description: string }>({
@@ -80,12 +85,13 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
   const [conditionForm, setConditionForm] = useState({
     phMin: '',
     phMax: '',
-    nMin: '',
-    nMax: '',
-    pMin: '',
-    pMax: '',
-    kMin: '',
-    kMax: ''
+    nitrogenMin: '',
+    nitrogenMax: '',
+    phosphorusMin: '',
+    phosphorusMax: '',
+    potassiumMin: '',
+    potassiumMax: '',
+    moisturePercent: ''
   });
 
   useEffect(() => {
@@ -95,6 +101,26 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
       }).catch(err => console.error(err));
     }
   }, [activeTab, isOpen, getAllDiseases]);
+
+  const fetchStagesList = React.useCallback(async () => {
+    if (!cropId) return;
+    try {
+      const res = await getCropStageByCrop(cropId, stagePage, stageSize, stageSort);
+      setExtraData((prev: any) => ({
+        ...prev,
+        stages: res?.content || []
+      }));
+      setStageTotalPages(res?.totalPages || 0);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [cropId, stagePage, stageSize, stageSort, getCropStageByCrop]);
+
+  useEffect(() => {
+    if (activeTab === 'stages' && isOpen) {
+      fetchStagesList();
+    }
+  }, [activeTab, isOpen, fetchStagesList]);
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -110,17 +136,16 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
         setResponse(fullResponse);
 
         // Lấy thêm dữ liệu chi tiết
-        const [conditionRes, stagesRes, diseasesRes] = await Promise.all([
+        const [conditionRes, diseasesRes] = await Promise.all([
           getCropConditionByCrop(cropId).catch(() => null),
-          getCropStageByCrop(cropId, 0, 100).catch(() => null),
           getDiseasesByCrop(cropId).catch(() => [])
         ]);
 
-        setExtraData({
+        setExtraData((prev: any) => ({
+          ...prev,
           soil: conditionRes,
-          stages: stagesRes?.content || [],
           diseases: diseasesRes || []
-        });
+        }));
 
       } catch (err) {
         console.error('Error fetching crop detail:', err);
@@ -138,12 +163,13 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
     setConditionForm({
       phMin: '',
       phMax: '',
-      nMin: '',
-      nMax: '',
-      pMin: '',
-      pMax: '',
-      kMin: '',
-      kMax: ''
+      nitrogenMin: '',
+      nitrogenMax: '',
+      phosphorusMin: '',
+      phosphorusMax: '',
+      potassiumMin: '',
+      potassiumMax: '',
+      moisturePercent: ''
     });
     setIsEditingCondition(true);
   };
@@ -153,18 +179,19 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
     
     const phMin = parseFloat(conditionForm.phMin);
     const phMax = parseFloat(conditionForm.phMax);
-    const nMin = parseFloat(conditionForm.nMin);
-    const nMax = parseFloat(conditionForm.nMax);
-    const pMin = parseFloat(conditionForm.pMin);
-    const pMax = parseFloat(conditionForm.pMax);
-    const kMin = parseFloat(conditionForm.kMin);
-    const kMax = parseFloat(conditionForm.kMax);
+    const nitrogenMin = parseFloat(conditionForm.nitrogenMin);
+    const nitrogenMax = parseFloat(conditionForm.nitrogenMax);
+    const phosphorusMin = parseFloat(conditionForm.phosphorusMin);
+    const phosphorusMax = parseFloat(conditionForm.phosphorusMax);
+    const potassiumMin = parseFloat(conditionForm.potassiumMin);
+    const potassiumMax = parseFloat(conditionForm.potassiumMax);
+    const moisturePercent = conditionForm.moisturePercent ? parseFloat(conditionForm.moisturePercent) : undefined;
 
     if (
       isNaN(phMin) || isNaN(phMax) ||
-      isNaN(nMin) || isNaN(nMax) ||
-      isNaN(pMin) || isNaN(pMax) ||
-      isNaN(kMin) || isNaN(kMax)
+      isNaN(nitrogenMin) || isNaN(nitrogenMax) ||
+      isNaN(phosphorusMin) || isNaN(phosphorusMax) ||
+      isNaN(potassiumMin) || isNaN(potassiumMax)
     ) {
       alert('Vui lòng điền đầy đủ và đúng định dạng các trường số.');
       return;
@@ -174,9 +201,10 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
       setLoading(true);
       const res = await createCropCondition(cropId, {
         phMin, phMax,
-        nMin, nMax,
-        pMin, pMax,
-        kMin, kMax
+        nitrogenMin, nitrogenMax,
+        phosphorusMin, phosphorusMax,
+        potassiumMin, potassiumMax,
+        moisturePercent
       });
 
       // Gọi lại API lấy điều kiện để đồng bộ ID mới nhất từ backend
@@ -184,7 +212,7 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
 
       setExtraData((prev: any) => ({
         ...prev,
-        soil: updatedSoil || (res as any)?.data || { id: (res as any)?.data?.id || String(Date.now()), phMin, phMax, nMin, nMax, pMin, pMax, kMin, kMax }
+        soil: updatedSoil || (res as any)?.data || { id: (res as any)?.data?.id || String(Date.now()), phMin, phMax, nitrogenMin, nitrogenMax, phosphorusMin, phosphorusMax, potassiumMin, potassiumMax, moisturePercent }
       }));
       setIsEditingCondition(false);
     } catch (err: any) {
@@ -227,10 +255,7 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
     if (!window.confirm('Bạn có chắc chắn muốn xóa giai đoạn sinh trưởng này?')) return;
     try {
       await deleteCropStage(cropId, stageId);
-      setExtraData((prev: any) => ({
-        ...prev,
-        stages: (prev.stages || []).filter((s: any) => s.id !== stageId)
-      }));
+      await fetchStagesList();
     } catch (err: any) {
       console.error('Lỗi khi xóa giai đoạn:', err);
       alert(err.message || 'Có lỗi xảy ra khi xóa giai đoạn');
@@ -259,14 +284,7 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
         description: editStageForm.description,
         orderIndex: orderIndex
       });
-      setExtraData((prev: any) => ({
-        ...prev,
-        stages: (prev.stages || []).map((s: any) => 
-          s.id === stageId 
-            ? { ...s, name: editStageForm.name, durationDays: editStageForm.durationDays, description: editStageForm.description }
-            : s
-        )
-      }));
+      await fetchStagesList();
       setEditingStageId(null);
     } catch (err: any) {
       console.error('Lỗi khi cập nhật giai đoạn:', err);
@@ -282,23 +300,13 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
     }
     try {
       const nextOrder = (extraData.stages || []).length + 1;
-      const res: any = await createCropStage(cropId, {
+      await createCropStage(cropId, {
         name: newStageForm.name,
         durationDays: newStageForm.durationDays,
         description: newStageForm.description,
         orderIndex: nextOrder
       });
-      const newStage = res.data || {
-        id: res.data?.id || String(Date.now()),
-        name: newStageForm.name,
-        durationDays: newStageForm.durationDays,
-        description: newStageForm.description,
-        orderIndex: nextOrder
-      };
-      setExtraData((prev: any) => ({
-        ...prev,
-        stages: [...(prev.stages || []), newStage]
-      }));
+      await fetchStagesList();
       setNewStageForm({ name: '', durationDays: 1, description: '' });
       setIsAddingStage(false);
     } catch (err: any) {
@@ -610,6 +618,63 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
                   }) : (
                     <div className="text-center py-12 text-slate-400 font-medium">Chưa có thông tin giai đoạn sinh trưởng.</div>
                   )}
+
+                  {extraData.stages?.length > 0 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-100 pt-4 mt-6 gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500 font-medium">Hiển thị:</span>
+                          <select
+                            value={stageSize}
+                            onChange={(e) => {
+                              setStageSize(Number(e.target.value));
+                              setStagePage(0);
+                            }}
+                            className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                          >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500 font-medium">Sắp xếp:</span>
+                          <select
+                            value={stageSort[0]}
+                            onChange={(e) => {
+                              setStageSort([e.target.value]);
+                              setStagePage(0);
+                            }}
+                            className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                          >
+                            <option value="orderIndex,asc">Thứ tự tăng dần</option>
+                            <option value="orderIndex,desc">Thứ tự giảm dần</option>
+                            <option value="durationDays,desc">Số ngày dài nhất</option>
+                            <option value="durationDays,asc">Số ngày ngắn nhất</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled={stagePage === 0}
+                          onClick={() => setStagePage(p => p - 1)}
+                          className="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Trước
+                        </button>
+                        <span className="text-xs font-bold text-slate-600 px-2">
+                          Trang {stagePage + 1} / {stageTotalPages || 1}
+                        </span>
+                        <button
+                          disabled={stagePage >= stageTotalPages - 1}
+                          onClick={() => setStagePage(p => p + 1)}
+                          className="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Sau
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -653,16 +718,16 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
                             <input
                               type="number"
                               placeholder="Min"
-                              value={conditionForm.nMin}
-                              onChange={(e) => setConditionForm(prev => ({ ...prev, nMin: e.target.value }))}
+                              value={conditionForm.nitrogenMin}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, nitrogenMin: e.target.value }))}
                               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
                             />
                             <span className="text-slate-400 font-bold">-</span>
                             <input
                               type="number"
                               placeholder="Max"
-                              value={conditionForm.nMax}
-                              onChange={(e) => setConditionForm(prev => ({ ...prev, nMax: e.target.value }))}
+                              value={conditionForm.nitrogenMax}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, nitrogenMax: e.target.value }))}
                               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
                             />
                           </div>
@@ -675,16 +740,16 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
                             <input
                               type="number"
                               placeholder="Min"
-                              value={conditionForm.pMin}
-                              onChange={(e) => setConditionForm(prev => ({ ...prev, pMin: e.target.value }))}
+                              value={conditionForm.phosphorusMin}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, phosphorusMin: e.target.value }))}
                               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
                             />
                             <span className="text-slate-400 font-bold">-</span>
                             <input
                               type="number"
                               placeholder="Max"
-                              value={conditionForm.pMax}
-                              onChange={(e) => setConditionForm(prev => ({ ...prev, pMax: e.target.value }))}
+                              value={conditionForm.phosphorusMax}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, phosphorusMax: e.target.value }))}
                               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
                             />
                           </div>
@@ -697,16 +762,30 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
                             <input
                               type="number"
                               placeholder="Min"
-                              value={conditionForm.kMin}
-                              onChange={(e) => setConditionForm(prev => ({ ...prev, kMin: e.target.value }))}
+                              value={conditionForm.potassiumMin}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, potassiumMin: e.target.value }))}
                               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
                             />
                             <span className="text-slate-400 font-bold">-</span>
                             <input
                               type="number"
                               placeholder="Max"
-                              value={conditionForm.kMax}
-                              onChange={(e) => setConditionForm(prev => ({ ...prev, kMax: e.target.value }))}
+                              value={conditionForm.potassiumMax}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, potassiumMax: e.target.value }))}
+                              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Độ ẩm */}
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold text-slate-500 uppercase">Độ ẩm (%)</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              placeholder="Ví dụ: 60"
+                              value={conditionForm.moisturePercent}
+                              onChange={(e) => setConditionForm(prev => ({ ...prev, moisturePercent: e.target.value }))}
                               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
                             />
                           </div>
@@ -740,23 +819,29 @@ export const CropDetailModal: React.FC<CropDetailModalProps> = ({
                           Xóa điều kiện
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm">
-                          <span className="text-xs font-bold text-slate-400 uppercase">pH</span>
-                          <div className="text-lg font-bold text-slate-800 mt-1">{extraData.soil.phMin} - {extraData.soil.phMax}</div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="p-3.5 bg-white border border-slate-100 rounded-xl shadow-sm flex flex-col justify-center">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">pH</span>
+                          <div className="text-sm font-bold text-slate-800 mt-1">{extraData.soil.phMin} - {extraData.soil.phMax}</div>
                         </div>
-                        <div className="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm">
-                          <span className="text-xs font-bold text-slate-400 uppercase">Nitơ (N)</span>
-                          <div className="text-lg font-bold text-slate-800 mt-1">{extraData.soil.nMin} - {extraData.soil.nMax} mg/kg</div>
+                        <div className="p-3.5 bg-white border border-slate-100 rounded-xl shadow-sm flex flex-col justify-center">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Nitơ (N)</span>
+                          <div className="text-sm font-bold text-slate-800 mt-1">{extraData.soil.nitrogenMin ?? extraData.soil.nMin} - {extraData.soil.nitrogenMax ?? extraData.soil.nMax} mg/kg</div>
                         </div>
-                        <div className="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm">
-                          <span className="text-xs font-bold text-slate-400 uppercase">Phốt pho (P)</span>
-                          <div className="text-lg font-bold text-slate-800 mt-1">{extraData.soil.pMin} - {extraData.soil.pMax} mg/kg</div>
+                        <div className="p-3.5 bg-white border border-slate-100 rounded-xl shadow-sm flex flex-col justify-center">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Phốt pho (P)</span>
+                          <div className="text-sm font-bold text-slate-800 mt-1">{extraData.soil.phosphorusMin ?? extraData.soil.pMin} - {extraData.soil.phosphorusMax ?? extraData.soil.pMax} mg/kg</div>
                         </div>
-                        <div className="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm">
-                          <span className="text-xs font-bold text-slate-400 uppercase">Kali (K)</span>
-                          <div className="text-lg font-bold text-slate-800 mt-1">{extraData.soil.kMin} - {extraData.soil.kMax} mg/kg</div>
+                        <div className="p-3.5 bg-white border border-slate-100 rounded-xl shadow-sm flex flex-col justify-center">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Kali (K)</span>
+                          <div className="text-sm font-bold text-slate-800 mt-1">{extraData.soil.potassiumMin ?? extraData.soil.kMin} - {extraData.soil.potassiumMax ?? extraData.soil.kMax} mg/kg</div>
                         </div>
+                        {extraData.soil.moisturePercent !== undefined && extraData.soil.moisturePercent !== null && (
+                          <div className="p-3.5 bg-white border border-slate-100 rounded-xl shadow-sm flex flex-col justify-center">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">Độ ẩm</span>
+                            <div className="text-sm font-bold text-slate-800 mt-1">{extraData.soil.moisturePercent}%</div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
