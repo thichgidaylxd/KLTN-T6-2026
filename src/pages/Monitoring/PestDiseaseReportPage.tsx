@@ -6,10 +6,24 @@ import {
 } from 'lucide-react';
 
 import { useDiseaseReports } from '@/hooks/diseaseReport/useDiseaseReports';
+import { diseaseReportService } from '@/services/diseaseReport/diseaseReportService';
 import { Loader2 } from 'lucide-react';
 import { CreateDiseaseReportModal } from './CreateDiseaseReportModal';
 import { DiseaseReportDetailModal } from './DiseaseReportDetailModal';
 import type { DiseaseReportResponse } from '@/types/diseaseReport/diseaseReport';
+
+// Mapping report status to Vietnamese
+const reportStatusMap: Record<string, string> = {
+  'QUEUED': 'Chờ xử lý',
+  'IN_PROGRESS': 'Đang xử lý',
+  'DONE': 'Đã xử lý',
+  'FAILED': 'Thất bại',
+  'CANCELLED': 'Đã hủy'
+};
+
+const getReportStatusInVietnamese = (status: string): string => {
+  return reportStatusMap[status] || status;
+};
 
 export const PestDiseaseReportPage: React.FC = () => {
   const [page, setPage] = React.useState(0);
@@ -17,8 +31,32 @@ export const PestDiseaseReportPage: React.FC = () => {
   const [sort, setSort] = React.useState<string[]>(['createdAt,desc']);
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [selectedReport, setSelectedReport] = React.useState<DiseaseReportResponse | null>(null);
+  const [loadingDiagnosis, setLoadingDiagnosis] = React.useState(false);
 
   const { reports, pageData, loading } = useDiseaseReports(page, size, sort);
+
+  const handleSelectReport = async (report: DiseaseReportResponse) => {
+    setSelectedReport(report);
+    
+    // If diagnosisId exists, fetch diagnosis details
+    if (report.diagnosisId) {
+      setLoadingDiagnosis(true);
+      try {
+        const diagnosisResponse = await diseaseReportService.getDiagnosisDetails(report.diagnosisId);
+        if (diagnosisResponse.data) {
+          // Merge diagnosis data with report data
+          setSelectedReport({
+            ...report,
+            diagnosisDetails: diagnosisResponse.data
+          } as any);
+        }
+      } catch (error) {
+        console.error('Failed to fetch diagnosis details:', error);
+      } finally {
+        setLoadingDiagnosis(false);
+      }
+    }
+  };
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col h-full bg-slate-50">
@@ -80,7 +118,7 @@ export const PestDiseaseReportPage: React.FC = () => {
                 reports.map((report) => (
                   <tr 
                     key={report.id} 
-                    onClick={() => setSelectedReport(report)}
+                    onClick={() => handleSelectReport(report)}
                     className="hover:bg-slate-50/50 transition-colors cursor-pointer group"
                   >
                     <td className="px-6 py-4">
@@ -115,11 +153,12 @@ export const PestDiseaseReportPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      {report.status === 'QUEUED' && <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-yellow-100 text-yellow-700">CHỜ XỬ LÝ</span>}
-                      {report.status === 'IN_PROGRESS' && <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-blue-100 text-blue-700">ĐANG XỬ LÝ</span>}
-                      {report.status === 'COMPLETED' && <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-green-100 text-green-700">ĐÃ XỬ LÝ</span>}
-                      {!['QUEUED', 'IN_PROGRESS', 'COMPLETED'].includes(report.status) && (
-                        <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700">{report.status}</span>
+                      {report.status === 'QUEUED' && <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-yellow-100 text-yellow-700">{getReportStatusInVietnamese('QUEUED')}</span>}
+                      {report.status === 'IN_PROGRESS' && <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-blue-100 text-blue-700">{getReportStatusInVietnamese('IN_PROGRESS')}</span>}
+                      {report.status === 'COMPLETED' && <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-green-100 text-green-700">{getReportStatusInVietnamese('COMPLETED')}</span>}
+                      {report.status === 'FAILED' && <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-red-100 text-red-700">{getReportStatusInVietnamese('FAILED')}</span>}
+                      {!['QUEUED', 'IN_PROGRESS', 'COMPLETED', 'FAILED'].includes(report.status) && (
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700">{getReportStatusInVietnamese(report.status)}</span>
                       )}
                     </td>
                     <td className="px-6 py-4">

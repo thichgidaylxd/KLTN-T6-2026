@@ -1,7 +1,7 @@
 import { axiosInstance } from "@/config/axios";
 import { ApiResponse } from "@/types/auth";
 import { PageableResponse } from "@/types/crop";
-import { DiseaseReportResponse, CreateDiseaseReportRequest } from "@/types/diseaseReport/diseaseReport";
+import { DiseaseReportResponse, CreateDiseaseReportRequest, DiagnosisResponse } from "@/types/diseaseReport/diseaseReport";
 
 export const diseaseReportService = {
   async getDiseaseReports(
@@ -21,6 +21,11 @@ export const diseaseReportService = {
 
   async createDiseaseReport(request: CreateDiseaseReportRequest): Promise<ApiResponse<DiseaseReportResponse>> {
     const response = await axiosInstance.post<ApiResponse<DiseaseReportResponse>>('/api/v1/disease-reports', request);
+    return response.data;
+  },
+
+  async getDiagnosisDetails(diagnosisId: string): Promise<ApiResponse<DiagnosisResponse>> {
+    const response = await axiosInstance.get<ApiResponse<DiagnosisResponse>>(`/api/v1/diagnoses/${diagnosisId}`);
     return response.data;
   }
 };

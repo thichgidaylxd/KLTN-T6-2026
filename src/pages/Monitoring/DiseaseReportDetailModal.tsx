@@ -9,6 +9,43 @@ interface DiseaseReportDetailModalProps {
   onClose: () => void;
 }
 
+// Mapping severity levels to Vietnamese
+const severityMap: Record<string, string> = {
+  'LOW': 'Thấp',
+  'MEDIUM': 'Trung bình',
+  'HIGH': 'Cao',
+  'CRITICAL': 'Nghiêm trọng'
+};
+
+// Mapping report status to Vietnamese
+const reportStatusMap: Record<string, string> = {
+  'QUEUED': 'Chờ xử lý',
+  'IN_PROGRESS': 'Đang xử lý',
+  'DONE': 'Đã xử lý',
+  'FAILED': 'Thất bại',
+  'CANCELLED': 'Đã hủy'
+};
+
+// Mapping diagnosis status to Vietnamese
+const diagnosisStatusMap: Record<string, string> = {
+  'PENDING': 'Chờ xử lý',
+  'PROCESSING': 'Đang xử lý',
+  'COMPLETED': 'Hoàn thành',
+  'FAILED': 'Thất bại'
+};
+
+const getSeverityInVietnamese = (severity: string): string => {
+  return severityMap[severity] || severity;
+};
+
+const getReportStatusInVietnamese = (status: string): string => {
+  return reportStatusMap[status] || status;
+};
+
+const getDiagnosisStatusInVietnamese = (status: string): string => {
+  return diagnosisStatusMap[status] || status;
+};
+
 export const DiseaseReportDetailModal: React.FC<DiseaseReportDetailModalProps> = ({
   report,
   isOpen,
@@ -80,7 +117,7 @@ export const DiseaseReportDetailModal: React.FC<DiseaseReportDetailModalProps> =
                     <div>
                       <p className="text-[11px] text-blue-600/80 font-bold uppercase tracking-wider mb-0.5">Trạng thái</p>
                       <p className="text-sm font-bold text-blue-700 leading-none mt-1">
-                        {report.status === 'QUEUED' ? 'Chờ xử lý' : report.status === 'IN_PROGRESS' ? 'Đang xử lý' : report.status === 'COMPLETED' ? 'Đã xử lý' : report.status}
+                        {getReportStatusInVietnamese(report.status)}
                       </p>
                     </div>
                   </div>
@@ -137,13 +174,51 @@ export const DiseaseReportDetailModal: React.FC<DiseaseReportDetailModalProps> =
                   </div>
                 </div>
 
+                {/* AI Diagnosis Info */}
+                {(report as any).diagnosisDetails && (
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Bug size={14} /> Phân tích AI
+                    </h3>
+                    <div className="bg-purple-50/80 rounded-xl p-4 border border-purple-100 space-y-4">
+                      <div>
+                        <p className="text-xs text-slate-500 font-medium mb-1">Tên bệnh</p>
+                        <p className="text-sm font-bold text-slate-800">{(report as any).diagnosisDetails.diseaseName}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 font-medium mb-1">Trạng thái</p>
+                        <p className="text-sm font-bold text-slate-800">{getDiagnosisStatusInVietnamese((report as any).diagnosisDetails.status)}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium mb-1">Mức độ nghiêm trọng</p>
+                          <p className="text-sm font-bold text-slate-800">{getSeverityInVietnamese((report as any).diagnosisDetails.severity)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium mb-1">Độ tin cậy</p>
+                          <p className="text-sm font-bold text-slate-800">{((report as any).diagnosisDetails.confidence * 100).toFixed(2)}%</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 font-medium mb-1">Khuyến nghị điều trị</p>
+                        <p className="text-sm text-slate-700">{(report as any).diagnosisDetails.treatment}</p>
+                      </div>
+                      {(report as any).diagnosisDetails.needsExpert && (
+                        <div className="bg-orange-100 border border-orange-200 rounded-md p-2">
+                          <p className="text-xs font-medium text-orange-700">⚠️ Cần tư vấn chuyên gia</p>
+                        </div>
+                      )}
+                      <div className="text-xs text-slate-500">
+                        <p>Mô hình AI: {(report as any).diagnosisDetails.aiModel}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
               </div>
 
               {/* Right Column: Image */}
               <div className="flex flex-col h-full">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <ImageIcon size={14} /> Hình ảnh minh họa
-                </h3>
                 <div className="flex-1 min-h-[300px]">
                   {report.imageUrl ? (
                     <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-100 h-full flex items-center justify-center relative">
