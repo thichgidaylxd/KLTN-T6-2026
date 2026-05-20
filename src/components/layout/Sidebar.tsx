@@ -25,6 +25,7 @@ import {
   Bell,
   FlaskConical,
   Bug,
+  Wheat,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../utils/cn";
@@ -71,6 +72,12 @@ const NAV_GROUPS = [
       { key: "suppliers", label: "Nhà cung cấp", icon: Truck, roles: ["owner", "manager", "admin"] },
       { key: "skus", label: "Mã SKU", icon: Tag, roles: ["owner", "manager", "admin"] },
       { key: "members", label: "Thành viên", icon: Users, roles: ["owner", "admin"] },
+    ],
+  },
+  {
+    title: "Thu hoạch",
+    items: [
+      { key: "season-summary", label: "Tổng kết mùa vụ", icon: Wheat, roles: ["owner", "manager", "admin"] },
     ],
   },
 ];
@@ -401,7 +408,7 @@ export default function Sidebar({
           onScroll={checkScroll}
           className="flex-1 min-h-0 overflow-y-auto custom-scrollbar relative"
         >
-          <nav className={cn("flex flex-col gap-1 py-1", collapsed ? "px-2" : "px-3")}>
+          <nav className={cn("flex flex-col gap-0", collapsed ? "px-2" : "px-3")}>
             {NAV_GROUPS.map((group) => {
               const visibleItems = group.items.filter(filterItem);
               if (!visibleItems.length) return null;
@@ -413,9 +420,9 @@ export default function Sidebar({
                     </p>
                   )}
                   {collapsed && (
-                    <div className="h-px bg-slate-100 my-1.5 mx-1" />
+                    <div className="h-px bg-slate-100 my-1 mx-1" />
                   )}
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex flex-col gap-0">
                     {visibleItems.map((item) => (
                       <NavItem
                         key={item.key}
@@ -430,8 +437,8 @@ export default function Sidebar({
             })}
           </nav>
 
-          <div className={cn("pt-1 pb-10 flex flex-col gap-1 shrink-0", collapsed ? "px-2" : "px-3")}>
-            <div className="h-px bg-slate-100 mx-3 my-2" />
+          <div className={cn("pb-2 flex flex-col gap-0 shrink-0", collapsed ? "px-2" : "px-3")}>
+            <div className="h-px bg-slate-100 mx-3 my-1" />
             {FOOTER_ITEMS.map((group) => {
               const visibleItems = group.items.filter(filterItem);
               if (!visibleItems.length) return null;

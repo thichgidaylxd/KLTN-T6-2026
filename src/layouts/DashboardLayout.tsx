@@ -84,6 +84,7 @@ export default function DashboardLayout() {
     if (p.includes("/skus")) return "skus";
     if (p.includes("/soil-profile")) return "soil-profile";
     if (p.includes("/pest-reports")) return "pest-reports";
+    if (p.includes("/season-summary")) return "season-summary";
     if (p.includes("/sessions")) return "sessions";
     if (p.includes("/config")) return "config";
     if (p.includes("/dashboard/notifications")) return "notifications";
@@ -99,7 +100,7 @@ export default function DashboardLayout() {
 
   const [active, setActive] = useState(getActive());
 
-  const wideSidebarPaths = ["/members", "/land-plots", "/map", "/subscription", "/crop-catalog", "/season-plans", "/warehouses", "/suppliers", "/skus", "/pest-reports", "/config"];
+  const wideSidebarPaths = ["/members", "/land-plots", "/map", "/subscription", "/crop-catalog", "/season-plans", "/warehouses", "/suppliers", "/skus", "/pest-reports", "/config", "/season-summary"];
   const isWideSidebarPage =
     wideSidebarPaths.some(path => location.pathname.includes(path)) ||
     (location.pathname.startsWith("/farms") && location.pathname !== "/farms");
@@ -149,7 +150,7 @@ export default function DashboardLayout() {
 
     const farmSpecificKeys = [
       "map", "land-plots", "crop-catalog", "season-plans",
-      "warehouses", "suppliers", "skus", "members", "config", "soil-profile", "pest-reports"
+      "warehouses", "suppliers", "skus", "members", "config", "soil-profile", "pest-reports", "season-summary"
     ];
 
     if (farmSpecificKeys.includes(key)) {
