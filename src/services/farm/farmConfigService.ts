@@ -1,5 +1,6 @@
 import { axiosInstance } from '@/config/axios';
 import { ApiResponse } from '@/types/auth';
+import { tokenStorage } from '@/utils/tokenStorage';
 import type {
   FarmConfig,
   UpdateFarmConfigRequest,
@@ -10,12 +11,10 @@ import type {
   CreateWageConfigRequest,
 } from '@/types/farmConfig';
 
-// Helper: đính kèm X-Farm-Token vào mỗi request cần farm context
-// axiosInstance hiện chỉ gắn accessToken; farm token phải gắn thủ công.
+// Helper: đính kèm X-Farm-Token vào mọi request cần farm context
+// Dùng tokenStorage.get() để hỗ trợ cả localStorage (rememberMe) và sessionStorage.
 const farmHeaders = () => {
-  const farmToken = sessionStorage.getItem('accessToken'); // farm token được lưu vào accessToken sau khi selectFarm
-  // Nếu project lưu farm token riêng, đổi key cho phù hợp:
-  // const farmToken = sessionStorage.getItem('farmToken');
+  const farmToken = tokenStorage.get(tokenStorage.KEYS.accessToken);
   return farmToken ? { 'X-Farm-Token': farmToken } : {};
 };
 
