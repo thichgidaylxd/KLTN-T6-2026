@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { TrendingUp, Filter, Loader2, AlertCircle } from 'lucide-react';
@@ -94,7 +94,7 @@ export const SeasonComparisonPage: React.FC<SeasonComparisonPageProps> = ({
                 <th className="px-6 py-4">Chi phí NL</th>
                 <th className="px-6 py-4">Tổng chi phí</th>
                 <th className="px-6 py-4">Lợi nhuận</th>
-                <th className="px-6 py-4">Margin %</th>
+                <th className="px-6 py-4">Tỷ suất LN</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { usePlans } from '@/hooks/plan/usePlan';
 import { useSeasonSummary, useCompareSeasons } from '@/hooks/harvest/useHarvest';
 import type { Plan } from '@/types/plan/plan';
-import type { SeasonSummaryResponse, SeasonComparisonDetail } from '@/types/harvest/harvest';
+import type { SeasonSummaryResponse} from '@/types/harvest/harvest';
 
 // ─── Helpers ────────────────────────────────────────────────────
 const fmt = (v?: number | null) => v?.toLocaleString('vi-VN') ?? '0';
@@ -303,7 +303,12 @@ const CompareView: React.FC<{
     { key: 'totalRevenue',         label: 'Doanh thu',  format: v => `${fmt(v)} ₫`,      good: 'high' },
     { key: 'totalCost',            label: 'Chi phí',    format: v => `${fmt(v)} ₫`,      good: 'low'  },
     { key: 'grossProfit',          label: 'Lợi nhuận',  format: v => `${fmt(v)} ₫`,      good: 'high' },
-    { key: 'profitMarginPercent',  label: 'Margin %',   format: v => `${v.toFixed(1)}%`, good: 'high' },
+{ 
+  key: 'profitMarginPercent',
+  label: 'Tỷ suất LN',
+  format: v => `${v.toFixed(1)}%`,
+  good: 'high'
+},
     { key: 'totalWorkDays',        label: 'Ngày công',  format: v => `${v} ngày`,        good: 'low'  },
   ];
 

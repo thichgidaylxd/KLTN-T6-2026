@@ -64,15 +64,6 @@ export const useHarvestsByPlan = (
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ harvestId, request }: { harvestId: string; request: UpdateHarvestRequest }) =>
-      harvestService.updateHarvest(farmId, planId, harvestId, request),
-    onSuccess: (_, { harvestId }) => {
-      queryClient.invalidateQueries({ queryKey: HARVEST_KEYS.byPlan(farmId, planId) });
-      queryClient.invalidateQueries({ queryKey: HARVEST_KEYS.detail(harvestId) });
-      queryClient.invalidateQueries({ queryKey: HARVEST_KEYS.seasonSummary(farmId, planId) });
-    },
-  });
 
   return {
     harvests: query.data?.content ?? [],
@@ -83,11 +74,6 @@ export const useHarvestsByPlan = (
     createHarvest: useCallback(
       (request: CreateHarvestRequest) => withUnwrap(createMutation.mutateAsync(request)),
       [createMutation]
-    ),
-    updateHarvest: useCallback(
-      (harvestId: string, request: UpdateHarvestRequest) =>
-        withUnwrap(updateMutation.mutateAsync({ harvestId, request })),
-      [updateMutation]
     ),
   };
 };
@@ -102,80 +88,7 @@ export const useHarvestSummaryByPlan = (farmId: string, planId: string) => {
   });
 };
 
-// ── Harvests by stage ───────────────────────────────────────────
-export const useHarvestsByStage = (
-  farmId: string,
-  planId: string,
-  stageId: string,
-  page: number = 0,
-  size: number = 10
-) => {
-  return useQuery({
-    queryKey: HARVEST_KEYS.byStage(farmId, planId, stageId),
-    queryFn: () =>
-      harvestService.getHarvestsByStage(farmId, planId, stageId, {
-        page, size, sort: ['harvestDate,desc'],
-      }),
-    enabled: !!farmId && !!planId && !!stageId,
-    select: (data) => data.data,
-  });
-};
 
-export const useHarvestSummaryByStage = (farmId: string, planId: string, stageId: string) => {
-  return useQuery({
-    queryKey: HARVEST_KEYS.summaryByStage(farmId, planId, stageId),
-    queryFn: () => harvestService.getHarvestSummaryByStage(farmId, planId, stageId),
-    enabled: !!farmId && !!planId && !!stageId,
-    select: (data) => data.data,
-  });
-};
-
-// ── Harvests by plot ────────────────────────────────────────────
-export const useHarvestsByPlot = (
-  farmId: string,
-  planId: string,
-  plotId: string,
-  page: number = 0,
-  size: number = 10
-) => {
-  return useQuery({
-    queryKey: HARVEST_KEYS.byPlot(farmId, planId, plotId),
-    queryFn: () =>
-      harvestService.getHarvestsByPlot(farmId, planId, plotId, {
-        page, size, sort: ['harvestDate,desc'],
-      }),
-    enabled: !!farmId && !!planId && !!plotId,
-    select: (data) => data.data,
-  });
-};
-
-export const useHarvestSummaryByPlot = (farmId: string, planId: string, plotId: string) => {
-  return useQuery({
-    queryKey: HARVEST_KEYS.summaryByPlot(farmId, planId, plotId),
-    queryFn: () => harvestService.getHarvestSummaryByPlot(farmId, planId, plotId),
-    enabled: !!farmId && !!planId && !!plotId,
-    select: (data) => data.data,
-  });
-};
-
-// ── Harvests by farm ────────────────────────────────────────────
-export const useHarvestsByFarm = (
-  farmId: string,
-  fromDate?: string,
-  toDate?: string,
-  page: number = 0,
-  size: number = 10
-) => {
-  return useQuery({
-    queryKey: HARVEST_KEYS.byFarm(farmId),
-    queryFn: () =>
-      harvestService.getHarvestsByFarm(farmId, fromDate, toDate, {
-        page, size, sort: ['harvestDate,desc'],
-      }),
-    enabled: !!farmId,
-    select: (data) => data.data,
-  });
-};
 
 // ── Reports ─────────────────────────────────────────────────────
 export const useSeasonSummary = (farmId: string, planId: string) => {
@@ -187,23 +100,7 @@ export const useSeasonSummary = (farmId: string, planId: string) => {
   });
 };
 
-export const useMaterialCost = (farmId: string, planId: string) => {
-  return useQuery({
-    queryKey: HARVEST_KEYS.materialCost(farmId, planId),
-    queryFn: () => harvestService.getMaterialCost(farmId, planId),
-    enabled: !!farmId && !!planId,
-    select: (data) => data.data,
-  });
-};
 
-export const useLaborCost = (farmId: string, planId: string) => {
-  return useQuery({
-    queryKey: HARVEST_KEYS.laborCost(farmId, planId),
-    queryFn: () => harvestService.getLaborCost(farmId, planId),
-    enabled: !!farmId && !!planId,
-    select: (data) => data.data,
-  });
-};
 
 export const useCompareSeasons = () => {
   const queryClient = useQueryClient();
