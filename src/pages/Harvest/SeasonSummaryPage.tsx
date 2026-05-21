@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { usePlans } from '@/hooks/plan/usePlan';
 import { useSeasonSummary, useCompareSeasons } from '@/hooks/harvest/useHarvest';
 import type { Plan } from '@/types/plan/plan';
-import type { SeasonSummaryResponse} from '@/types/harvest/harvest';
+import type { SeasonComparisonDetail, SeasonSummaryResponse} from '@/types/harvest/harvest';
 
 // ─── Helpers ────────────────────────────────────────────────────
 const fmt = (v?: number | null) => v?.toLocaleString('vi-VN') ?? '0';

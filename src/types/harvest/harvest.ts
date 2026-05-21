@@ -7,7 +7,25 @@ export interface WarehouseEntryRequest {
   productName?: string;          // tên sản phẩm — required nếu warehouseItemId null
   qty: number;
 }
-
+export interface SeasonComparisonDetail {
+  planId: string;
+  planName: string;
+  cropName: string;
+  planStatus: string;
+  startDate: string;
+  endDate: string;
+  totalRevenue: number;
+  totalMaterialCost: number;
+  totalLaborCost: number;
+  totalCost: number;
+  grossProfit: number;
+  profitMarginPercent: number;
+  totalHarvestQuantity: number;
+  unitCode: string;
+  harvestBatches: number;
+  totalWorkDays: number;
+  profitable: boolean;
+}
 export interface CreateHarvestRequest {
   planId: string;
   planStageId?: string;
