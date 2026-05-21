@@ -40,6 +40,11 @@ import { WorkLogDetailModal } from '../work-log/WorkLogDetailModal';
 import { StatusHistorySection } from './detail/StatusHistorySection';
 import { useTaskStatusDetails } from '@/hooks/taskStatus/useTaskStatus';
 import { usePlanStageStatusDetails } from '@/hooks/seasonPlans/usePlanStageStatus';
+import { warehouseService } from '@/services/warehouse/warehouseService';
+import { useHarvestsByPlan, useHarvestSummaryByPlan } from '@/hooks/harvest';
+import { useUnits } from '@/hooks/units/useUnits';
+import { HarvestSection } from '@/pages/Harvest/HarvestSection';
+import { useQualityGrades } from '@/hooks/qualityGrade/useQualityGrades';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -121,10 +126,26 @@ export function PlanDetailPanel({
   const { plots, fetchPlots, plotsLoading } = usePlots(targetFarmId || undefined);
   const { warehouses, fetchWarehouses } = useWarehouses();
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
+  const [warehouseLocations, setWarehouseLocations] = useState<Record<string, any[]>>({});
+  const handleFetchWarehouseItems = useCallback((warehouseId: string) => {
+  // warehouseItems đã được load bởi useWarehouseItems khi selectedWarehouseId thay đổi
+  // Ở đây ta chỉ cần set warehouseId để hook load
+  setSelectedWarehouseId(warehouseId);
+}, []);
+const handleFetchWarehouseLocations = useCallback(async (warehouseId: string) => {
+  if (warehouseLocations[warehouseId]) return; // đã có cache
+  try {
+    if(!targetFarmId) return;
+    const res = await warehouseService.getWarehouseLocations(targetFarmId, warehouseId);
+    setWarehouseLocations(prev => ({ ...prev, [warehouseId]: res.data }));
+  } catch (e) {
+    console.error('Lỗi load warehouse locations:', e);
+  }
+}, [warehouseLocations, targetFarmId]);
   const { items: warehouseItems } = useWarehouseItems(targetFarmId, selectedWarehouseId || null);
   const { members, fetchMembers, loadingMembers } = useMembers();
 
-  const [activeTab, setActiveTab] = useState<'INFO' | 'MEMBERS' | 'MATERIALS' | 'LOGS' | 'HISTORY'>('INFO');
+const [activeTab, setActiveTab] = useState<'INFO' | 'MEMBERS' | 'MATERIALS' | 'LOGS' | 'HISTORY' | 'HARVEST'>('INFO');
 
   const PANEL_MIN = 280;
 const PANEL_MAX = 640;
@@ -210,7 +231,46 @@ useEffect(() => {
     selection?.type === 'TASK' ? (selection as any).task.id : undefined,
     activeTab === 'LOGS'
   );
+const isHarvestTab = isOpen && activeTab === 'HARVEST';
+const harvestPlanId = (selection?.type === 'PLAN' || selection?.type === 'PHASE')
+  ? selection?.plan.id
+  : null;
+const harvestStageId = selection?.type === 'PHASE' ? (selection as any).phase.id : undefined;
+ 
+const {
+  harvests,
+  isLoading: isHarvestsLoading,
+  createHarvest,
+} = useHarvestsByPlan(
+  targetFarmId ?? '',
+  harvestPlanId ?? '',
+  0, 20, ['harvestDate,desc'],
+);
+const filteredHarvests =
+  selection?.type === 'PHASE'
+    ? harvests.filter(h => h.planStageId === selection.phase.id)
+    : harvests;
+useEffect(() => {
+  if (selectedWarehouseId && warehouseItems.length > 0) {
+    setWarehouseItemsCache(prev => ({ ...prev, [selectedWarehouseId]: warehouseItems }));
+  }
+}, [selectedWarehouseId, warehouseItems]);
+ 
+const { data: harvestSummary = [] } = useHarvestSummaryByPlan(
+  targetFarmId ?? '',
+  harvestPlanId ?? '',
+);
 
+const filteredSummary =
+  selection?.type === 'PHASE'
+    ? harvestSummary.filter(s => s.planStageId === selection.phase.id)
+    : harvestSummary;
+ 
+// Dữ liệu lookup cho HarvestForm
+const { units = [] } = useUnits();                    // hook lấy danh sách đơn vị
+const { qualityGrades = [] } = useQualityGrades();
+const [warehouseItemsCache, setWarehouseItemsCache] = useState<Record<string, any[]>>({});
+    // hook lấy cấp chất lượng
   const {
     histories: taskStatusHistories,
     historiesLoading: taskStatusHistoriesLoading,
@@ -333,13 +393,16 @@ useEffect(() => {
     }
   }, [isOpen, targetFarmId, fetchMembers, fetchPlots]);
 
-  useEffect(() => {
-    const isWarehouseTaskOpen =
-      isOpen && activeTab === 'MATERIALS' && selection?.type === 'TASK';
-    if (isWarehouseTaskOpen && targetFarmId) {
-      void fetchWarehouses(targetFarmId);
-    }
-  }, [selection?.type, activeTab, fetchWarehouses, isOpen, targetFarmId]);
+useEffect(() => {
+  const shouldFetch =
+    isOpen &&
+    (activeTab === 'MATERIALS' || activeTab === 'HARVEST') &&
+    (selection?.type === 'TASK' || selection?.type === 'PLAN' || selection?.type === 'PHASE');
+ 
+  if (shouldFetch && targetFarmId) {
+    void fetchWarehouses(targetFarmId);
+  }
+}, [selection?.type, activeTab, fetchWarehouses, isOpen, targetFarmId]);
 
   useEffect(() => {
     setSelectedWarehouseItemId('');
@@ -684,6 +747,19 @@ console.log("phase.plotId:", (selection as any).phase.plotId);
               >
                 Giao việc
               </button>
+              {(sel.type === 'PLAN' || sel.type === 'PHASE') && (
+  <button
+    onClick={() => setActiveTab('HARVEST')}
+    className={cn(
+      "flex-1 px-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap",
+      activeTab === 'HARVEST'
+        ? "text-emerald-600 border-emerald-600"
+        : "text-slate-400 border-transparent hover:text-slate-600"
+    )}
+  >
+    Thu hoạch
+  </button>
+)}
               {(sel.type === 'TASK' || sel.type === 'PHASE') && (
                 <button
                   onClick={() => setActiveTab('HISTORY')}
@@ -696,6 +772,38 @@ console.log("phase.plotId:", (selection as any).phase.plotId);
                 </button>
               )}
             </div>
+            
+{activeTab === 'HARVEST' && (sel.type === 'PLAN' || sel.type === 'PHASE') && (
+  <motion.div
+    key="harvest"
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+    transition={{ duration: 0.2 }}
+  >
+    
+<HarvestSection
+  planId={sel.plan.id}
+  planStageId={sel.type === 'PHASE' ? (sel as any).phase.id : undefined}
+  plots={sel.plan.plots}
+  harvests={filteredHarvests}
+  summary={filteredSummary}
+      loading={isHarvestsLoading}
+      units={units}
+      qualityGrades={qualityGrades}
+      members={members}
+      warehouses={warehouses}
+      warehouseItems={warehouseItemsCache}
+      warehouseLocations={warehouseLocations}
+      onFetchWarehouseItems={handleFetchWarehouseItems}
+      onFetchWarehouseLocations={handleFetchWarehouseLocations}
+      onCreateHarvest={async (data) => {
+        await createHarvest(data);
+        toast.success('Ghi nhận thu hoạch thành công');
+      }}
+    />
+  </motion.div>
+)}
 
             <AnimatePresence mode="wait">
               {activeTab === 'INFO' && (

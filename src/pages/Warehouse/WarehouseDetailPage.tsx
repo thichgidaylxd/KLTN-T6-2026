@@ -29,6 +29,7 @@ import {
   useTransactionsByWarehouse,
 } from "../../hooks/warehouseTransactions/useWarehouseTransactions";
 import type {
+  TransactionType,
   WarehouseTransaction,
 } from "../../types/warehouseTransaction/warehouseTransaction";
 import { PageableParams } from "../../types/common";
@@ -321,11 +322,15 @@ export function WarehouseDetailPage() {
     [items],
   );
 
-  const filteredItems = items.filter(
-    (item: WarehouseItem) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku?.sku.toLowerCase().includes(searchTerm.toLowerCase()),
+const filteredItems = items.filter((item: WarehouseItem) => {
+  const keyword = searchTerm.toLowerCase();
+  const sku = item.sku?.sku?.toLowerCase() || "";
+
+  return (
+    item.name.toLowerCase().includes(keyword) ||
+    sku.includes(keyword)
   );
+});
 
   const activeLocations = locations.filter(
     (l: WarehouseLocation) => l.isActive,
@@ -474,6 +479,7 @@ export function WarehouseDetailPage() {
     placeholder: "0",
     ...extra,
   });
+  
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -1221,8 +1227,41 @@ export function WarehouseDetailPage() {
                       </thead>
                       <tbody className="divide-y divide-slate-50">
                         {transactions.map((tx: WarehouseTransaction) => {
-                          const isImport = tx.type.startsWith("IMPORT");
-                          const isExport = tx.type.startsWith("EXPORT");
+const isImport =
+  tx.type === "IMPORT_MANUAL" ||
+  tx.type === "HARVEST_IN" ||
+  tx.type === "TRANSFER_IN";
+
+const isExport =
+  tx.type === "EXPORT_TASK" ||
+  tx.type === "EXPORT_MANUAL" ||
+  tx.type === "TRANSFER_OUT";
+    function getTxnLabel(type: TransactionType): string {
+  switch (type) {
+    case 'IMPORT_MANUAL':
+      return "Nhập kho thủ công";
+    case 'HARVEST_IN':
+      return "Nhập kho từ thu hoạch";
+    case 'TRANSFER_IN':
+      return "Nhập kho (chuyển từ location khác)";
+    case 'EXPORT_TASK':
+      return "Xuất kho cho công việc";
+    case 'EXPORT_MANUAL':
+      return "Xuất kho thủ công";
+    case 'TRANSFER_OUT':
+      return "Xuất kho (chuyển sang location khác)";
+    case 'ADJUST_INCREASE':
+      return "Điều chỉnh tồn kho (tăng)";
+    case 'ADJUST_DECREASE':
+      return "Điều chỉnh tồn kho (giảm)";
+    case 'WORKLOG_OUT':
+      return "Xuất kho theo nhật ký công việc";
+    default:
+      return "Khác";
+  }
+}
+
+
                           const itemPrice = tx.warehouseItem.unitPrice ?? 0;
                           const totalValue = Math.abs(tx.qtyChange) * itemPrice;
 
@@ -1243,7 +1282,8 @@ export function WarehouseDetailPage() {
                                     "text-[9px] font-bold px-1.5 rounded uppercase tracking-tighter w-fit",
                                     isImport ? "bg-emerald-50 text-emerald-500" : "bg-rose-50 text-rose-500"
                                   )}>
-                                    {isImport ? "Nhập kho" : isExport ? "Xuất kho" : "Khác"}
+                                    {getTxnLabel(tx.type)}
+
                                   </span>
                                 </div>
                               </td>
@@ -1439,8 +1479,39 @@ export function WarehouseDetailPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {transactions.map((tx: WarehouseTransaction) => {
-                        const isImport = tx.type.startsWith("IMPORT");
-                        const isExport = tx.type.startsWith("EXPORT");
+const isImport =
+  tx.type === "IMPORT_MANUAL" ||
+  tx.type === "HARVEST_IN" ||
+  tx.type === "TRANSFER_IN";
+
+const isExport =
+  tx.type === "EXPORT_TASK" ||
+  tx.type === "EXPORT_MANUAL" ||
+  tx.type === "TRANSFER_OUT";
+    function getTxnLabel(type: TransactionType): string {
+  switch (type) {
+    case 'IMPORT_MANUAL':
+      return "Nhập kho thủ công";
+    case 'HARVEST_IN':
+      return "Nhập kho từ thu hoạch";
+    case 'TRANSFER_IN':
+      return "Nhập kho (chuyển từ location khác)";
+    case 'EXPORT_TASK':
+      return "Xuất kho cho công việc";
+    case 'EXPORT_MANUAL':
+      return "Xuất kho thủ công";
+    case 'TRANSFER_OUT':
+      return "Xuất kho (chuyển sang location khác)";
+    case 'ADJUST_INCREASE':
+      return "Điều chỉnh tồn kho (tăng)";
+    case 'ADJUST_DECREASE':
+      return "Điều chỉnh tồn kho (giảm)";
+    case 'WORKLOG_OUT':
+      return "Xuất kho theo nhật ký công việc";
+    default:
+      return "Khác";
+  }
+}
                         const itemPrice = tx.warehouseItem.unitPrice ?? 0;
                         const totalValue = Math.abs(tx.qtyChange) * itemPrice;
 

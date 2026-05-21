@@ -46,7 +46,7 @@ export const apiWarehouseItemSchema = z.object({
   stock: z.number(),
   reservedQty: z.number().nullable().optional(),
   minStockQty: z.number().nullable().optional(),
-  unitPrice: z.number(),
+  unitPrice: z.number().nullable().optional(),
   warehouse: warehouseSchema,
   unit: unitSchema,
   supplier: supplierSchema.nullable().optional(),

@@ -4,6 +4,7 @@
 export type TransactionType =
   | 'IMPORT_MANUAL'
   | 'EXPORT_MANUAL'
+  | 'EXPORT_TASK'
   | 'TRANSFER_IN'
   | 'TRANSFER_OUT'
   | 'ADJUST_INCREASE'
